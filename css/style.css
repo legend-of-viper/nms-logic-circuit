@@ -1,0 +1,97 @@
+/* ページ全体の基本設定 */
+body {
+  margin: 0;
+  color: #eee;
+  font-family: sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ヘッダー領域（ボタン置き場）の設定 */
+#header {
+  background-color: #333;
+  padding: 10px;
+  border-bottom: 2px solid #555;
+  display: flex;
+  gap: 10px;
+}
+
+/* ボタン共通の設定 */
+button {
+  padding: 5px 15px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* 保存・読込ボタン用のスタイル */
+.file-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+.file-btn:hover {
+  background-color: #45a049;
+}
+
+/* 削除モードボタン用のスタイル */
+.delete-mode-btn {
+  background-color: #666;
+  color: white;
+  border: 2px solid #888;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.delete-mode-btn:hover {
+  background-color: #777;
+  border-color: #999;
+}
+
+/* 削除モードON時のスタイル */
+.delete-mode-btn.active {
+  background-color: #ff3232;
+  border-color: #ff6666;
+  color: white;
+  box-shadow: 0 0 10px rgba(255, 50, 50, 0.5);
+}
+
+.delete-mode-btn.active:hover {
+  background-color: #ff4444;
+  border-color: #ff7777;
+}
+
+/* スペーサー */
+.spacer {
+  flex-grow: 1;
+}
+
+/* 90度スナップトグル */
+.rotation-snap-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #eee;
+  cursor: pointer;
+  user-select: none;
+}
+
+.rotation-snap-toggle input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.rotation-snap-toggle span {
+  font-size: 14px;
+}
+
+/* キャンバス領域の設定 */
+#canvas-container {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

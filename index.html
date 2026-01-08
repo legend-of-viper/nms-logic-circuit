@@ -1,10 +1,38 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <title>NMS Logic Circuit Simulator</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NMS Logic Simulator</title>
+  
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- p5.js ライブラリ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+  
+  <!-- メインアプリケーション（ES6モジュール） -->
+  <script type="module" src="js/main.js"></script>
 </head>
 <body>
-  <h1>Hello, No Man's Sky!</h1>
-  <p>NMS論理回路シミュレータです（テスト中）</p>
+  <div id="header">
+    <button id="btn-power"></button>
+    <button id="btn-auto-switch"></button>
+    <button id="btn-inverter"></button>
+    <button id="btn-button"></button>
+    <button id="btn-wall-switch"></button>
+    <button id="btn-color-light"></button>
+    <button id="btn-delete-mode" class="delete-mode-btn"></button>
+    <div class="spacer"></div>
+    
+    <label class="rotation-snap-toggle">
+      <input type="checkbox" id="rotation-snap-checkbox" checked>
+      <span>90度スナップ</span>
+    </label>
+    
+    <button class="file-btn" id="btn-save"></button>
+    <button class="file-btn" id="btn-load"></button>
+  </div>
+  
+  <div id="canvas-container"></div>
 </body>
 </html>
