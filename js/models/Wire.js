@@ -1,6 +1,6 @@
 'use strict';
 
-import { APP_CONFIG } from '../config/constants.js';
+import { CONST } from '../config/constants.js';
 
 /**
  * ワイヤークラス
@@ -91,8 +91,8 @@ export class Wire {
     const end = this.endSocket.getConnectorWorldPosition();
 
     noFill();
-    stroke(...APP_CONFIG.COLORS.OFF_STATE);
-    strokeWeight(APP_CONFIG.WIRE.STROKE_WEIGHT);
+    stroke(...CONST.COLORS.OFF_STATE);
+    strokeWeight(CONST.WIRE.STROKE_WEIGHT);
     
     line(start.x, start.y, end.x, end.y);
   }

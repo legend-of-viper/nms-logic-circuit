@@ -2,7 +2,7 @@
 
 import { CircuitPart } from './CircuitPart.js';
 import { Socket } from './Socket.js';
-import { APP_CONFIG } from '../config/constants.js';
+import { CONST } from '../config/constants.js';
 
 const LOCAL_CONST = {
   RED: [255, 50, 50],      // 明るい赤（朱色っぽい）
@@ -20,8 +20,8 @@ export class WallSwitch extends CircuitPart {
     
     // ソケットを作成（Socket配列）
     this.sockets = [
-      new Socket(this, 'left', -APP_CONFIG.PARTS.WIDTH / 2, 0, 'left'),
-      new Socket(this, 'right', APP_CONFIG.PARTS.WIDTH / 2, 0, 'right')
+      new Socket(this, 'left', -CONST.PARTS.WIDTH / 2, 0, 'left'),
+      new Socket(this, 'right', CONST.PARTS.WIDTH / 2, 0, 'right')
     ];
   }
   
@@ -45,24 +45,24 @@ export class WallSwitch extends CircuitPart {
   drawBody(color) {
     // 外枠
     stroke(...color);
-    strokeWeight(APP_CONFIG.PARTS.STROKE_WIDTH);
-    fill(APP_CONFIG.COLORS.BACKGROUND);
+    strokeWeight(CONST.PARTS.STROKE_WIDTH);
+    fill(CONST.COLORS.BACKGROUND);
     rectMode(CENTER);
-    rect(0, 0, APP_CONFIG.PARTS.WIDTH, APP_CONFIG.PARTS.HEIGHT, 8);
+    rect(0, 0, CONST.PARTS.WIDTH, CONST.PARTS.HEIGHT, 8);
 
     // スイッチ固有の内部描画（レバー）
     rectMode(CORNER);
     fill(...LOCAL_CONST.RED);
-    rect(-APP_CONFIG.PARTS.WIDTH * 0.15, -APP_CONFIG.PARTS.HEIGHT * 0.1, 
-         APP_CONFIG.PARTS.WIDTH * 0.3, APP_CONFIG.PARTS.HEIGHT * 0.2);
+    rect(-CONST.PARTS.WIDTH * 0.15, -CONST.PARTS.HEIGHT * 0.1, 
+         CONST.PARTS.WIDTH * 0.3, CONST.PARTS.HEIGHT * 0.2);
 
     noFill();
     stroke(...LOCAL_CONST.RED);
     strokeWeight(LOCAL_CONST.LEVER_THICKNESS);
     
-    rect(-APP_CONFIG.PARTS.WIDTH * 0.3, 
-         -(this.isOn ? 0 : APP_CONFIG.PARTS.HEIGHT * 0.3), 
-         APP_CONFIG.PARTS.WIDTH * 0.6, 
-         APP_CONFIG.PARTS.HEIGHT * 0.3);
+    rect(-CONST.PARTS.WIDTH * 0.3, 
+         -(this.isOn ? 0 : CONST.PARTS.HEIGHT * 0.3), 
+         CONST.PARTS.WIDTH * 0.6, 
+         CONST.PARTS.HEIGHT * 0.3);
   }
 }

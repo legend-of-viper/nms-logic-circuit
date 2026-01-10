@@ -1,6 +1,6 @@
 'use strict';
 
-import { APP_CONFIG } from '../config/constants.js';
+import { CONST } from '../config/constants.js';
 
 /**
  * 回路部品の基底クラス
@@ -37,8 +37,8 @@ export class CircuitPart {
    */
   getCenterPos() {
     return {
-      x: this.x + APP_CONFIG.PARTS.WIDTH / 2,
-      y: this.y + APP_CONFIG.PARTS.HEIGHT / 2
+      x: this.x + CONST.PARTS.WIDTH / 2,
+      y: this.y + CONST.PARTS.HEIGHT / 2
     };
   }
 
@@ -91,7 +91,7 @@ export class CircuitPart {
    * @returns {{x: number, y: number}} 回転ハンドルの座標
    */
   getRotationHandlePos() {
-    const distance = APP_CONFIG.PARTS.ROTATION_HANDLE_DISTANCE;
+    const distance = CONST.PARTS.ROTATION_HANDLE_DISTANCE;
     return this.localToWorld(0, -distance);
   }
 
@@ -102,7 +102,7 @@ export class CircuitPart {
   isMouseOverRotationHandle() {
     const handlePos = this.getRotationHandlePos();
     const distance = dist(mouseX, mouseY, handlePos.x, handlePos.y);
-    return distance < APP_CONFIG.PARTS.ROTATION_HANDLE_HIT_RADIUS;
+    return distance < CONST.PARTS.ROTATION_HANDLE_HIT_RADIUS;
   }
 
   /**
@@ -201,8 +201,8 @@ export class CircuitPart {
    */
   isMouseOver() {
     // 簡易的な矩形判定（回転を考慮しない）
-    return (mouseX > this.x && mouseX < this.x + APP_CONFIG.PARTS.WIDTH &&
-            mouseY > this.y && mouseY < this.y + APP_CONFIG.PARTS.HEIGHT);
+    return (mouseX > this.x && mouseX < this.x + CONST.PARTS.WIDTH &&
+            mouseY > this.y && mouseY < this.y + CONST.PARTS.HEIGHT);
   }
 
   /**
@@ -298,7 +298,7 @@ export class CircuitPart {
     }
     
     const color = (this.isOn && isPoweredAtLeftOrRight) ? 
-      APP_CONFIG.COLORS.ON_STATE : APP_CONFIG.COLORS.OFF_STATE;
+      CONST.COLORS.ON_STATE : CONST.COLORS.OFF_STATE;
     
     // 回転座標系で描画
     push();
@@ -328,10 +328,10 @@ export class CircuitPart {
    */
   drawBody(color) {
     stroke(...color);
-    strokeWeight(APP_CONFIG.PARTS.STROKE_WIDTH);
-    fill(APP_CONFIG.COLORS.BACKGROUND);
+    strokeWeight(CONST.PARTS.STROKE_WIDTH);
+    fill(CONST.COLORS.BACKGROUND);
     rectMode(CENTER);
-    rect(0, 0, APP_CONFIG.PARTS.WIDTH, APP_CONFIG.PARTS.HEIGHT, 8);
+    rect(0, 0, CONST.PARTS.WIDTH, CONST.PARTS.HEIGHT, 8);
   }
 
   /**
@@ -344,7 +344,7 @@ export class CircuitPart {
     // ハンドルの円
     noStroke();
     fill(isHovered ? [100, 150, 255, 200] : [150, 150, 150, 150]);
-    circle(handlePos.x, handlePos.y, APP_CONFIG.PARTS.ROTATION_HANDLE_RADIUS * 2);
+    circle(handlePos.x, handlePos.y, CONST.PARTS.ROTATION_HANDLE_RADIUS * 2);
     
     // 回転マーク（円形矢印）
     push();
@@ -353,13 +353,13 @@ export class CircuitPart {
     noFill();
     stroke(isHovered ? [255, 255, 255] : [200, 200, 200]);
     strokeWeight(2);
-    arc(0, 0, APP_CONFIG.PARTS.ROTATION_HANDLE_RADIUS * 1.2, 
-        APP_CONFIG.PARTS.ROTATION_HANDLE_RADIUS * 1.2, 
+    arc(0, 0, CONST.PARTS.ROTATION_HANDLE_RADIUS * 1.2, 
+        CONST.PARTS.ROTATION_HANDLE_RADIUS * 1.2, 
         -PI * 0.75, PI * 0.75);
     
     const arrowSize = 4;
     const arrowAngle = PI * 0.75;
-    const radius = APP_CONFIG.PARTS.ROTATION_HANDLE_RADIUS * 0.6;
+    const radius = CONST.PARTS.ROTATION_HANDLE_RADIUS * 0.6;
     const arrowX = radius * Math.cos(arrowAngle);
     const arrowY = radius * Math.sin(arrowAngle);
     

@@ -2,7 +2,7 @@
 
 import { CircuitPart } from './CircuitPart.js';
 import { Socket } from './Socket.js';
-import { APP_CONFIG } from '../config/constants.js';
+import { CONST } from '../config/constants.js';
 
 // ColorLight固有の色定義
 const LOCAL_CONST = {
@@ -22,7 +22,7 @@ export class ColorLight extends CircuitPart {
     
     // ソケットを作成（入力のみ・下部）
     this.sockets = [
-      new Socket(this, 'bottom', 0, APP_CONFIG.PARTS.HEIGHT*1.4 / 2, 'bottom')
+      new Socket(this, 'bottom', 0, CONST.PARTS.HEIGHT*1.4 / 2, 'bottom')
     ];
   }
 
@@ -45,8 +45,8 @@ export class ColorLight extends CircuitPart {
    * カラーライトの描画（相対座標、中心が原点）
    */
   drawBody(color) {
-    const w = APP_CONFIG.PARTS.WIDTH;
-    const h = APP_CONFIG.PARTS.HEIGHT * 1.5;
+    const w = CONST.PARTS.WIDTH;
+    const h = CONST.PARTS.HEIGHT * 1.5;
     
     // カプセル型（スタジアム型）の内部色を決定
     const fillColor = this.isOn ? LOCAL_CONST.LIT_COLOR : LOCAL_CONST.UNLIT_COLOR;
@@ -54,7 +54,7 @@ export class ColorLight extends CircuitPart {
     // カプセル型を描画（矩形の角を大きく丸める）
     fill(...fillColor);
     stroke(...color);
-    strokeWeight(APP_CONFIG.PARTS.STROKE_WIDTH);
+    strokeWeight(CONST.PARTS.STROKE_WIDTH);
     rectMode(CENTER);
     rect(0, 0, w , h , w * 0.5); // radiusを高さの半分程度にしてカプセル型に
   }

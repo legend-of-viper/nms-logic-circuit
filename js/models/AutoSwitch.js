@@ -2,7 +2,7 @@
 
 import { CircuitPart } from './CircuitPart.js';
 import { Socket } from './Socket.js';
-import { APP_CONFIG } from '../config/constants.js';
+import { CONST } from '../config/constants.js';
 
 const LOCAL_CONST = {
   GREEN: [100, 255, 100],
@@ -19,9 +19,9 @@ export class AutoSwitch extends CircuitPart {
     
     // ソケットを作成
     this.sockets = [
-      new Socket(this, 'left', -APP_CONFIG.PARTS.WIDTH / 2, 0, 'left'),
-      new Socket(this, 'right', APP_CONFIG.PARTS.WIDTH / 2, 0, 'right'),
-      new Socket(this, 'control', 0, APP_CONFIG.PARTS.HEIGHT / 2, 'bottom')
+      new Socket(this, 'left', -CONST.PARTS.WIDTH / 2, 0, 'left'),
+      new Socket(this, 'right', CONST.PARTS.WIDTH / 2, 0, 'right'),
+      new Socket(this, 'control', 0, CONST.PARTS.HEIGHT / 2, 'bottom')
     ];
     
     // オートスイッチは制御入力で動作
@@ -49,8 +49,8 @@ export class AutoSwitch extends CircuitPart {
     fill(LOCAL_CONST.GREEN);
     rectMode(CENTER);
     // 横棒
-    rect(0, -APP_CONFIG.PARTS.HEIGHT * 0.1, APP_CONFIG.PARTS.WIDTH * 0.5, APP_CONFIG.PARTS.HEIGHT * 0.25);
+    rect(0, -CONST.PARTS.HEIGHT * 0.1, CONST.PARTS.WIDTH * 0.5, CONST.PARTS.HEIGHT * 0.25);
     // 縦棒
-    rect(0, 0, APP_CONFIG.PARTS.WIDTH * 0.25, APP_CONFIG.PARTS.HEIGHT * 0.4);
+    rect(0, 0, CONST.PARTS.WIDTH * 0.25, CONST.PARTS.HEIGHT * 0.4);
   }
 }

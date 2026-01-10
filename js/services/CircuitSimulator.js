@@ -1,13 +1,8 @@
 'use strict';
 
 import { Wire } from '../models/Wire.js';
-import { WallSwitch } from '../models/WallSwitch.js';
-import { Button } from '../models/Button.js';
-import { AutoSwitch } from '../models/AutoSwitch.js';
-import { Inverter } from '../models/Inverter.js';
-import { Power } from '../models/Power.js';
-import { ColorLight } from '../models/ColorLight.js';
-import { APP_CONFIG } from '../config/constants.js';
+import { PartFactory } from '../models/PartFactory.js';
+import { CONST } from '../config/constants.js';
 
 /**
  * 回路シミュレーターサービス
@@ -91,37 +86,33 @@ export class CircuitSimulator {
     }
   }
 
-  /**
+/**
    * 部品を作成して追加
    * @param {string} type - 部品タイプ ('SWITCH', 'BUTTON', etc.)
    */
   createPart(type) {
     const newId = Date.now();
-    let newPart;
     
-    switch(type) {
-      case 'POWER':
-        newPart = new Power(newId, 100 + random(50), 100 + random(50));
-        break;
-      case 'WALL_SWITCH':
-        newPart = new WallSwitch(newId, 100 + random(50), 100 + random(50));
-        break;
-      case 'BUTTON':
-        newPart = new Button(newId, 200 + random(50), 100 + random(50));
-        break;
-      case 'AUTO_SWITCH':
-        newPart = new AutoSwitch(newId, 300 + random(50), 100 + random(50));
-        break;
-      case 'INVERTER':
-        newPart = new Inverter(newId, 400 + random(50), 100 + random(50));
-        break;
-      case 'COLOR_LIGHT':
-        newPart = new ColorLight(newId, 500 + random(50), 100 + random(50));
-        break;
-      default:
-        console.warn(`未実装の部品タイプ: ${type}`);
-        return;
-    }
+    // 部品ごとの初期配置X座標（元のコードの挙動を再現）
+    // Refactor: 将来的には定数ファイルやUI側で管理しても良い
+    const basePositions = {
+      'POWER': 100,
+      'WALL_SWITCH': 100,
+      'BUTTON': 200,
+      'AUTO_SWITCH': 300,
+      'INVERTER': 400,
+      'COLOR_LIGHT': 500
+    };
+
+    // デフォルトは100、それ以外はマップから取得
+    const baseX = basePositions[type] || 100;
+    
+    // 座標に少しランダム性を持たせる (p5.jsのrandom関数を使用)
+    const x = baseX + random(50);
+    const y = 100 + random(50);
+
+    // ★Factoryを使って生成
+    const newPart = PartFactory.create(type, newId, x, y);
     
     if (newPart) {
       this.parts.push(newPart);
@@ -147,7 +138,7 @@ export class CircuitSimulator {
         
         // 同じソケットでなく、かつヒット範囲内ならスナップ
         const isSameSocket = (socket === this.wiringStartNode.socket);
-        if (!isSameSocket && distance < APP_CONFIG.PARTS.SOCKET_HIT_RADIUS) {
+        if (!isSameSocket && distance < CONST.PARTS.SOCKET_HIT_RADIUS) {
           endPos = connectorPos;
           snapped = true;
           break;
@@ -156,7 +147,7 @@ export class CircuitSimulator {
       if (snapped) break;
     }
     
-    stroke(...APP_CONFIG.COLORS.WIRE_TEMP, APP_CONFIG.WIRE.TEMP_ALPHA);
+    stroke(...CONST.COLORS.WIRE_TEMP, CONST.WIRE.TEMP_ALPHA);
     strokeWeight(2);
     
     line(startPos.x, startPos.y, endPos.x, endPos.y);
@@ -186,8 +177,8 @@ export class CircuitSimulator {
       const end = targetWire.endSocket.getConnectorWorldPosition();
       
       // ワイヤーを太くハイライト
-      stroke(...APP_CONFIG.DELETE_MODE.HIGHLIGHT_COLOR);
-      strokeWeight(APP_CONFIG.DELETE_MODE.HIGHLIGHT_STROKE_WEIGHT + 2);
+      stroke(...CONST.DELETE_MODE.HIGHLIGHT_COLOR);
+      strokeWeight(CONST.DELETE_MODE.HIGHLIGHT_STROKE_WEIGHT + 2);
       line(start.x, start.y, end.x, end.y);
       
       // ワイヤーの中点にバツ印を表示
@@ -210,7 +201,7 @@ export class CircuitSimulator {
     
     // ワイヤーが見つからなかった場合、近くのパーツを探す
     let targetPart = null;
-    const snapDistance = APP_CONFIG.PARTS.WIDTH * APP_CONFIG.DELETE_MODE.SNAP_DISTANCE_MULTIPLIER;
+    const snapDistance = CONST.PARTS.WIDTH * CONST.DELETE_MODE.SNAP_DISTANCE_MULTIPLIER;
     
     for (let i = this.parts.length - 1; i >= 0; i--) {
       const part = this.parts[i];
@@ -226,11 +217,11 @@ export class CircuitSimulator {
     // ハイライトを描画
     push();
     noFill();
-    stroke(...APP_CONFIG.DELETE_MODE.HIGHLIGHT_COLOR);
-    strokeWeight(APP_CONFIG.DELETE_MODE.HIGHLIGHT_STROKE_WEIGHT);
+    stroke(...CONST.DELETE_MODE.HIGHLIGHT_COLOR);
+    strokeWeight(CONST.DELETE_MODE.HIGHLIGHT_STROKE_WEIGHT);
     
-    const halfW = APP_CONFIG.PARTS.WIDTH / 2;
-    const halfH = APP_CONFIG.PARTS.HEIGHT / 2;
+    const halfW = CONST.PARTS.WIDTH / 2;
+    const halfH = CONST.PARTS.HEIGHT / 2;
     const padding = 8;
     
     let highlightX, highlightY;
@@ -242,14 +233,14 @@ export class CircuitSimulator {
       highlightY = center.y;
       
       // スナップ時はより強調（太い線、より大きなパディング）
-      strokeWeight(APP_CONFIG.DELETE_MODE.HIGHLIGHT_STROKE_WEIGHT + 1);
+      strokeWeight(CONST.DELETE_MODE.HIGHLIGHT_STROKE_WEIGHT + 1);
     } else {
       // カーソル位置に表示
       highlightX = mouseX;
       highlightY = mouseY;
       
       // 半透明にして「まだスナップしていない」感を出す
-      stroke(...APP_CONFIG.DELETE_MODE.HIGHLIGHT_COLOR, 150);
+      stroke(...CONST.DELETE_MODE.HIGHLIGHT_COLOR, 150);
     }
     
     // ハイライト枠を描画（中心座標基準）
@@ -257,8 +248,8 @@ export class CircuitSimulator {
     rect(
       highlightX,
       highlightY,
-      APP_CONFIG.PARTS.WIDTH + padding * 2,
-      APP_CONFIG.PARTS.HEIGHT + padding * 2,
+      CONST.PARTS.WIDTH + padding * 2,
+      CONST.PARTS.HEIGHT + padding * 2,
       5
     );
     rectMode(CORNER); // デフォルトに戻す
@@ -298,7 +289,7 @@ export class CircuitSimulator {
    * キャンバスの更新と描画
    */
   update() {
-    background(APP_CONFIG.COLORS.BACKGROUND);
+    background(CONST.COLORS.BACKGROUND);
 
     // 1. パーツを更新して描画
     for (let part of this.parts) {

@@ -2,13 +2,13 @@
 
 import { CircuitPart } from './CircuitPart.js';
 import { Socket } from './Socket.js';
-import { APP_CONFIG } from '../config/constants.js';
+import { CONST } from '../config/constants.js';
 
 // Button固有の色定義
 const LOCAL_CONST = {
   RED: [255, 50, 50],      // 明るい赤（朱色っぽい）
   DARK_RED: [100, 0, 0],      // 限りなく黒に近い暗い赤
-  BUTTON_SIZE: APP_CONFIG.PARTS.WIDTH * 0.7,           // ボタンのサイズ（直径比率）
+  BUTTON_SIZE: CONST.PARTS.WIDTH * 0.7,           // ボタンのサイズ（直径比率）
   OUTLINE_WEIGHT: 3          // 枠線の太さ
 };
 
@@ -24,8 +24,8 @@ export class Button extends CircuitPart {
     
     // ソケットを作成（Socket配列）
     this.sockets = [
-      new Socket(this, 'left', -APP_CONFIG.PARTS.WIDTH / 2, 0, 'left'),
-      new Socket(this, 'right', APP_CONFIG.PARTS.WIDTH / 2, 0, 'right')
+      new Socket(this, 'left', -CONST.PARTS.WIDTH / 2, 0, 'left'),
+      new Socket(this, 'right', CONST.PARTS.WIDTH / 2, 0, 'right')
     ];
   }
 
@@ -34,7 +34,7 @@ export class Button extends CircuitPart {
    */
   interact() {
     this.isOn = true;
-    this.offTime = millis() + APP_CONFIG.BUTTON.ON_DURATION; 
+    this.offTime = millis() + CONST.BUTTON.ON_DURATION; 
   }
 
   /**

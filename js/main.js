@@ -2,7 +2,7 @@
 
 import { CircuitSimulator } from './services/CircuitSimulator.js';
 import { UIController } from './ui/UIController.js';
-import { APP_CONFIG } from './config/constants.js';
+import { CONST } from './config/constants.js';
 
 // グローバル変数（p5.jsとの連携のため必要）
 let simulator;
@@ -18,7 +18,7 @@ window.setup = function() {
   canvas.parent('canvas-container');
   
   // 背景色の設定
-  const bgRGB = APP_CONFIG.COLORS.BACKGROUND;
+  const bgRGB = CONST.COLORS.BACKGROUND;
   select('body').style('background-color', `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]})`);
   select('#canvas-container').style('background-color', `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]})`);
   

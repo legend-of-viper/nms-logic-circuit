@@ -1,7 +1,7 @@
 'use strict';
 
 // アプリ全体で使う定数（設定値）をここにまとめる
-export const APP_CONFIG = {
+export const CONST = {
   // 色の設定
   COLORS: {
     BACKGROUND: [30, 30, 30],

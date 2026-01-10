@@ -1,6 +1,6 @@
 'use strict';
 
-import { APP_CONFIG } from '../config/constants.js';
+import { CONST } from '../config/constants.js';
 
 /**
  * ソケットクラス
@@ -42,13 +42,13 @@ export class Socket {
     
     switch (this.direction) {
       case 'left':
-        offsetX = -APP_CONFIG.PARTS.CONNECTOR_HEIGHT;
+        offsetX = -CONST.PARTS.CONNECTOR_HEIGHT;
         break;
       case 'right':
-        offsetX = APP_CONFIG.PARTS.CONNECTOR_HEIGHT;
+        offsetX = CONST.PARTS.CONNECTOR_HEIGHT;
         break;
       case 'bottom':
-        offsetY = APP_CONFIG.PARTS.CONNECTOR_HEIGHT;
+        offsetY = CONST.PARTS.CONNECTOR_HEIGHT;
         break;
     }
     
@@ -61,7 +61,7 @@ export class Socket {
    */
   isMouseOver() {
     const worldPos = this.getConnectorWorldPosition();
-    return dist(mouseX, mouseY, worldPos.x, worldPos.y) < APP_CONFIG.PARTS.SOCKET_HIT_RADIUS;
+    return dist(mouseX, mouseY, worldPos.x, worldPos.y) < CONST.PARTS.SOCKET_HIT_RADIUS;
   }
 
   /**
@@ -93,34 +93,34 @@ export class Socket {
     let connectorLocalY = this.localY;
     
     noStroke();
-    fill(APP_CONFIG.COLORS.OFF_STATE);
+    fill(CONST.COLORS.OFF_STATE);
     
     switch (this.direction) {
       case 'left':
-        rectX = this.localX - APP_CONFIG.PARTS.SOCKET_HEIGHT - APP_CONFIG.PARTS.STROKE_WIDTH / 2;
-        rectY = this.localY - APP_CONFIG.PARTS.SOCKET_WIDTH / 2;
-        rectW = APP_CONFIG.PARTS.SOCKET_HEIGHT;
-        rectH = APP_CONFIG.PARTS.SOCKET_WIDTH;
+        rectX = this.localX - CONST.PARTS.SOCKET_HEIGHT - CONST.PARTS.STROKE_WIDTH / 2;
+        rectY = this.localY - CONST.PARTS.SOCKET_WIDTH / 2;
+        rectW = CONST.PARTS.SOCKET_HEIGHT;
+        rectH = CONST.PARTS.SOCKET_WIDTH;
         triangleBaseX = rectX;
-        connectorLocalX = this.localX - APP_CONFIG.PARTS.CONNECTOR_HEIGHT;
+        connectorLocalX = this.localX - CONST.PARTS.CONNECTOR_HEIGHT;
         break;
         
       case 'right':
-        rectX = this.localX + APP_CONFIG.PARTS.STROKE_WIDTH / 2;
-        rectY = this.localY - APP_CONFIG.PARTS.SOCKET_WIDTH / 2;
-        rectW = APP_CONFIG.PARTS.SOCKET_HEIGHT;
-        rectH = APP_CONFIG.PARTS.SOCKET_WIDTH;
-        triangleBaseX = rectX + APP_CONFIG.PARTS.SOCKET_HEIGHT;
-        connectorLocalX = this.localX + APP_CONFIG.PARTS.CONNECTOR_HEIGHT;
+        rectX = this.localX + CONST.PARTS.STROKE_WIDTH / 2;
+        rectY = this.localY - CONST.PARTS.SOCKET_WIDTH / 2;
+        rectW = CONST.PARTS.SOCKET_HEIGHT;
+        rectH = CONST.PARTS.SOCKET_WIDTH;
+        triangleBaseX = rectX + CONST.PARTS.SOCKET_HEIGHT;
+        connectorLocalX = this.localX + CONST.PARTS.CONNECTOR_HEIGHT;
         break;
         
       case 'bottom':
-        rectX = this.localX - APP_CONFIG.PARTS.SOCKET_WIDTH / 2;
-        rectY = this.localY + APP_CONFIG.PARTS.STROKE_WIDTH / 2;
-        rectW = APP_CONFIG.PARTS.SOCKET_WIDTH;
-        rectH = APP_CONFIG.PARTS.SOCKET_HEIGHT;
-        triangleBaseY = rectY + APP_CONFIG.PARTS.SOCKET_HEIGHT;
-        connectorLocalY = this.localY + APP_CONFIG.PARTS.CONNECTOR_HEIGHT;
+        rectX = this.localX - CONST.PARTS.SOCKET_WIDTH / 2;
+        rectY = this.localY + CONST.PARTS.STROKE_WIDTH / 2;
+        rectW = CONST.PARTS.SOCKET_WIDTH;
+        rectH = CONST.PARTS.SOCKET_HEIGHT;
+        triangleBaseY = rectY + CONST.PARTS.SOCKET_HEIGHT;
+        connectorLocalY = this.localY + CONST.PARTS.CONNECTOR_HEIGHT;
         break;
     }
     
@@ -137,9 +137,9 @@ export class Socket {
       // 色を決定
       let fillColor;
       if ((isHovered || isWiringStart) && !hasWire) {
-        fillColor = [...APP_CONFIG.COLORS.WIRE_TEMP, APP_CONFIG.WIRE.TEMP_ALPHA];
+        fillColor = [...CONST.COLORS.WIRE_TEMP, CONST.WIRE.TEMP_ALPHA];
       } else {
-        const stateColor = this.isPowered ? APP_CONFIG.COLORS.ON_STATE : APP_CONFIG.COLORS.OFF_STATE;
+        const stateColor = this.isPowered ? CONST.COLORS.ON_STATE : CONST.COLORS.OFF_STATE;
         fillColor = stateColor;
       }
       
@@ -150,31 +150,31 @@ export class Socket {
       switch (this.direction) {
         case 'left':
           triangle(
-            connectorLocalX - APP_CONFIG.PARTS.CONNECTOR_RADIUS, connectorLocalY,
-            triangleBaseX, this.localY - APP_CONFIG.PARTS.SOCKET_WIDTH / 2,
-            triangleBaseX, this.localY + APP_CONFIG.PARTS.SOCKET_WIDTH / 2
+            connectorLocalX - CONST.PARTS.CONNECTOR_RADIUS, connectorLocalY,
+            triangleBaseX, this.localY - CONST.PARTS.SOCKET_WIDTH / 2,
+            triangleBaseX, this.localY + CONST.PARTS.SOCKET_WIDTH / 2
           );
           break;
           
         case 'right':
           triangle(
-            connectorLocalX + APP_CONFIG.PARTS.CONNECTOR_RADIUS, connectorLocalY,
-            triangleBaseX, this.localY - APP_CONFIG.PARTS.SOCKET_WIDTH / 2,
-            triangleBaseX, this.localY + APP_CONFIG.PARTS.SOCKET_WIDTH / 2
+            connectorLocalX + CONST.PARTS.CONNECTOR_RADIUS, connectorLocalY,
+            triangleBaseX, this.localY - CONST.PARTS.SOCKET_WIDTH / 2,
+            triangleBaseX, this.localY + CONST.PARTS.SOCKET_WIDTH / 2
           );
           break;
           
         case 'bottom':
           triangle(
-            this.localX, connectorLocalY + APP_CONFIG.PARTS.CONNECTOR_RADIUS,
-            this.localX - APP_CONFIG.PARTS.SOCKET_WIDTH / 2, triangleBaseY,
-            this.localX + APP_CONFIG.PARTS.SOCKET_WIDTH / 2, triangleBaseY
+            this.localX, connectorLocalY + CONST.PARTS.CONNECTOR_RADIUS,
+            this.localX - CONST.PARTS.SOCKET_WIDTH / 2, triangleBaseY,
+            this.localX + CONST.PARTS.SOCKET_WIDTH / 2, triangleBaseY
           );
           break;
       }
       
       // 丸を描画
-      circle(connectorLocalX, connectorLocalY, APP_CONFIG.PARTS.CONNECTOR_RADIUS * 2);
+      circle(connectorLocalX, connectorLocalY, CONST.PARTS.CONNECTOR_RADIUS * 2);
     }
   }
 }

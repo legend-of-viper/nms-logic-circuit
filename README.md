@@ -17,6 +17,7 @@ nms-logic-circuit/
     │   ├── CircuitPart.js   # 回路部品の基底クラス
     │   ├── Socket.js        # ソケット（接続ポート）
     │   ├── Wire.js          # ワイヤー
+    │   ├── PartFactory.js   # 部品ファクトリー
     │   ├── Power.js         # 電源
     │   ├── AutoSwitch.js    # オートスイッチ
     │   ├── Inverter.js      # 電力変換器
@@ -102,6 +103,10 @@ Config Layer    (constants)
 - ワイヤーの接続/切断
 - 当たり判定と描画
 
+#### `PartFactory` (ファクトリー)
+- 部品タイプに応じた部品インスタンスの生成
+- 部品生成ロジックの一元管理
+
 #### `CircuitSimulator` (サービス)
 - 部品とワイヤーの管理
 - マウスイベントの処理（通常モード・削除モード・回転モード）
@@ -120,7 +125,7 @@ Config Layer    (constants)
 2. `CircuitPart` を継承
 3. コンストラクタでソケットを初期化
 4. `update()` メソッドで電力伝播ロジックを実装
-5. `CircuitSimulator.js` の `createPart()` に追加
+5. `PartFactory.js` の `createPart()` に追加
 6. `constants.js` の `UI_LABELS` にラベルを追加
 
 例：

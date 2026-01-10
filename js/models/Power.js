@@ -2,7 +2,7 @@
 
 import { CircuitPart } from './CircuitPart.js';
 import { Socket } from './Socket.js';
-import { APP_CONFIG } from '../config/constants.js';
+import { CONST } from '../config/constants.js';
 
 // Power固有の色定義
 const LOCAL_CONST = {
@@ -22,7 +22,7 @@ export class Power extends CircuitPart {
     
     // ソケットを作成（出力のみ・右側）
     this.sockets = [
-      new Socket(this, 'right', APP_CONFIG.PARTS.WIDTH / 2, 0, 'right')
+      new Socket(this, 'right', CONST.PARTS.WIDTH / 2, 0, 'right')
     ];
   }
 
@@ -53,8 +53,8 @@ export class Power extends CircuitPart {
     stroke(...LOCAL_CONST.ORANGE);
     strokeWeight(LOCAL_CONST.OUTLINE_WEIGHT);
     
-    const w = APP_CONFIG.PARTS.WIDTH;
-    const h = APP_CONFIG.PARTS.HEIGHT;
+    const w = CONST.PARTS.WIDTH;
+    const h = CONST.PARTS.HEIGHT;
     
     beginShape();
       // 稲妻マーク（頂点から時計回り）

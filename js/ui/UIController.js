@@ -1,6 +1,6 @@
 'use strict';
 
-import { APP_CONFIG } from '../config/constants.js';
+import { CONST } from '../config/constants.js';
 
 /**
  * UIコントローラー
@@ -24,15 +24,15 @@ export class UIController {
    * ボタンラベルを定数から設定
    */
   setupLabels() {
-    document.getElementById('btn-power').textContent = APP_CONFIG.UI_LABELS.POWER;
-    document.getElementById('btn-auto-switch').textContent = APP_CONFIG.UI_LABELS.AUTO_SWITCH;
-    document.getElementById('btn-inverter').textContent = APP_CONFIG.UI_LABELS.INVERTER;
-    document.getElementById('btn-button').textContent = APP_CONFIG.UI_LABELS.BUTTON;
-    document.getElementById('btn-wall-switch').textContent = APP_CONFIG.UI_LABELS.WALL_SWITCH;
-    document.getElementById('btn-color-light').textContent = APP_CONFIG.UI_LABELS.COLOR_LIGHT;
-    document.getElementById('btn-delete-mode').textContent = APP_CONFIG.UI_LABELS.DELETE_MODE;
-    document.getElementById('btn-save').textContent = APP_CONFIG.UI_LABELS.SAVE;
-    document.getElementById('btn-load').textContent = APP_CONFIG.UI_LABELS.LOAD;
+    document.getElementById('btn-power').textContent = CONST.UI_LABELS.POWER;
+    document.getElementById('btn-auto-switch').textContent = CONST.UI_LABELS.AUTO_SWITCH;
+    document.getElementById('btn-inverter').textContent = CONST.UI_LABELS.INVERTER;
+    document.getElementById('btn-button').textContent = CONST.UI_LABELS.BUTTON;
+    document.getElementById('btn-wall-switch').textContent = CONST.UI_LABELS.WALL_SWITCH;
+    document.getElementById('btn-color-light').textContent = CONST.UI_LABELS.COLOR_LIGHT;
+    document.getElementById('btn-delete-mode').textContent = CONST.UI_LABELS.DELETE_MODE;
+    document.getElementById('btn-save').textContent = CONST.UI_LABELS.SAVE;
+    document.getElementById('btn-load').textContent = CONST.UI_LABELS.LOAD;
   }
 
   /**

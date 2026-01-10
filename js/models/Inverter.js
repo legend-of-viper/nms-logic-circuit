@@ -2,7 +2,7 @@
 
 import { CircuitPart } from './CircuitPart.js';
 import { Socket } from './Socket.js';
-import { APP_CONFIG } from '../config/constants.js';
+import { CONST } from '../config/constants.js';
 
 const LOCAL_CONST = {
   GREEN: [100, 255, 100],
@@ -10,52 +10,61 @@ const LOCAL_CONST = {
 };
 
 /**
- * インバータークラス
- * 入力の論理を反転させる（入力がOFF→出力ON、入力がON→出力OFF）
+ * インバーター（自動遮断スイッチ）
+ * ・制御入力（ボトム）がない時：左右を接続（ON）
+ * ・制御入力（ボトム）がある時：左右を遮断（OFF）
+ * * AutoSwitch（A接点）とは逆の、B接点のような挙動をする
  */
 export class Inverter extends CircuitPart {
   constructor(id, x, y) {
     super(id, x, y);
-    this.isOn = true; // 初期状態は入力なしなのでON
     
-    // ソケットを作成（Socket配列）
+    // 初期状態は「制御入力なし」なので ON（接続状態）
+    this.isOn = true; 
+    
+    // ソケットを作成
     this.sockets = [
-      new Socket(this, 'left', -APP_CONFIG.PARTS.WIDTH / 2, 0, 'left'),
-      new Socket(this, 'bottom', 0, APP_CONFIG.PARTS.HEIGHT / 2, 'bottom'),
-      new Socket(this, 'right', APP_CONFIG.PARTS.WIDTH / 2, 0, 'right')
+      new Socket(this, 'left', -CONST.PARTS.WIDTH / 2, 0, 'left'),
+      new Socket(this, 'right', CONST.PARTS.WIDTH / 2, 0, 'right'),
+      new Socket(this, 'control', 0, CONST.PARTS.HEIGHT / 2, 'bottom')
     ];
   }
   
   /**
-   * クリックしても何もしない（自動で反転するので）
+   * ユーザー操作
+   * 自動で切り替わるため、クリックでの操作はなし
    */
   interact() {
-    // 自動的に入力を反転するので手動での切り替えはしない
+    // 何もしない
   }
   
   /**
-   * 状態更新（特に処理なし）
+   * 状態更新
+   * 制御ソケット（bottom）に通電しているかチェック
    */
   update() {
-    // 状態はCircuitSimulatorで更新される
+    const controlSocket = this.getSocket('control');
+    
+    // 制御入力があれば OFF（遮断）、なければ ON（接続）
+    if (controlSocket && controlSocket.isPowered) {
+      this.isOn = false;
+    } else {
+      this.isOn = true;
+    }
   }
 
   /**
-   * Inverterの描画（相対座標、中心が原点）
+   * 描画処理
    */
   drawBody(color) {
     // 外枠
-    stroke(...color);
-    strokeWeight(APP_CONFIG.PARTS.STROKE_WIDTH);
-    fill(APP_CONFIG.COLORS.BACKGROUND);
-    rectMode(CENTER);
-    rect(0, 0, APP_CONFIG.PARTS.WIDTH, APP_CONFIG.PARTS.HEIGHT, 8);
-
-    // インバーターを表現する図形（縦に2本の線：左が赤、右が緑）
-    const height = APP_CONFIG.PARTS.HEIGHT * 0.5;
-    const spacing = APP_CONFIG.PARTS.WIDTH * 0.2;
-    const lineWeight = APP_CONFIG.PARTS.WIDTH * 0.15;
+    super.drawBody(color);
     
+    // インバーターを表現する図形（縦に2本の線：左が赤、右が緑）
+    const height = CONST.PARTS.HEIGHT * 0.5;
+    const spacing = CONST.PARTS.WIDTH * 0.2;
+    const lineWeight = CONST.PARTS.WIDTH * 0.15;
+
     // 左側の線（赤）
     stroke(...LOCAL_CONST.RED);
     strokeWeight(lineWeight);
