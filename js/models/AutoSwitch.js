@@ -31,7 +31,7 @@ export class AutoSwitch extends CircuitPart {
   /**
    * 状態更新
    */
-  update() {
+  updateLogic() {
     // 制御ソケットが通電していればON
     const controlSocket = this.getSocket('control');
     this.isOn = controlSocket ? controlSocket.isPowered : false;

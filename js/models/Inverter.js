@@ -42,15 +42,11 @@ export class Inverter extends CircuitPart {
    * 状態更新
    * 制御ソケット（bottom）に通電しているかチェック
    */
-  update() {
+  updateLogic() {
     const controlSocket = this.getSocket('control');
     
     // 制御入力があれば OFF（遮断）、なければ ON（接続）
-    if (controlSocket && controlSocket.isPowered) {
-      this.isOn = false;
-    } else {
-      this.isOn = true;
-    }
+    this.isOn = controlSocket ? !controlSocket.isPowered : true;
   }
 
   /**

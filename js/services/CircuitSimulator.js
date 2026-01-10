@@ -2,6 +2,7 @@
 
 import { Wire } from '../models/Wire.js';
 import { PartFactory } from '../models/PartFactory.js';
+import { CircuitEngine } from './CircuitEngine.js';
 import { CONST } from '../config/constants.js';
 
 /**
@@ -12,6 +13,9 @@ export class CircuitSimulator {
   constructor() {
     this.parts = [];
     this.wires = [];
+
+    this.engine = new CircuitEngine(this.parts, this.wires);
+
     this.draggingPart = null;
     this.wiringStartNode = null;
     this.rotationSnapEnabled = true; // デフォルトで90度スナップを有効
@@ -289,6 +293,8 @@ export class CircuitSimulator {
    * キャンバスの更新と描画
    */
   update() {
+    this.engine.calculate();
+
     background(CONST.COLORS.BACKGROUND);
 
     // 1. パーツを更新して描画
