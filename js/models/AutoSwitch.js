@@ -17,6 +17,9 @@ export class AutoSwitch extends CircuitPart {
   constructor(id, x, y) {
     super(id, x, y);
     
+    // 部品タイプを設定
+    this.type = CONST.PART_TYPE.AUTO_SWITCH;
+    
     // ソケットを作成
     this.sockets = [
       new Socket(this, 'left', -CONST.PARTS.WIDTH / 2, 0, 'left'),
@@ -29,20 +32,20 @@ export class AutoSwitch extends CircuitPart {
   }
 
   /**
-   * 状態更新
+   * 1秒ごとの状態更新
    */
-  updateLogic() {
+  onTick() {
     // 制御ソケットが通電していればON
     const controlSocket = this.getSocket('control');
     this.isOn = controlSocket ? controlSocket.isPowered : false;
   }
 
   /**
-   * 部品本体を描画
+   * 部品の形を描画
    */
-  drawBody(color) {
+  drawShape(color) {
     // 外枠
-    super.drawBody(color);
+    super.drawShape(color);
     
     // T字型の内部図形
     noStroke();

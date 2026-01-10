@@ -19,6 +19,9 @@ export class Inverter extends CircuitPart {
   constructor(id, x, y) {
     super(id, x, y);
     
+    // 部品タイプを設定
+    this.type = CONST.PART_TYPE.INVERTER;
+    
     // 初期状態は「制御入力なし」なので ON（接続状態）
     this.isOn = true; 
     
@@ -39,10 +42,10 @@ export class Inverter extends CircuitPart {
   }
   
   /**
-   * 状態更新
+   * 1秒ごとの状態更新
    * 制御ソケット（bottom）に通電しているかチェック
    */
-  updateLogic() {
+  onTick() {
     const controlSocket = this.getSocket('control');
     
     // 制御入力があれば OFF（遮断）、なければ ON（接続）
@@ -50,11 +53,11 @@ export class Inverter extends CircuitPart {
   }
 
   /**
-   * 描画処理
+   * 部品の形を描画
    */
-  drawBody(color) {
+  drawShape(color) {
     // 外枠
-    super.drawBody(color);
+    super.drawShape(color);
     
     // インバーターを表現する図形（縦に2本の線：左が赤、右が緑）
     const height = CONST.PARTS.HEIGHT * 0.5;

@@ -6,15 +6,16 @@ import { Button } from './Button.js';
 import { AutoSwitch } from './AutoSwitch.js';
 import { Inverter } from './Inverter.js';
 import { ColorLight } from './ColorLight.js';
+import { CONST } from '../config/constants.js';
 
 // 部品タイプとクラスの対応表
 const PART_REGISTRY = {
-  'POWER': Power,
-  'WALL_SWITCH': WallSwitch,
-  'BUTTON': Button,
-  'AUTO_SWITCH': AutoSwitch,
-  'INVERTER': Inverter,
-  'COLOR_LIGHT': ColorLight
+  [CONST.PART_TYPE.POWER]: Power,
+  [CONST.PART_TYPE.WALL_SWITCH]: WallSwitch,
+  [CONST.PART_TYPE.BUTTON]: Button,
+  [CONST.PART_TYPE.AUTO_SWITCH]: AutoSwitch,
+  [CONST.PART_TYPE.INVERTER]: Inverter,
+  [CONST.PART_TYPE.COLOR_LIGHT]: ColorLight
 };
 
 /**

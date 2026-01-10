@@ -2,19 +2,19 @@
 
 import { Wire } from '../models/Wire.js';
 import { PartFactory } from '../models/PartFactory.js';
-import { CircuitEngine } from './CircuitEngine.js';
+import { PowerSystem } from './PowerSystem.js';
 import { CONST } from '../config/constants.js';
 
 /**
- * 回路シミュレーターサービス
+ * 回路マネージャー
  * 回路部品とワイヤーの管理、描画、インタラクションを制御
  */
-export class CircuitSimulator {
+export class CircuitManager {
   constructor() {
     this.parts = [];
     this.wires = [];
 
-    this.engine = new CircuitEngine(this.parts, this.wires);
+    this.powerSystem = new PowerSystem(this.parts, this.wires);
 
     this.draggingPart = null;
     this.wiringStartNode = null;
@@ -90,22 +90,21 @@ export class CircuitSimulator {
     }
   }
 
-/**
+  /**
    * 部品を作成して追加
-   * @param {string} type - 部品タイプ ('SWITCH', 'BUTTON', etc.)
+   * @param {string} type - 部品タイプ ('POWER', 'WALL_SWITCH', 'BUTTON', etc.)
    */
   createPart(type) {
     const newId = Date.now();
     
-    // 部品ごとの初期配置X座標（元のコードの挙動を再現）
-    // Refactor: 将来的には定数ファイルやUI側で管理しても良い
+    // 部品ごとの初期配置X座標
     const basePositions = {
-      'POWER': 100,
-      'WALL_SWITCH': 100,
-      'BUTTON': 200,
-      'AUTO_SWITCH': 300,
-      'INVERTER': 400,
-      'COLOR_LIGHT': 500
+      [CONST.PART_TYPE.POWER]: 100,
+      [CONST.PART_TYPE.WALL_SWITCH]: 100,
+      [CONST.PART_TYPE.BUTTON]: 200,
+      [CONST.PART_TYPE.AUTO_SWITCH]: 300,
+      [CONST.PART_TYPE.INVERTER]: 400,
+      [CONST.PART_TYPE.COLOR_LIGHT]: 500
     };
 
     // デフォルトは100、それ以外はマップから取得
@@ -209,7 +208,7 @@ export class CircuitSimulator {
     
     for (let i = this.parts.length - 1; i >= 0; i--) {
       const part = this.parts[i];
-      const center = part.getCenterPos();
+      const center = part.getCenter();
       const distance = dist(mouseX, mouseY, center.x, center.y);
       
       if (distance < snapDistance) {
@@ -232,7 +231,7 @@ export class CircuitSimulator {
     
     if (targetPart) {
       // パーツにスナップ（中心座標を取得）
-      const center = targetPart.getCenterPos();
+      const center = targetPart.getCenter();
       highlightX = center.x;
       highlightY = center.y;
       
@@ -293,20 +292,15 @@ export class CircuitSimulator {
    * キャンバスの更新と描画
    */
   update() {
-    this.engine.calculate();
+    this.powerSystem.update();
 
     background(CONST.COLORS.BACKGROUND);
 
-    // 1. パーツを更新して描画
-    for (let part of this.parts) {
-      part.update();
-      part.draw();
-    }
+    // 1. パーツを描画
+    this.parts.forEach(part => part.draw());
 
     // 2. 確定済みのワイヤーを描画
-    for (let wire of this.wires) {
-      wire.draw();
-    }
+    this.wires.forEach(wire => wire.draw());
 
     // 3. 作成中（ドラッグ中）の仮ワイヤーを描画
     this.drawTempWire();

@@ -41,27 +41,27 @@ export class UIController {
   setupEventListeners() {
     // 部品追加ボタン
     document.getElementById('btn-power').addEventListener('click', () => {
-      this.simulator.createPart('POWER');
+      this.simulator.createPart(CONST.PART_TYPE.POWER);
     });
     
     document.getElementById('btn-auto-switch').addEventListener('click', () => {
-      this.simulator.createPart('AUTO_SWITCH');
+      this.simulator.createPart(CONST.PART_TYPE.AUTO_SWITCH);
     });
     
     document.getElementById('btn-inverter').addEventListener('click', () => {
-      this.simulator.createPart('INVERTER');
+      this.simulator.createPart(CONST.PART_TYPE.INVERTER);
     });
     
     document.getElementById('btn-button').addEventListener('click', () => {
-      this.simulator.createPart('BUTTON');
+      this.simulator.createPart(CONST.PART_TYPE.BUTTON);
     });
     
     document.getElementById('btn-wall-switch').addEventListener('click', () => {
-      this.simulator.createPart('WALL_SWITCH');
+      this.simulator.createPart(CONST.PART_TYPE.WALL_SWITCH);
     });
     
     document.getElementById('btn-color-light').addEventListener('click', () => {
-      this.simulator.createPart('COLOR_LIGHT');
+      this.simulator.createPart(CONST.PART_TYPE.COLOR_LIGHT);
     });
     
     // 削除モードボタン

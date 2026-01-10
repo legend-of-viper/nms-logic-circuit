@@ -1,6 +1,6 @@
 'use strict';
 
-import { CircuitSimulator } from './services/CircuitSimulator.js';
+import { CircuitManager } from './services/CircuitManager.js';
 import { UIController } from './ui/UIController.js';
 import { CONST } from './config/constants.js';
 
@@ -22,8 +22,8 @@ window.setup = function() {
   select('body').style('background-color', `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]})`);
   select('#canvas-container').style('background-color', `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]})`);
   
-  // シミュレーターとUIコントローラーの初期化
-  simulator = new CircuitSimulator();
+  // マネージャーとUIコントローラーの初期化
+  simulator = new CircuitManager();
   uiController = new UIController(simulator);
   uiController.initialize();
 };

@@ -16,6 +16,10 @@ const LOCAL_CONST = {
 export class WallSwitch extends CircuitPart {
   constructor(id, x, y) {
     super(id, x, y);
+    
+    // 部品タイプを設定
+    this.type = CONST.PART_TYPE.WALL_SWITCH;
+    
     this.isOn = false;
     
     // ソケットを作成（Socket配列）
@@ -40,12 +44,12 @@ export class WallSwitch extends CircuitPart {
   }
 
   /**
-   * スイッチの描画（相対座標、中心が原点）
+   * スイッチの形を描画（相対座標、中心が原点）
    */
-  drawBody(color) {
+  drawShape(color) {
     // 外枠
     stroke(...color);
-    strokeWeight(CONST.PARTS.STROKE_WIDTH);
+    strokeWeight(CONST.PARTS.STROKE_WEIGHT);
     fill(CONST.COLORS.BACKGROUND);
     rectMode(CENTER);
     rect(0, 0, CONST.PARTS.WIDTH, CONST.PARTS.HEIGHT, 8);

@@ -97,7 +97,7 @@ export class Socket {
     
     switch (this.direction) {
       case 'left':
-        rectX = this.localX - CONST.PARTS.SOCKET_HEIGHT - CONST.PARTS.STROKE_WIDTH / 2;
+        rectX = this.localX - CONST.PARTS.SOCKET_HEIGHT - CONST.PARTS.STROKE_WEIGHT / 2;
         rectY = this.localY - CONST.PARTS.SOCKET_WIDTH / 2;
         rectW = CONST.PARTS.SOCKET_HEIGHT;
         rectH = CONST.PARTS.SOCKET_WIDTH;
@@ -106,7 +106,7 @@ export class Socket {
         break;
         
       case 'right':
-        rectX = this.localX + CONST.PARTS.STROKE_WIDTH / 2;
+        rectX = this.localX + CONST.PARTS.STROKE_WEIGHT / 2;
         rectY = this.localY - CONST.PARTS.SOCKET_WIDTH / 2;
         rectW = CONST.PARTS.SOCKET_HEIGHT;
         rectH = CONST.PARTS.SOCKET_WIDTH;
@@ -116,7 +116,7 @@ export class Socket {
         
       case 'bottom':
         rectX = this.localX - CONST.PARTS.SOCKET_WIDTH / 2;
-        rectY = this.localY + CONST.PARTS.STROKE_WIDTH / 2;
+        rectY = this.localY + CONST.PARTS.STROKE_WEIGHT / 2;
         rectW = CONST.PARTS.SOCKET_WIDTH;
         rectH = CONST.PARTS.SOCKET_HEIGHT;
         triangleBaseY = rectY + CONST.PARTS.SOCKET_HEIGHT;

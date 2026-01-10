@@ -35,7 +35,7 @@ export class CircuitPart {
    * 部品の中心座標を取得する
    * @returns {{x: number, y: number}} 中心座標
    */
-  getCenterPos() {
+  getCenter() {
     return {
       x: this.x + CONST.PARTS.WIDTH / 2,
       y: this.y + CONST.PARTS.HEIGHT / 2
@@ -56,7 +56,7 @@ export class CircuitPart {
     const rotatedY = localX * sin + localY * cos;
     
     // 2. 平行移動を適用
-    const center = this.getCenterPos();
+    const center = this.getCenter();
     return {
       x: center.x + rotatedX,
       y: center.y + rotatedY
@@ -70,7 +70,7 @@ export class CircuitPart {
    * @returns {{x: number, y: number}} ローカル座標
    */
   worldToLocal(worldX, worldY) {
-    const center = this.getCenterPos();
+    const center = this.getCenter();
     
     // 1. 平行移動の逆
     const dx = worldX - center.x;
@@ -187,13 +187,18 @@ export class CircuitPart {
   interact() {
     console.log(`Part ${this.id}: 触られました`);
   }
+  
+  /**
+   * 毎フレームの更新処理（アニメーションや時間経過用）
+   * デフォルトでは何もしない（子クラスで必要なら上書きする）
+   */
+  update() {}
 
   /**
-   * 毎フレームの状態更新処理（抽象メソッド）
+   * 1秒ごとの論理更新処理（回路シミュレーション用）
+   * デフォルトでは何もしない（子クラスで必要なら上書きする）
    */
-  update() {
-    // デフォルトでは何もしない
-  }
+  onTick() {}
 
   /**
    * マウスがこの部品の上にあるか判定（簡易版・バウンディングボックス）
@@ -210,7 +215,7 @@ export class CircuitPart {
    */
   onRotationMouseDown() {
     this.isRotating = true;
-    const center = this.getCenterPos();
+    const center = this.getCenter();
     this.rotationStartAngle = Math.atan2(mouseY - center.y, mouseX - center.x) - this.rotation;
   }
 
@@ -220,7 +225,7 @@ export class CircuitPart {
    */
   onRotationMouseDragged(snapEnabled = false) {
     if (this.isRotating) {
-      const center = this.getCenterPos();
+      const center = this.getCenter();
       const currentAngle = Math.atan2(mouseY - center.y, mouseX - center.x);
       let rotation = currentAngle - this.rotationStartAngle;
       
@@ -302,12 +307,12 @@ export class CircuitPart {
     
     // 回転座標系で描画
     push();
-    const center = this.getCenterPos();
+    const center = this.getCenter();
     translate(center.x, center.y);
     rotate(this.rotation);
     
     // 部品本体を描画（原点中心）
-    this.drawBody(color);
+    this.drawShape(color);
     
     // ソケットを描画
     for (let socket of this.sockets) {
@@ -323,12 +328,12 @@ export class CircuitPart {
   }
 
   /**
-   * 部品本体を描画（子クラスでオーバーライド可能）
+   * 部品の形を描画（子クラスでオーバーライド可能）
    * @param {Array} color - 枠線の色
    */
-  drawBody(color) {
+  drawShape(color) {
     stroke(...color);
-    strokeWeight(CONST.PARTS.STROKE_WIDTH);
+    strokeWeight(CONST.PARTS.STROKE_WEIGHT);
     fill(CONST.COLORS.BACKGROUND);
     rectMode(CENTER);
     rect(0, 0, CONST.PARTS.WIDTH, CONST.PARTS.HEIGHT, 8);

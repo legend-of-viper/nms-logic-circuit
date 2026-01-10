@@ -2,6 +2,16 @@
 
 // アプリ全体で使う定数（設定値）をここにまとめる
 export const CONST = {
+  // 部品タイプの定義
+  PART_TYPE: {
+    POWER: 'POWER',
+    AUTO_SWITCH: 'AUTO_SWITCH',
+    INVERTER: 'INVERTER',
+    BUTTON: 'BUTTON',
+    WALL_SWITCH: 'WALL_SWITCH',
+    COLOR_LIGHT: 'COLOR_LIGHT'
+  },
+
   // 色の設定
   COLORS: {
     BACKGROUND: [30, 30, 30],
@@ -19,7 +29,7 @@ export const CONST = {
       WIDTH: WIDTH,
       HEIGHT: WIDTH,
       RADIUS: WIDTH * 0.2,
-      STROKE_WIDTH: WIDTH * 0.1,
+      STROKE_WEIGHT: WIDTH * 0.1,
       SOCKET_HEIGHT: WIDTH * 0.15,
       SOCKET_WIDTH: WIDTH * 0.4,
       SOCKET_HIT_RADIUS: WIDTH * 0.3,

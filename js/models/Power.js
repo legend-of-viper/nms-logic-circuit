@@ -18,6 +18,10 @@ const LOCAL_CONST = {
 export class Power extends CircuitPart {
   constructor(id, x, y) {
     super(id, x, y);
+    
+    // 部品タイプを設定
+    this.type = CONST.PART_TYPE.POWER;
+    
     this.isOn = true; // 電源は常にON
     
     // ソケットを作成（出力のみ・右側）
@@ -42,11 +46,11 @@ export class Power extends CircuitPart {
   }
 
   /**
-   * 電源の描画（相対座標、中心が原点）
+   * 電源の形を描画（相対座標、中心が原点）
    */
-  drawBody(color) {
+  drawShape(color) {
     // 外枠
-    super.drawBody(color);
+    super.drawShape(color);
     
     // 稲妻マークで電源を表現
     fill(...LOCAL_CONST.YELLOW);

@@ -19,6 +19,10 @@ const LOCAL_CONST = {
 export class Button extends CircuitPart {
   constructor(id, x, y) {
     super(id, x, y);
+    
+    // 部品タイプを設定
+    this.type = CONST.PART_TYPE.BUTTON;
+    
     this.isOn = false;
     this.offTime = 0;
     
@@ -47,11 +51,11 @@ export class Button extends CircuitPart {
   }
 
   /**
-   * ボタンの描画（相対座標、中心が原点）
+   * ボタンの形を描画（相対座標、中心が原点）
    */
-  drawBody(color) {
+  drawShape(color) {
     // 外枠
-    super.drawBody(color);
+    super.drawShape(color);
     
     // Button固有の内部描画（円）
     const button_color = this.isOn ? LOCAL_CONST.DARK_RED : LOCAL_CONST.RED;
