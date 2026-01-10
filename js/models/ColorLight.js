@@ -54,10 +54,11 @@ export class ColorLight extends CircuitPart {
     
     // 通電していれば点灯色、そうでなければ消灯色
     const fillColor = isPowered ? LOCAL_CONST.LIT_COLOR : LOCAL_CONST.UNLIT_COLOR;
-    
+    const strokeColor = isPowered ? CONST.COLORS.WIRE_ON : CONST.COLORS.OFF_STATE;
+
     // カプセル型を描画
     fill(...fillColor);
-    stroke(...color);
+    stroke(...strokeColor);
     strokeWeight(CONST.PARTS.STROKE_WEIGHT);
     rectMode(CENTER);
     rect(0, 0, w, h, w * 0.5);

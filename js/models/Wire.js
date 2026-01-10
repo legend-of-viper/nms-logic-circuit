@@ -91,7 +91,12 @@ export class Wire {
     const end = this.endSocket.getConnectorWorldPosition();
 
     noFill();
-    stroke(...CONST.COLORS.OFF_STATE);
+    
+    // どちらかのソケットが通電していれば、ワイヤーも通電色にする
+    const isPowered = this.startSocket.isPowered || this.endSocket.isPowered;
+    const color = isPowered ? CONST.COLORS.WIRE_ON : CONST.COLORS.OFF_STATE;
+    
+    stroke(...color);
     strokeWeight(CONST.WIRE.STROKE_WEIGHT);
     
     line(start.x, start.y, end.x, end.y);

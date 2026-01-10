@@ -48,14 +48,11 @@ export class WallSwitch extends CircuitPart {
    */
   drawShape(color) {
     // 外枠
-    stroke(...color);
-    strokeWeight(CONST.PARTS.STROKE_WEIGHT);
-    fill(CONST.COLORS.BACKGROUND);
-    rectMode(CENTER);
-    rect(0, 0, CONST.PARTS.WIDTH, CONST.PARTS.HEIGHT, 8);
+    super.drawShape(color);
 
     // スイッチ固有の内部描画（レバー）
     rectMode(CORNER);
+    noStroke();
     fill(...LOCAL_CONST.RED);
     rect(-CONST.PARTS.WIDTH * 0.15, -CONST.PARTS.HEIGHT * 0.1, 
          CONST.PARTS.WIDTH * 0.3, CONST.PARTS.HEIGHT * 0.2);

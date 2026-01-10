@@ -17,8 +17,10 @@ export const CONST = {
     BACKGROUND: [30, 30, 30],
     TEXT: '#eeeeee',
     HEADER_BG: '#333333',
+    WIRE_ON: [0, 128, 255],
     WIRE_TEMP: [255, 50, 50],
-    ON_STATE: [0, 255, 100],
+    // ON_STATE: [0, 255, 100],
+    ON_STATE: [0, 128, 255],
     OFF_STATE: [255, 50, 50]
   },
   

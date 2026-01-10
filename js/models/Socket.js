@@ -93,7 +93,8 @@ export class Socket {
     let connectorLocalY = this.localY;
     
     noStroke();
-    fill(CONST.COLORS.OFF_STATE);
+    let fillColor = this.isPowered ? CONST.COLORS.WIRE_ON : CONST.COLORS.OFF_STATE;
+    fill(...fillColor);
     
     switch (this.direction) {
       case 'left':
@@ -124,23 +125,21 @@ export class Socket {
         break;
     }
     
+    // 1. ソケット基部（四角形）を描画
     // rectMode(CORNER)で描画（座標は左上隅）
     rectMode(CORNER);
     rect(rectX, rectY, rectW, rectH);
     
-    // ホバー時、ワイヤー接続時、またはワイヤードラッグ開始点の場合はコネクタを描画
+    // 2. コネクタ（三角形・丸）の描画判定
     const isHovered = this.isMouseOver();
     const hasWire = this.connectedWires.length > 0;
     const isWiringStart = this.parent.wiringStartSocket === this.name;
     
     if (isHovered || hasWire || isWiringStart) {
-      // 色を決定
-      let fillColor;
+      
+      // ホバー時かつ未接続の場合は、一時的な色（赤半透明）で描画
       if ((isHovered || isWiringStart) && !hasWire) {
         fillColor = [...CONST.COLORS.WIRE_TEMP, CONST.WIRE.TEMP_ALPHA];
-      } else {
-        const stateColor = this.isPowered ? CONST.COLORS.ON_STATE : CONST.COLORS.OFF_STATE;
-        fillColor = stateColor;
       }
       
       noStroke();
