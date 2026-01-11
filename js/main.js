@@ -1,11 +1,13 @@
 'use strict';
 
 import { CircuitManager } from './services/CircuitManager.js';
+import { StorageService } from './services/StorageService.js';
 import { UIController } from './ui/UIController.js';
 import { CONST } from './config/constants.js';
 
 // グローバル変数（p5.jsとの連携のため必要）
 let simulator;
+let storage;
 let uiController;
 
 /**
@@ -22,10 +24,16 @@ window.setup = function() {
   select('body').style('background-color', `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]})`);
   select('#canvas-container').style('background-color', `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]})`);
   
-  // マネージャーとUIコントローラーの初期化
+  // マネージャーとストレージサービスの初期化
   simulator = new CircuitManager();
-  uiController = new UIController(simulator);
+  storage = new StorageService(simulator);
+  
+  // UIコントローラーの初期化
+  uiController = new UIController(simulator, storage);
   uiController.initialize();
+  
+  // URLに回路データがあれば復元
+  storage.loadFromUrlHash();
 };
 
 /**

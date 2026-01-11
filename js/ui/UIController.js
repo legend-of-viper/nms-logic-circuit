@@ -7,8 +7,9 @@ import { CONST } from '../config/constants.js';
  * ボタンやその他のUI要素の初期化とイベント管理を担当
  */
 export class UIController {
-  constructor(simulator) {
+  constructor(simulator, storage) {
     this.simulator = simulator;
+    this.storage = storage;
   }
 
   /**
@@ -33,6 +34,7 @@ export class UIController {
     document.getElementById('btn-delete-mode').textContent = CONST.UI_LABELS.DELETE_MODE;
     document.getElementById('btn-save').textContent = CONST.UI_LABELS.SAVE;
     document.getElementById('btn-load').textContent = CONST.UI_LABELS.LOAD;
+    document.getElementById('btn-share').textContent = CONST.UI_LABELS.SHARE;
   }
 
   /**
@@ -75,13 +77,17 @@ export class UIController {
       this.simulator.setRotationSnap(event.target.checked);
     });
     
-    // ファイル操作ボタン
+    // ファイル操作ボタン（StorageService経由）
     document.getElementById('btn-save').addEventListener('click', () => {
-      this.simulator.save();
+      this.storage.saveToFile();
     });
     
     document.getElementById('btn-load').addEventListener('click', () => {
-      this.simulator.load();
+      this.storage.loadFromFile();
+    });
+    
+    document.getElementById('btn-share').addEventListener('click', () => {
+      this.storage.shareToUrl();
     });
   }
 

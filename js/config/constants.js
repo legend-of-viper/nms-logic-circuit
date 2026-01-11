@@ -66,6 +66,7 @@ export const CONST = {
     COLOR_LIGHT: 'カラーライト',
     SAVE: '保存',
     LOAD: '読込',
+    SHARE: '🔗 シェア',
     DELETE_MODE: '🗑️ 削除'
   },
   
@@ -78,12 +79,16 @@ export const CONST = {
     BUTTON_INACTIVE_COLOR: [100, 100, 100] // 削除モードOFF時のボタン色
   },
   
-  // 画面メッセージ（保存・読込関連）
+  // 画面メッセージ（保存・読込・シェア関連）
   MESSAGES: {
     PROMPT_SAVE_FILENAME: '保存するファイル名を入力してください（拡張子なし）:',
     ALERT_LOAD_SUCCESS: '読み込みが完了しました',
     ALERT_SAVE_FAILED: '保存に失敗しました',
     ALERT_LOAD_FAILED: '読み込みに失敗しました',
+    ALERT_SHARE_SUCCESS: 'URLをクリップボードにコピーしました！このURLを共有してください。',
+    ALERT_SHARE_FAILED: 'シェアURLの生成に失敗しました',
+    ALERT_URL_RESTORE_SUCCESS: 'URLから回路を復元しました',
+    ALERT_URL_RESTORE_FAILED: 'URLからの復元に失敗しました',
     ERROR_INVALID_FILE_FORMAT: '無効なファイル形式です'
   }
 };
