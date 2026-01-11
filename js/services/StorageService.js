@@ -84,7 +84,7 @@ export class StorageService {
             this.circuitManager.restoreFromData(saveData);
             
             console.log(`回路データを読み込みました: パーツ${this.circuitManager.parts.length}個, ワイヤー${this.circuitManager.wires.length}本`);
-            alert(CONST.MESSAGES.ALERT_LOAD_SUCCESS);
+            // alert(CONST.MESSAGES.ALERT_LOAD_SUCCESS);
           } catch (error) {
             console.error("ファイルの読み込み中にエラーが発生しました:", error);
             alert(CONST.MESSAGES.ALERT_LOAD_FAILED + ': ' + error.message);
@@ -122,11 +122,11 @@ export class StorageService {
       
       // クリップボードにコピー
       navigator.clipboard.writeText(shareUrl).then(() => {
-        alert(CONST.MESSAGES.ALERT_SHARE_SUCCESS);
+        prompt(CONST.MESSAGES.PROMPT_SHARE_SUCCESS, shareUrl);
         console.log('シェアURL:', shareUrl);
       }).catch(err => {
         // クリップボードへのコピーに失敗した場合はプロンプトで表示
-        prompt('以下のURLをコピーしてください:', shareUrl);
+        prompt(CONST.MESSAGES.PROMPT_COPY_URL, shareUrl);
       });
       
       return true;

@@ -468,7 +468,7 @@ export class CircuitManager {
    */
   serializeCircuitData(compact = false) {
     if (compact) {
-      // 究極の軽量版v3: IDをインデックス化
+      // 軽量版: IDをインデックス化
       // 1. IDのマッピング作成（元のID -> 配列のインデックス）
       const idToIndexMap = new Map();
       this.parts.forEach((part, index) => {
@@ -551,7 +551,7 @@ export class CircuitManager {
     
     const partIdMap = new Map();
     
-    // v3形式（究極軽量版：配列のみ）の場合
+    // 軽量版（配列のみ）の場合
     if (Array.isArray(saveData) && saveData[0] === 3) {
       const partsList = saveData[1];
       const wiresList = saveData[2];
@@ -609,50 +609,7 @@ export class CircuitManager {
       
       console.log(`復元完了(v3): パーツ${this.parts.length}個, ワイヤー${this.wires.length}本`);
     }
-    // v2形式（軽量版）の場合
-    else if (saveData.v === 2 && Array.isArray(saveData.p) && Array.isArray(saveData.w)) {
-      // パーツ復元: [id, typeNum, x, y, rot, state?]
-      for (const pData of saveData.p) {
-        const id = pData[0];
-        const typeStr = TYPE_LIST[pData[1]];
-        const x = pData[2];
-        const y = pData[3];
-        const rot = pData[4];
-        
-        const newPart = PartFactory.create(typeStr, id, x, y);
-        
-        if (newPart) {
-          newPart.rotation = rot;
-          
-          // 6番目の要素があればisOnを復元
-          if (pData[5] !== undefined) {
-            newPart.isOn = (pData[5] === 1);
-          }
-          
-          this.parts.push(newPart);
-          partIdMap.set(id, newPart);
-        }
-      }
-      
-      // ワイヤー復元: [startID, startSockNum, endID, endSockNum]
-      for (const wData of saveData.w) {
-        const startPart = partIdMap.get(wData[0]);
-        const startSockName = SOCKET_LIST[wData[1]];
-        const endPart = partIdMap.get(wData[2]);
-        const endSockName = SOCKET_LIST[wData[3]];
-        
-        if (startPart && endPart) {
-          const startSocket = startPart.getSocket(startSockName);
-          const endSocket = endPart.getSocket(endSockName);
-          
-          if (startSocket && endSocket) {
-            const wire = new Wire(startSocket, endSocket);
-            this.wires.push(wire);
-          }
-        }
-      }
-    }
-    // v1形式（旧形式）の場合
+    // 通常形式の場合
     else if (saveData.version && saveData.parts && saveData.wires) {
       // パーツを復元
       for (const partData of saveData.parts) {
