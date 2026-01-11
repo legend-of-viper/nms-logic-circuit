@@ -76,5 +76,14 @@ export const CONST = {
     SNAP_DISTANCE_MULTIPLIER: 1.0,     // スナップ距離の倍率（PARTS.WIDTH × この値）
     BUTTON_ACTIVE_COLOR: [255, 50, 50], // 削除モードON時のボタン色
     BUTTON_INACTIVE_COLOR: [100, 100, 100] // 削除モードOFF時のボタン色
+  },
+  
+  // 画面メッセージ（保存・読込関連）
+  MESSAGES: {
+    PROMPT_SAVE_FILENAME: '保存するファイル名を入力してください（拡張子なし）:',
+    ALERT_LOAD_SUCCESS: '読み込みが完了しました',
+    ALERT_SAVE_FAILED: '保存に失敗しました',
+    ALERT_LOAD_FAILED: '読み込みに失敗しました',
+    ERROR_INVALID_FILE_FORMAT: '無効なファイル形式です'
   }
 };

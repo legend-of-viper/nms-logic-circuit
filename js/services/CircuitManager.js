@@ -436,18 +436,185 @@ export class CircuitManager {
   }
 
   /**
-   * データの保存（未実装）
+   * データの保存
+   * 現在の回路情報をJSON形式でファイルとしてダウンロード
    */
   save() {
-    console.log("保存機能は未実装です");
-    // TODO: 将来的にJSON形式でデータを保存
+    try {
+      // パーツ情報を抽出
+      const partsData = this.parts.map(part => {
+        const data = {
+          id: part.id,
+          type: part.type,
+          x: part.x,
+          y: part.y,
+          rotation: part.rotation
+        };
+        
+        // 状態を持つパーツの場合はisOnも保存
+        if (part.hasOwnProperty('isOn')) {
+          data.isOn = part.isOn;
+        }
+        
+        return data;
+      });
+      
+      // ワイヤー接続情報を抽出
+      const wiresData = this.wires.map(wire => ({
+        startPartId: wire.startSocket.parent.id,
+        startSocket: wire.startSocket.name,
+        endPartId: wire.endSocket.parent.id,
+        endSocket: wire.endSocket.name
+      }));
+      
+      // JSON形式にまとめる
+      const saveData = {
+        version: '1.0',
+        parts: partsData,
+        wires: wiresData
+      };
+      
+      // JSONを文字列化
+      const jsonString = JSON.stringify(saveData, null, 2);
+      
+      // Blobを作成
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      
+      // ファイル名をユーザーに入力してもらう
+      const now = new Date();
+      const timestamp = now.toISOString().replace(/[:\.]/g, '-').slice(0, -5);
+      const defaultFileName = `circuit_${timestamp}`;
+      
+      let fileName = prompt(CONST.MESSAGES.PROMPT_SAVE_FILENAME, defaultFileName);
+      
+      // キャンセルされた場合は保存を中止
+      if (fileName === null) {
+        console.log("保存がキャンセルされました");
+        return false;
+      }
+      
+      // 空の場合はデフォルト名を使用
+      if (fileName.trim() === '') {
+        fileName = defaultFileName;
+      }
+      
+      // .jsonが含まれている場合は削除（後で追加するため）
+      fileName = fileName.replace(/\.json$/i, '');
+      
+      // ダウンロード用のリンクを作成
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${fileName}.json`;
+      
+      // ダウンロードを実行
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      console.log("回路データを保存しました");
+      return true;
+    } catch (error) {
+      console.error("保存中にエラーが発生しました:", error);
+      alert(CONST.MESSAGES.ALERT_SAVE_FAILED + ': ' + error.message);
+      return false;
+    }
   }
 
   /**
-   * データの読込（未実装）
+   * データの読込
+   * ファイル選択ダイアログを表示し、JSONファイルから回路を復元
    */
   load() {
-    console.log("読込機能は未実装です");
-    // TODO: 将来的にJSONデータを読み込み
+    try {
+      // ファイル選択用のinput要素を作成
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      
+      input.onchange = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          try {
+            // JSONをパース
+            const saveData = JSON.parse(e.target.result);
+            
+            // バージョンチェック
+            if (!saveData.version || !saveData.parts || !saveData.wires) {
+              throw new Error(CONST.MESSAGES.ERROR_INVALID_FILE_FORMAT);
+            }
+            
+            // 現在の回路をクリア（配列の参照は維持）
+            this.parts.length = 0;
+            this.wires.length = 0;
+            this.draggingPart = null;
+            this.wiringStartNode = null;
+            
+            // パーツを復元
+            const partIdMap = new Map(); // 旧ID -> 新パーツのマップ
+            
+            for (const partData of saveData.parts) {
+              const newPart = PartFactory.create(
+                partData.type,
+                partData.id,
+                partData.x,
+                partData.y
+              );
+              
+              if (newPart) {
+                // 回転を復元
+                newPart.rotation = partData.rotation || 0;
+                
+                // 状態を復元（存在する場合）
+                if (partData.hasOwnProperty('isOn')) {
+                  newPart.isOn = partData.isOn;
+                }
+                
+                this.parts.push(newPart);
+                partIdMap.set(partData.id, newPart);
+              }
+            }
+            
+            // ワイヤーを復元
+            for (const wireData of saveData.wires) {
+              const startPart = partIdMap.get(wireData.startPartId);
+              const endPart = partIdMap.get(wireData.endPartId);
+              
+              if (startPart && endPart) {
+                const startSocket = startPart.getSocket(wireData.startSocket);
+                const endSocket = endPart.getSocket(wireData.endSocket);
+                
+                if (startSocket && endSocket) {
+                  const wire = new Wire(startSocket, endSocket);
+                  this.wires.push(wire);
+                }
+              }
+            }
+            
+            // PowerSystemのティックをリセット
+            this.powerSystem.lastTick = -1;
+            
+            console.log(`回路データを読み込みました: パーツ${this.parts.length}個, ワイヤー${this.wires.length}本`);
+            // alert(CONST.MESSAGES.ALERT_LOAD_SUCCESS);
+          } catch (error) {
+            console.error("ファイルの読み込み中にエラーが発生しました:", error);
+            alert(CONST.MESSAGES.ALERT_LOAD_FAILED + ': ' + error.message);
+          }
+        };
+        
+        reader.readAsText(file);
+      };
+      
+      // ファイル選択ダイアログを開く
+      input.click();
+    } catch (error) {
+      console.error("読み込み処理中にエラーが発生しました:", error);
+      alert(CONST.MESSAGES.ALERT_LOAD_FAILED + ': ' + error.message);
+    }
   }
 }
