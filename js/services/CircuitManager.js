@@ -310,7 +310,7 @@ export class CircuitManager {
     fill(255, 100, 100);
     stroke(0);
     strokeWeight(3);
-    text("⚠️ DELETE MODE（削除モード）", width / 2, 20);
+    text(CONST.MESSAGES.TEXT_DELETE_MODE, width / 2, 20);
     pop();
   }
 

@@ -26,11 +26,16 @@
     <button id="btn-color-light"></button>
     <button id="btn-delete-mode" class="delete-mode-btn"></button>
     <div class="spacer"></div>
-    
-    <label class="rotation-snap-toggle">
-      <input type="checkbox" id="rotation-snap-checkbox" checked>
-      <span>90度スナップ</span>
-    </label>
+
+    <div class="settings-panel">
+      <div class="settings-icon" title="Settings"></div>
+      
+      <label class="toggle-switch">
+        <input type="checkbox" id="rotation-snap-checkbox" checked>
+        <span class="slider"></span>
+        <span class="label-text">Rotation Snap</span>
+      </label>
+    </div>
     
     <button class="file-btn" id="btn-save"></button>
     <button class="file-btn" id="btn-load"></button>

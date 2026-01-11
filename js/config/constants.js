@@ -1,7 +1,7 @@
 'use strict';
 
-// アプリ全体で使う定数（設定値）をここにまとめる
-export const CONST = {
+// 1. 言語に関係ない共通設定（色、サイズ、部品タイプなど）
+const COMMON_CONST = {
   // 部品タイプの定義
   PART_TYPE: {
     POWER: 'POWER',
@@ -19,14 +19,13 @@ export const CONST = {
     HEADER_BG: '#333333',
     WIRE_ON: [0, 128, 255],
     WIRE_TEMP: [255, 50, 50],
-    // ON_STATE: [0, 255, 100],
     ON_STATE: [0, 128, 255],
     OFF_STATE: [255, 50, 50]
   },
   
   // 部品の設定
   PARTS: (() => {
-    const WIDTH = 40;  // 基準となる幅
+    const WIDTH = 40;
     return {
       WIDTH: WIDTH,
       HEIGHT: WIDTH,
@@ -38,10 +37,9 @@ export const CONST = {
       DRAG_OFFSET: WIDTH * 0.25, 
       CONNECTOR_HEIGHT: WIDTH * 0.6,
       CONNECTOR_RADIUS: WIDTH * 0.1,
-      // 回転ハンドルの設定
-      ROTATION_HANDLE_DISTANCE: WIDTH * 1.2,  // 部品中心からハンドルまでの距離
-      ROTATION_HANDLE_RADIUS: WIDTH * 0.3,    // ハンドルの半径
-      ROTATION_HANDLE_HIT_RADIUS: WIDTH * 0.4 // ハンドルのヒット判定半径
+      ROTATION_HANDLE_DISTANCE: WIDTH * 1.2,
+      ROTATION_HANDLE_RADIUS: WIDTH * 0.3,
+      ROTATION_HANDLE_HIT_RADIUS: WIDTH * 0.4
     };
   })(),
   
@@ -53,34 +51,38 @@ export const CONST = {
   
   // ボタンの設定
   BUTTON: {
-    ON_DURATION: 1000 // ミリ秒
+    ON_DURATION: 1000
   },
   
-  // UI要素のラベル
+  // UI要素のラベル（ここは今回は日本語のまま固定）
   UI_LABELS: {
-    POWER: '電源',
-    AUTO_SWITCH: 'オートスイッチ',
-    INVERTER: '電力変換器',
-    BUTTON: 'ボタン',
-    WALL_SWITCH: '壁スイッチ',
-    COLOR_LIGHT: 'カラーライト',
-    SAVE: '保存',
-    LOAD: '読込',
-    SHARE: '🔗 シェア',
-    DELETE_MODE: '🗑️ 削除'
+    POWER: 'Power',
+    AUTO_SWITCH: 'Auto Switch',
+    INVERTER: 'Inverter',
+    BUTTON: 'Button',
+    WALL_SWITCH: 'Wall Switch',
+    COLOR_LIGHT: 'Color Light',
+    SAVE: 'Save',
+    LOAD: 'Load',
+    SHARE: 'Share',
+    DELETE_MODE: 'Delete Mode'
   },
   
   // 削除モードの設定
   DELETE_MODE: {
-    HIGHLIGHT_COLOR: [255, 0, 0],      // 削除対象のハイライト色（赤）
-    HIGHLIGHT_STROKE_WEIGHT: 4,        // ハイライトの線の太さ
-    SNAP_DISTANCE_MULTIPLIER: 1.0,     // スナップ距離の倍率（PARTS.WIDTH × この値）
-    BUTTON_ACTIVE_COLOR: [255, 50, 50], // 削除モードON時のボタン色
-    BUTTON_INACTIVE_COLOR: [100, 100, 100] // 削除モードOFF時のボタン色
-  },
-  
-  // 画面メッセージ（保存・読込・シェア関連）
-  MESSAGES: {
+    HIGHLIGHT_COLOR: [255, 0, 0],
+    HIGHLIGHT_STROKE_WEIGHT: 4,
+    SNAP_DISTANCE_MULTIPLIER: 1.0,
+    BUTTON_ACTIVE_COLOR: [255, 50, 50],
+    BUTTON_INACTIVE_COLOR: [100, 100, 100]
+  }
+};
+
+// 2. 言語別メッセージ定義（ここだけ切り替える）
+const MESSAGES_DATA = {
+  // 日本語
+  ja: {
+    TEXT_DELETE_MODE: '⚠️ DELETE MODE',
     PROMPT_SAVE_FILENAME: '保存するファイル名を入力してください（拡張子なし）:',
     PROMPT_SHARE_SUCCESS: 'URLをクリップボードにコピーしました！',
     PROMPT_COPY_URL: '以下のURLをコピーしてください:',
@@ -91,5 +93,31 @@ export const CONST = {
     ALERT_URL_RESTORE_SUCCESS: 'URLから回路を復元しました',
     ALERT_URL_RESTORE_FAILED: 'URLからの復元に失敗しました',
     ERROR_INVALID_FILE_FORMAT: '無効なファイル形式です'
+  },
+  
+  // 英語（デフォルト）
+  en: {
+    TEXT_DELETE_MODE: '⚠️ DELETE MODE',
+    PROMPT_SAVE_FILENAME: 'Enter file name to save (no extension):',
+    PROMPT_SHARE_SUCCESS: 'URL copied to clipboard!',
+    PROMPT_COPY_URL: 'Please copy the following URL:',
+    ALERT_LOAD_SUCCESS: 'Load complete.',
+    ALERT_SAVE_FAILED: 'Save failed',
+    ALERT_LOAD_FAILED: 'Load failed',
+    ALERT_SHARE_FAILED: 'Failed to generate share URL',
+    ALERT_URL_RESTORE_SUCCESS: 'Restored circuit from URL',
+    ALERT_URL_RESTORE_FAILED: 'Failed to restore from URL',
+    ERROR_INVALID_FILE_FORMAT: 'Invalid file format'
   }
+};
+
+// 3. 自動判定ロジック
+// ブラウザの言語が 'ja' で始まれば 'ja'、それ以外は 'en'
+const userLang = (navigator.language || navigator.userLanguage || 'en').startsWith('ja') ? 'ja' : 'en';
+
+// 4. マージしてエクスポート
+// これで CONST.MESSAGES が自動的に切り替わります
+export const CONST = {
+  ...COMMON_CONST,
+  MESSAGES: MESSAGES_DATA[userLang]
 };
