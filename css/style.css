@@ -6,6 +6,10 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  /* アプリ全体でブラウザ標準のスクロールバーを消す */
+  overflow: hidden;
+  /* iOSでのバウンススクロールなどを防ぐ */
+  overscroll-behavior: none;
 }
 
 /* ヘッダー領域（ボタン置き場）の設定 */
@@ -277,4 +281,226 @@ button:active {
 }
 .toggle-switch:hover input:checked + .slider {
   background-color: #5cb85c;
+}
+
+/* =========================================
+   表示切り替えシステム
+   ========================================= */
+/* デフォルトではスマホUIを隠す */
+.mobile-ui { display: none; }
+
+/* スマホモード時: PC用UIを隠し、スマホUIを表示 */
+body.mobile-mode .pc-ui { display: none !important; }
+body.mobile-mode .mobile-ui { display: block; }
+
+/* キャンバスのスクロール設定（スマホ用） */
+body.mobile-mode #canvas-container {
+  margin-top: 0; /* ヘッダーがrelativeになったので自動で下に配置される */
+  overflow: hidden; /* ブラウザ標準のスクロールを無効化 */
+  touch-action: none; /* ピンチズームなどブラウザのタッチ操作を無効化 */
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+body.mobile-mode #canvas-container canvas {
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+/* =========================================
+   スマホ専用UIのデザイン
+   ========================================= */
+
+/* 1. ミニマルヘッダー */
+.mobile-header {
+  position: relative; /* fixedからrelativeに変更 */
+  width: 100%;
+  height: 44px;  /* 必要最小限の高さ */
+  background: #222; /* 不透明なダークグレー */
+  border-bottom: 1px solid #444;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  z-index: 1000;
+  box-sizing: border-box;
+  flex-shrink: 0; /* フレックスボックス内で縮まないようにする */
+}
+
+.app-title {
+  font-size: 16px;
+  font-weight: normal;
+  color: #ddd;
+  margin: 0;
+  margin-left: 15px;
+  letter-spacing: 1px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  padding: 5px;
+  cursor: pointer;
+  min-width: auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 2. FAB (Floating Action Button) */
+.fab-add, .fab-delete {
+  position: fixed;
+  bottom: 25px;
+  width: 60px;
+  height: 60px;
+  border-radius: 30px;
+  border: 2px solid rgba(255,255,255,0.2);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  z-index: 900;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 30px;
+  color: white;
+  transition: transform 0.2s;
+  touch-action: manipulation;
+}
+.fab-add:active, .fab-delete:active {
+  transform: scale(0.9);
+}
+
+/* 右下：追加ボタン */
+.fab-add {
+  right: 25px;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+/* 左下：削除ボタン */
+.fab-delete {
+  left: 25px;
+  background-color: #500; 
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 60%;
+}
+.fab-delete.active {
+  background-color: #d00;
+  box-shadow: 0 0 15px #f00;
+  border-color: #f88;
+}
+
+/* 3. ボトムシート (パーツ一覧) */
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #2a2a2a;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding: 20px;
+  padding-bottom: 40px; /* iPhoneのホームバーエリア */
+  box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+  z-index: 2000;
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-sizing: border-box;
+}
+
+.bottom-sheet.hidden {
+  transform: translateY(110%);
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 5px;
+  background: #555;
+  border-radius: 5px;
+  margin: 0 auto 20px auto;
+}
+
+.parts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  justify-items: center;
+}
+
+.sheet-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  background-color: #333;
+  border: 1px solid #555;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 80%;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+
+/* 4. ハンバーガーメニュー */
+.mobile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  z-index: 3000;
+  display: flex;
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+.mobile-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mobile-menu-content {
+  width: 80%;
+  max-width: 300px;
+  height: 100%;
+  background: #222;
+  padding: 20px;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+  transform: translateX(0);
+  transition: transform 0.3s;
+}
+.mobile-overlay.hidden .mobile-menu-content {
+  transform: translateX(-100%);
+}
+
+.menu-header {
+  font-size: 20px;
+  font-weight: bold;
+  border-bottom: 1px solid #444;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 15px;
+  margin-bottom: 10px;
+  background: #333;
+  border: none;
+  border-radius: 8px;
+  color: #eee;
+  font-size: 16px;
+}
+.menu-item:active {
+  background: #444;
+}
+
+.menu-label {
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 10px;
+  margin-top: 20px;
 }

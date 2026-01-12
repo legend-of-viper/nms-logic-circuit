@@ -2,6 +2,7 @@
 
 import { CONST } from '../config/constants.js';
 import { PartFactory } from '../models/PartFactory.js';
+import { deviceDetector } from '../utils/DeviceDetector.js';
 
 /**
  * UIコントローラー
@@ -15,12 +16,47 @@ export class UIController {
 
   /**
    * UIの初期化
-   * ボタンラベルの設定とイベントリスナーの登録
+   * デバイス判定、ボタンラベルの設定とイベントリスナーの登録
    */
   initialize() {
+    this.applyDeviceMode();
     this.setupLabels();
     this.setupButtonIcons();
     this.setupEventListeners();
+  }
+
+  /**
+   * デバイスモードの適用
+   * デバイス判定を行い、適切なCSSクラスを設定
+   */
+  applyDeviceMode() {
+    const body = document.body;
+    deviceDetector.logDeviceInfo();
+
+    if (deviceDetector.isMobile()) {
+      console.log("Mobile Mode Activated");
+      body.classList.add('mobile-mode');
+      body.classList.remove('pc-mode');
+    } else {
+      console.log("PC Mode Activated");
+      body.classList.add('pc-mode');
+      body.classList.remove('mobile-mode');
+    }
+  }
+
+  /**
+   * 共通のアクションバインド関数
+   * PC用とモバイル用など、複数の要素に対して同じイベントハンドラを登録する
+   * @param {string[]} ids - ボタンIDの配列
+   * @param {Function} handler - 実行する関数
+   */
+  bindAction(ids, handler) {
+    ids.forEach(id => {
+      const elem = document.getElementById(id);
+      if (elem) {
+        elem.addEventListener('click', handler);
+      }
+    });
   }
 
   /**
@@ -44,6 +80,10 @@ setupLabels() {
     document.getElementById('btn-save').textContent = CONST.UI_LABELS.SAVE;
     document.getElementById('btn-load').textContent = CONST.UI_LABELS.LOAD;
     document.getElementById('btn-share').textContent = CONST.UI_LABELS.SHARE;
+
+    // スマホ用設定スイッチのラベルも更新
+    const mobileSnapLabel = document.querySelector('.mobile-toggle .label-text');
+    if (mobileSnapLabel) mobileSnapLabel.textContent = CONST.UI_LABELS.ROTATION_SNAP;
     
     // パーツボタンの文字はCSSで透明にしていますが、念のため空にしておくならここで行います
     const partBtnIds = ['btn-power', 'btn-auto-switch', 'btn-inverter', 'btn-button', 'btn-wall-switch', 'btn-color-light'];
@@ -54,17 +94,36 @@ setupLabels() {
   }
 
   /**
-   * ★追加: 各パーツのアイコンを動的に生成してボタンの背景にする
+   * 各パーツのアイコンを動的に生成してボタンの背景にする
+   * PC用とモバイル用の両方のボタンにアイコンを設定
    */
   setupButtonIcons() {
-    // ボタンIDとパーツタイプの対応表
+    // パーツタイプに対して、適用したいボタンIDのリストを定義
     const mapping = [
-      { id: 'btn-power', type: CONST.PART_TYPE.POWER },
-      { id: 'btn-auto-switch', type: CONST.PART_TYPE.AUTO_SWITCH },
-      { id: 'btn-inverter', type: CONST.PART_TYPE.INVERTER },
-      { id: 'btn-button', type: CONST.PART_TYPE.BUTTON },
-      { id: 'btn-wall-switch', type: CONST.PART_TYPE.WALL_SWITCH },
-      { id: 'btn-color-light', type: CONST.PART_TYPE.COLOR_LIGHT }
+      { 
+        type: CONST.PART_TYPE.POWER, 
+        ids: [CONST.DOM_IDS.PC.POWER, CONST.DOM_IDS.MOBILE.POWER]
+      },
+      { 
+        type: CONST.PART_TYPE.AUTO_SWITCH, 
+        ids: [CONST.DOM_IDS.PC.AUTO_SWITCH, CONST.DOM_IDS.MOBILE.AUTO_SWITCH]
+      },
+      { 
+        type: CONST.PART_TYPE.INVERTER, 
+        ids: [CONST.DOM_IDS.PC.INVERTER, CONST.DOM_IDS.MOBILE.INVERTER]
+      },
+      { 
+        type: CONST.PART_TYPE.BUTTON, 
+        ids: [CONST.DOM_IDS.PC.BUTTON, CONST.DOM_IDS.MOBILE.BUTTON]
+      },
+      { 
+        type: CONST.PART_TYPE.WALL_SWITCH, 
+        ids: [CONST.DOM_IDS.PC.WALL_SWITCH, CONST.DOM_IDS.MOBILE.WALL_SWITCH]
+      },
+      { 
+        type: CONST.PART_TYPE.COLOR_LIGHT, 
+        ids: [CONST.DOM_IDS.PC.COLOR_LIGHT, CONST.DOM_IDS.MOBILE.COLOR_LIGHT]
+      }
     ];
 
     // p5.jsの描画状態を保存
@@ -132,11 +191,14 @@ setupLabels() {
         const size = CONST.PARTS.WIDTH * scale;
         const img = get(width / 2 - size / 2, height / 2 - size / 2, size, size);
         
-        // 5. ボタンの背景に設定
-        const btn = document.getElementById(item.id);
-        if (btn) {
-          btn.style.backgroundImage = `url(${img.canvas.toDataURL()})`;
-        }
+        // 5. 定義されたすべてのIDに対して背景画像を設定
+        const imgData = img.canvas.toDataURL();
+        item.ids.forEach(btnId => {
+          const btn = document.getElementById(btnId);
+          if (btn) {
+            btn.style.backgroundImage = `url(${imgData})`;
+          }
+        });
         
         // 座標を戻す
         translate(-width / 2, -height / 2);
@@ -181,6 +243,11 @@ setupLabels() {
       deleteBtn.style.backgroundImage = `url(${trashImg.canvas.toDataURL()})`;
     }
 
+    const mobileDeleteBtn = document.getElementById('btn-mobile-delete');
+    if (mobileDeleteBtn) {
+      mobileDeleteBtn.style.backgroundImage = `url(${trashImg.canvas.toDataURL()})`;
+    }
+
     // 座標リセット
     translate(-width / 2, -height / 2);
 
@@ -192,67 +259,211 @@ setupLabels() {
 
   /**
    * イベントリスナーの登録
+   * PC用とモバイル用のイベントを統合的に管理
    */
   setupEventListeners() {
-    // 部品追加ボタン
-    document.getElementById('btn-power').addEventListener('click', () => {
-      this.simulator.createPart(CONST.PART_TYPE.POWER);
-    });
+    // 部品追加ボタン（PC用とモバイル用を一括登録）
+    this.bindAction(
+      [CONST.DOM_IDS.PC.POWER, CONST.DOM_IDS.MOBILE.POWER],
+      () => this.handleAddPart(CONST.PART_TYPE.POWER)
+    );
     
-    document.getElementById('btn-auto-switch').addEventListener('click', () => {
-      this.simulator.createPart(CONST.PART_TYPE.AUTO_SWITCH);
-    });
+    this.bindAction(
+      [CONST.DOM_IDS.PC.AUTO_SWITCH, CONST.DOM_IDS.MOBILE.AUTO_SWITCH],
+      () => this.handleAddPart(CONST.PART_TYPE.AUTO_SWITCH)
+    );
     
-    document.getElementById('btn-inverter').addEventListener('click', () => {
-      this.simulator.createPart(CONST.PART_TYPE.INVERTER);
-    });
+    this.bindAction(
+      [CONST.DOM_IDS.PC.INVERTER, CONST.DOM_IDS.MOBILE.INVERTER],
+      () => this.handleAddPart(CONST.PART_TYPE.INVERTER)
+    );
     
-    document.getElementById('btn-button').addEventListener('click', () => {
-      this.simulator.createPart(CONST.PART_TYPE.BUTTON);
-    });
+    this.bindAction(
+      [CONST.DOM_IDS.PC.BUTTON, CONST.DOM_IDS.MOBILE.BUTTON],
+      () => this.handleAddPart(CONST.PART_TYPE.BUTTON)
+    );
     
-    document.getElementById('btn-wall-switch').addEventListener('click', () => {
-      this.simulator.createPart(CONST.PART_TYPE.WALL_SWITCH);
-    });
+    this.bindAction(
+      [CONST.DOM_IDS.PC.WALL_SWITCH, CONST.DOM_IDS.MOBILE.WALL_SWITCH],
+      () => this.handleAddPart(CONST.PART_TYPE.WALL_SWITCH)
+    );
     
-    document.getElementById('btn-color-light').addEventListener('click', () => {
-      this.simulator.createPart(CONST.PART_TYPE.COLOR_LIGHT);
-    });
+    this.bindAction(
+      [CONST.DOM_IDS.PC.COLOR_LIGHT, CONST.DOM_IDS.MOBILE.COLOR_LIGHT],
+      () => this.handleAddPart(CONST.PART_TYPE.COLOR_LIGHT)
+    );
     
-    // 削除モードボタン
-    document.getElementById('btn-delete-mode').addEventListener('click', () => {
-      this.simulator.toggleDeleteMode();
-      this.updateDeleteButtonState();
-    });
+    // 削除モードボタン（PC用とモバイル用）
+    this.bindAction(
+      [CONST.DOM_IDS.PC.DELETE_MODE, CONST.DOM_IDS.MOBILE.FAB_DELETE],
+      () => this.handleToggleDeleteMode()
+    );
     
-    // 90度スナップチェックボックス
-    document.getElementById('rotation-snap-checkbox').addEventListener('change', (event) => {
-      this.simulator.setRotationSnap(event.target.checked);
-    });
+    // ファイル操作ボタン（PC用とモバイル用）
+    this.bindAction(
+      [CONST.DOM_IDS.PC.SAVE, CONST.DOM_IDS.MOBILE.SAVE],
+      () => this.handleSave()
+    );
     
-    // ファイル操作ボタン（StorageService経由）
-    document.getElementById('btn-save').addEventListener('click', () => {
-      this.storage.saveToFile();
-    });
+    this.bindAction(
+      [CONST.DOM_IDS.PC.LOAD, CONST.DOM_IDS.MOBILE.LOAD],
+      () => this.handleLoad()
+    );
     
-    document.getElementById('btn-load').addEventListener('click', () => {
-      this.storage.loadFromFile();
-    });
+    this.bindAction(
+      [CONST.DOM_IDS.PC.SHARE, CONST.DOM_IDS.MOBILE.SHARE],
+      () => this.handleShare()
+    );
     
-    document.getElementById('btn-share').addEventListener('click', () => {
-      this.storage.shareToUrl();
-    });
+    // 90度スナップチェックボックス（PC用とモバイル用で同期）
+    const pcCheckbox = document.getElementById(CONST.DOM_IDS.PC.ROTATION_SNAP);
+    const mobileCheckbox = document.getElementById(CONST.DOM_IDS.MOBILE.ROTATION_SNAP);
+    
+    if (pcCheckbox) {
+      pcCheckbox.addEventListener('change', (event) => {
+        this.simulator.setRotationSnap(event.target.checked);
+        if (mobileCheckbox) mobileCheckbox.checked = event.target.checked;
+      });
+    }
+    
+    if (mobileCheckbox) {
+      mobileCheckbox.addEventListener('change', (event) => {
+        this.simulator.setRotationSnap(event.target.checked);
+        if (pcCheckbox) pcCheckbox.checked = event.target.checked;
+      });
+    }
+    
+    // モバイル固有のUI操作
+    this.setupMobileInteractions();
+  }
+
+  /**
+   * モバイル固有のUI操作
+   * FABとメニューの開閉など
+   */
+  setupMobileInteractions() {
+    // 追加FAB -> ボトムシート
+    const fabAdd = document.getElementById(CONST.DOM_IDS.MOBILE.FAB_ADD);
+    const bottomSheet = document.getElementById(CONST.DOM_IDS.MOBILE.BOTTOM_SHEET);
+    
+    if (fabAdd && bottomSheet) {
+      fabAdd.addEventListener('click', () => {
+        bottomSheet.classList.toggle('hidden');
+      });
+      
+      // キャンバスをタップしたらシートを閉じる
+      const canvasContainer = document.getElementById(CONST.DOM_IDS.COMMON.CANVAS_CONTAINER);
+      if (canvasContainer) {
+        canvasContainer.addEventListener('click', (e) => {
+          if (e.target !== fabAdd && !bottomSheet.classList.contains('hidden')) {
+            bottomSheet.classList.add('hidden');
+          }
+        });
+      }
+    }
+
+    // ハンバーガーメニュー
+    const btnMenu = document.getElementById(CONST.DOM_IDS.MOBILE.MENU_OPEN);
+    const menuOverlay = document.getElementById(CONST.DOM_IDS.MOBILE.MENU_OVERLAY);
+    const btnMenuClose = document.getElementById(CONST.DOM_IDS.MOBILE.MENU_CLOSE);
+    
+    if (btnMenu && menuOverlay && btnMenuClose) {
+      const toggleMenu = () => menuOverlay.classList.toggle('hidden');
+      
+      btnMenu.addEventListener('click', toggleMenu);
+      btnMenuClose.addEventListener('click', toggleMenu);
+      menuOverlay.addEventListener('click', (e) => {
+        if (e.target === menuOverlay) toggleMenu();
+      });
+    }
+  }
+
+  /**
+   * 部品追加処理
+   * @param {string} type - 部品タイプ
+   */
+  handleAddPart(type) {
+    this.simulator.createPart(type);
+    this.closeBottomSheet();
+  }
+
+  /**
+   * 削除モード切り替え処理
+   */
+  handleToggleDeleteMode() {
+    this.simulator.toggleDeleteMode();
+    this.updateDeleteButtonState();
+  }
+
+  /**
+   * 保存処理
+   */
+  handleSave() {
+    this.storage.saveToFile();
+    this.closeMobileMenu();
+  }
+
+  /**
+   * 読み込み処理
+   */
+  handleLoad() {
+    this.storage.loadFromFile();
+    this.closeMobileMenu();
+  }
+
+  /**
+   * シェア処理
+   */
+  handleShare() {
+    this.storage.shareToUrl();
+    this.closeMobileMenu();
+  }
+
+  /**
+   * ボトムシートを閉じる
+   */
+  closeBottomSheet() {
+    const bottomSheet = document.getElementById(CONST.DOM_IDS.MOBILE.BOTTOM_SHEET);
+    if (bottomSheet) {
+      bottomSheet.classList.add('hidden');
+    }
+  }
+
+  /**
+   * モバイルメニューを閉じる
+   */
+  closeMobileMenu() {
+    const menuOverlay = document.getElementById(CONST.DOM_IDS.MOBILE.MENU_OVERLAY);
+    if (menuOverlay) {
+      menuOverlay.classList.add('hidden');
+    }
   }
 
   /**
    * 削除モードボタンの見た目を更新
+   * PC用とモバイル用の両方を更新
    */
   updateDeleteButtonState() {
-    const btn = document.getElementById('btn-delete-mode');
-    if (this.simulator.getDeleteMode()) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
+    const isDeleteMode = this.simulator.getDeleteMode();
+    
+    // PC用ボタン
+    const pcBtn = document.getElementById(CONST.DOM_IDS.PC.DELETE_MODE);
+    if (pcBtn) {
+      if (isDeleteMode) {
+        pcBtn.classList.add('active');
+      } else {
+        pcBtn.classList.remove('active');
+      }
+    }
+    
+    // モバイル用ボタン
+    const mobileBtn = document.getElementById(CONST.DOM_IDS.MOBILE.FAB_DELETE);
+    if (mobileBtn) {
+      if (isDeleteMode) {
+        mobileBtn.classList.add('active');
+      } else {
+        mobileBtn.classList.remove('active');
+      }
     }
   }
 }

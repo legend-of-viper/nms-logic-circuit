@@ -170,11 +170,17 @@ export class CircuitPart {
 
   /**
    * マウスが乗っているソケットを探す
+   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
+   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
    * @returns {Socket|null}
    */
-  getHoveredSocket() {
+  getHoveredSocket(mx, my) {
+    // 引数がなければグローバルのmouseXを使う（互換性維持）
+    const x = mx !== undefined ? mx : mouseX;
+    const y = my !== undefined ? my : mouseY;
+    
     for (let socket of this.sockets) {
-      if (socket.isMouseOver()) {
+      if (socket.isMouseOver(x, y)) {
         return socket;
       }
     }
@@ -202,21 +208,33 @@ export class CircuitPart {
 
   /**
    * マウスがこの部品の上にあるか判定（簡易版・バウンディングボックス）
+   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
+   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
    * @returns {boolean}
    */
-  isMouseOver() {
+  isMouseOver(mx, my) {
+    // 引数がなければグローバルのmouseXを使う（互換性維持）
+    const x = mx !== undefined ? mx : mouseX;
+    const y = my !== undefined ? my : mouseY;
+    
     // 簡易的な矩形判定（回転を考慮しない）
-    return (mouseX > this.x && mouseX < this.x + CONST.PARTS.WIDTH &&
-            mouseY > this.y && mouseY < this.y + CONST.PARTS.HEIGHT);
+    return (x > this.x && x < this.x + CONST.PARTS.WIDTH &&
+            y > this.y && y < this.y + CONST.PARTS.HEIGHT);
   }
 
   /**
    * マウスボタンを押した時の処理（回転モード）
+   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
+   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
    */
-  onRotationMouseDown() {
+  onRotationMouseDown(mx, my) {
+    // 引数がなければグローバルのmouseXを使う（互換性維持）
+    const x = mx !== undefined ? mx : mouseX;
+    const y = my !== undefined ? my : mouseY;
+    
     this.isRotating = true;
     const center = this.getCenter();
-    this.rotationStartAngle = Math.atan2(mouseY - center.y, mouseX - center.x) - this.rotation;
+    this.rotationStartAngle = Math.atan2(y - center.y, x - center.x) - this.rotation;
   }
 
   /**
@@ -256,24 +274,36 @@ export class CircuitPart {
 
   /**
    * マウスボタンを押した時の処理
+   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
+   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
    */
-  onMouseDown() {
+  onMouseDown(mx, my) {
+    // 引数がなければグローバルのmouseXを使う（互換性維持）
+    const x = mx !== undefined ? mx : mouseX;
+    const y = my !== undefined ? my : mouseY;
+    
     this.isDragging = true;
-    this.offsetX = this.x - mouseX;
-    this.offsetY = this.y - mouseY;
+    this.offsetX = this.x - x;
+    this.offsetY = this.y - y;
     
     this.dragStartX = this.x;
     this.dragStartY = this.y;
   }
 
   /**
-   * マウスをドラッグしている時の移動処理
+   * マウスが回転ハンドル上にあるか判定
+   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
+   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
+   * @returns {boolean}
    */
-  onMouseDragged() {
-    if (this.isDragging) {
-      this.x = mouseX + this.offsetX;
-      this.y = mouseY + this.offsetY;
-    }
+  isMouseOverRotationHandle(mx, my) {
+    // 引数がなければグローバルのmouseXを使う（互換性維持）
+    const x = mx !== undefined ? mx : mouseX;
+    const y = my !== undefined ? my : mouseY;
+    
+    const handlePos = this.getRotationHandlePos();
+    const distance = dist(x, y, handlePos.x, handlePos.y);
+    return distance < CONST.PARTS.ROTATION_HANDLE_HIT_RADIUS;
   }
 
   /**

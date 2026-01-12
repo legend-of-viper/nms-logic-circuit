@@ -4,74 +4,64 @@ import { CircuitManager } from './services/CircuitManager.js';
 import { StorageService } from './services/StorageService.js';
 import { UIController } from './ui/UIController.js';
 import { CONST } from './config/constants.js';
+import { deviceDetector } from './utils/DeviceDetector.js';
 
-// グローバル変数（p5.jsとの連携のため必要）
+// グローバル変数
 let simulator;
 let storage;
 let uiController;
 
-/**
- * p5.js setup関数
- * アプリケーションの初期化
- */
 window.setup = function() {
-  // キャンバスの作成
-  const canvas = createCanvas(windowWidth - 20, windowHeight - 80);
+  // モバイルとPCで異なるキャンバスサイズを設定
+  let canvasWidth, canvasHeight;
+  
+  if (deviceDetector.isMobile()) {
+    // モバイル: 画面幅いっぱい、高さはヘッダー(44px)を引く
+    canvasWidth = windowWidth;
+    canvasHeight = windowHeight - 44;
+  } else {
+    // PC: 従来通り余白を確保
+    canvasWidth = windowWidth - 20;
+    canvasHeight = windowHeight - 80;
+  }
+  
+  const canvas = createCanvas(canvasWidth, canvasHeight);
   canvas.parent('canvas-container');
   
-  // 背景色の設定
   const bgRGB = CONST.COLORS.BACKGROUND;
-  select('body').style('background-color', `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]})`);
-  select('#canvas-container').style('background-color', `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]})`);
+  select('body').style('background-color', `rgb(${bgRGB[0]}, ${bgRGB[1]+50}, ${bgRGB[2]})`);
+  select('#canvas-container').style('background-color', `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]+50})`);
   
-  // マネージャーとストレージサービスの初期化
   simulator = new CircuitManager();
   storage = new StorageService(simulator);
   
-  // UIコントローラーの初期化
   uiController = new UIController(simulator, storage);
   uiController.initialize();
   
-  // URLに回路データがあれば復元
   storage.loadFromUrlHash();
 };
 
-/**
- * p5.js draw関数
- * 毎フレーム呼ばれる描画処理
- */
 window.draw = function() {
   simulator.update();
 };
 
-/**
- * p5.js mousePressed関数
- * マウスボタンを押した時
- */
-window.mousePressed = function() {
-  simulator.handleMousePressed();
-};
+window.mousePressed = function() { simulator.handleMousePressed(); };
+window.mouseDragged = function() { simulator.handleMouseDragged(); };
+window.mouseReleased = function() { simulator.handleMouseReleased(); };
 
-/**
- * p5.js mouseDragged関数
- * マウスをドラッグしている時
- */
-window.mouseDragged = function() {
-  simulator.handleMouseDragged();
-};
-
-/**
- * p5.js mouseReleased関数
- * マウスボタンを離した時
- */
-window.mouseReleased = function() {
-  simulator.handleMouseReleased();
-};
-
-/**
- * p5.js windowResized関数
- * ウィンドウサイズが変更された時
- */
 window.windowResized = function() {
-  resizeCanvas(windowWidth - 20, windowHeight - 80);
+  // リサイズ時はキャンバスサイズのみ調整（モード切り替えは行わない）
+  let canvasWidth, canvasHeight;
+  
+  if (deviceDetector.isMobile()) {
+    // モバイル: 画面幅いっぱい、高さはヘッダー(44px)を引く
+    canvasWidth = windowWidth;
+    canvasHeight = windowHeight - 44;
+  } else {
+    // PC: 従来通り余白を確保
+    canvasWidth = windowWidth - 20;
+    canvasHeight = windowHeight - 80;
+  }
+  
+  resizeCanvas(canvasWidth, canvasHeight);
 };

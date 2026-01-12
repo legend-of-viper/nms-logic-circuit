@@ -46,6 +46,29 @@ export class CircuitManager {
     this.wiringStartNode = null;
     this.rotationSnapEnabled = true; // デフォルトで90度スナップを有効
     this.isDeleteMode = false; // 削除モード
+
+    // ビューポート管理用の変数（パン＆ズーム）
+    this.viewOffsetX = 0;
+    this.viewOffsetY = 0;
+    this.viewScale = 1.0;
+
+    // タッチ操作計算用の一時変数
+    this.prevTouchDist = -1;
+    this.prevTouchCenter = { x: 0, y: 0 };
+  }
+
+  /**
+   * スクリーン座標をワールド座標に変換
+   * （パン＆ズーム適用後の回路内の座標を取得）
+   * @param {number} screenX - スクリーンX座標
+   * @param {number} screenY - スクリーンY座標
+   * @returns {{x: number, y: number}} ワールド座標
+   */
+  getWorldPosition(screenX, screenY) {
+    return {
+      x: (screenX - this.viewOffsetX) / this.viewScale,
+      y: (screenY - this.viewOffsetY) / this.viewScale
+    };
   }
 
   /**
@@ -156,14 +179,17 @@ export class CircuitManager {
     
     const startPos = this.wiringStartNode.socket.getConnectorWorldPosition();
     
+    // マウス座標をワールド座標に変換
+    const worldMouse = this.getWorldPosition(mouseX, mouseY);
+    
     // 近くのコネクタを探してスナップする
-    let endPos = { x: mouseX, y: mouseY };
+    let endPos = { x: worldMouse.x, y: worldMouse.y };
     let snapped = false;
     
     for (let part of this.parts) {
       for (let socket of part.sockets) {
         const connectorPos = socket.getConnectorWorldPosition();
-        const distance = dist(mouseX, mouseY, connectorPos.x, connectorPos.y);
+        const distance = dist(worldMouse.x, worldMouse.y, connectorPos.x, connectorPos.y);
         
         // 同じソケットでなく、かつヒット範囲内ならスナップ
         const isSameSocket = (socket === this.wiringStartNode.socket);
@@ -189,11 +215,14 @@ export class CircuitManager {
   highlightDeletionTarget() {
     if (!this.isDeleteMode) return;
     
+    // マウス座標をワールド座標に変換
+    const worldMouse = this.getWorldPosition(mouseX, mouseY);
+    
     // 近くのワイヤーを探す（優先的に判定）
     let targetWire = null;
     for (let i = this.wires.length - 1; i >= 0; i--) {
       const wire = this.wires[i];
-      if (wire.isMouseOver(mouseX, mouseY, 10)) {
+      if (wire.isMouseOver(worldMouse.x, worldMouse.y, 10)) {
         targetWire = wire;
         break;
       }
@@ -235,7 +264,7 @@ export class CircuitManager {
     for (let i = this.parts.length - 1; i >= 0; i--) {
       const part = this.parts[i];
       const center = part.getCenter();
-      const distance = dist(mouseX, mouseY, center.x, center.y);
+      const distance = dist(worldMouse.x, worldMouse.y, center.x, center.y);
       
       if (distance < snapDistance) {
         targetPart = part;
@@ -264,9 +293,9 @@ export class CircuitManager {
       // スナップ時はより強調（太い線、より大きなパディング）
       strokeWeight(CONST.DELETE_MODE.HIGHLIGHT_STROKE_WEIGHT + 1);
     } else {
-      // カーソル位置に表示
-      highlightX = mouseX;
-      highlightY = mouseY;
+      // カーソル位置に表示（ワールド座標）
+      highlightX = worldMouse.x;
+      highlightY = worldMouse.y;
       
       // 半透明にして「まだスナップしていない」感を出す
       stroke(...CONST.DELETE_MODE.HIGHLIGHT_COLOR, 150);
@@ -322,6 +351,12 @@ export class CircuitManager {
 
     background(CONST.COLORS.BACKGROUND);
 
+    push(); // 座標系保存
+    
+    // パンとズームを適用
+    translate(this.viewOffsetX, this.viewOffsetY);
+    scale(this.viewScale);
+
     // 1. パーツを描画
     this.parts.forEach(part => part.draw());
 
@@ -334,7 +369,9 @@ export class CircuitManager {
     // 4. 削除モード中なら、削除対象をハイライト
     this.highlightDeletionTarget();
 
-    // 5. 削除モードの警告表示
+    pop(); // 座標系復帰
+
+    // 5. 削除モードの警告表示（ズームの影響を受けないようにpopの後）
     this.drawDeleteModeWarning();
   }
 
@@ -342,12 +379,15 @@ export class CircuitManager {
    * マウスボタンを押した時の処理
    */
   handleMousePressed() {
+    // マウス座標をワールド座標に変換
+    const worldMouse = this.getWorldPosition(mouseX, mouseY);
+    
     // 削除モード中のクリック処理
     if (this.isDeleteMode) {
       // まずワイヤーをチェック（優先的に削除）
       for (let i = this.wires.length - 1; i >= 0; i--) {
         const wire = this.wires[i];
-        if (wire.isMouseOver(mouseX, mouseY, 10)) {
+        if (wire.isMouseOver(worldMouse.x, worldMouse.y, 10)) {
           this.deleteWire(wire);
           return;
         }
@@ -356,7 +396,7 @@ export class CircuitManager {
       // ワイヤーが見つからなかったらパーツをチェック
       for (let i = this.parts.length - 1; i >= 0; i--) {
         const part = this.parts[i];
-        if (part.isMouseOver()) {
+        if (part.isMouseOver(worldMouse.x, worldMouse.y)) {
           this.deletePart(part);
           return;
         }
@@ -370,15 +410,15 @@ export class CircuitManager {
       const part = this.parts[i];
       
       // A. 回転ハンドルをクリックしたか？（回転モード）
-      if (part.isMouseOverRotationHandle()) {
+      if (part.isMouseOverRotationHandle(worldMouse.x, worldMouse.y)) {
         console.log("回転ハンドルクリック");
         this.draggingPart = part;
-        part.onRotationMouseDown();
+        part.onRotationMouseDown(worldMouse.x, worldMouse.y);
         return;
       }
       
       // B. ソケットをクリックしたか？（ワイヤーモード）
-      const hoveredSocket = part.getHoveredSocket();
+      const hoveredSocket = part.getHoveredSocket(worldMouse.x, worldMouse.y);
       if (hoveredSocket) {
         console.log("ソケットクリック:", hoveredSocket.name);
         this.wiringStartNode = { part: part, socket: hoveredSocket };
@@ -388,9 +428,9 @@ export class CircuitManager {
       }
 
       // C. パーツ本体をクリックしたか？（移動モード or スイッチ操作）
-      if (part.isMouseOver()) {
+      if (part.isMouseOver(worldMouse.x, worldMouse.y)) {
         this.draggingPart = part;
-        part.onMouseDown();
+        part.onMouseDown(worldMouse.x, worldMouse.y);
         // interact()はmouseReleasedで呼ぶように変更
         return;
       }
@@ -401,6 +441,64 @@ export class CircuitManager {
    * マウスを動かしている時の処理
    */
   handleMouseDragged() {
+    // 2本指操作（パン ＆ ズーム）
+    if (touches.length === 2) {
+      // 現在の2点の座標を取得
+      const t1 = createVector(touches[0].x, touches[0].y);
+      const t2 = createVector(touches[1].x, touches[1].y);
+
+      // 1. 現在の中心点と距離を計算
+      const currentCenter = p5.Vector.add(t1, t2).div(2);
+      const currentDist = t1.dist(t2);
+
+      // 前回のデータがない場合（タッチ開始直後など）、現在値を記録して終了
+      if (this.prevTouchDist <= 0) {
+        this.prevTouchDist = currentDist;
+        this.prevTouchCenter = { x: currentCenter.x, y: currentCenter.y };
+        return;
+      }
+
+      // 2. パン（中心点の移動）の適用
+      // 前回の中心点との差分をオフセットに加算
+      const dx = currentCenter.x - this.prevTouchCenter.x;
+      const dy = currentCenter.y - this.prevTouchCenter.y;
+      this.viewOffsetX += dx;
+      this.viewOffsetY += dy;
+
+      // 3. ズーム（距離の変化）の適用
+      if (currentDist > 0 && this.prevTouchDist > 0) {
+        // 拡大率の変化比を計算
+        const scaleFactor = currentDist / this.prevTouchDist;
+        const newScale = this.viewScale * scaleFactor;
+
+        // 制限（縮小しすぎ、拡大しすぎを防ぐ）
+        // 例: 0.2倍 〜 5.0倍
+        const constrainedScale = constrain(newScale, 0.2, 5.0);
+        
+        // 実際に適用される倍率比
+        const effectiveFactor = constrainedScale / this.viewScale;
+
+        // ★重要: ズーム中心（指の間）がずれないようにオフセットを補正
+        // 公式: 新オフセット = 指位置 - (指位置 - 旧オフセット) * 倍率比
+        this.viewOffsetX = currentCenter.x - (currentCenter.x - this.viewOffsetX) * effectiveFactor;
+        this.viewOffsetY = currentCenter.y - (currentCenter.y - this.viewOffsetY) * effectiveFactor;
+
+        this.viewScale = constrainedScale;
+      }
+
+      // 次フレーム用に現在の状態を保存
+      this.prevTouchDist = currentDist;
+      this.prevTouchCenter = { x: currentCenter.x, y: currentCenter.y };
+      
+      // パーツドラッグなどはキャンセル
+      this.draggingPart = null;
+      return;
+    }
+    
+    // 指が2本でなければリセット
+    this.prevTouchDist = -1;
+
+    // 1本指操作（パーツ移動など）
     if (this.draggingPart) {
       // 回転モードか移動モードかで処理を分ける
       if (this.draggingPart.isRotating) {
@@ -415,12 +513,18 @@ export class CircuitManager {
    * マウスを離した時の処理
    */
   handleMouseReleased() {
+    // 2本指操作のリセット
+    this.prevTouchDist = -1;
+    
+    // マウス座標をワールド座標に変換
+    const worldMouse = this.getWorldPosition(mouseX, mouseY);
+    
     // ワイヤー作成中だった場合
     if (this.wiringStartNode) {
       let targetSocket = null;
       
       for (let part of this.parts) {
-        const hoveredSocket = part.getHoveredSocket();
+        const hoveredSocket = part.getHoveredSocket(worldMouse.x, worldMouse.y);
         // 同じソケット同士の接続は禁止
         const isSameSocket = (hoveredSocket === this.wiringStartNode.socket);
         if (hoveredSocket && !isSameSocket) {

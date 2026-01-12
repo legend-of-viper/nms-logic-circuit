@@ -65,7 +65,8 @@ const COMMON_CONST = {
     SAVE: 'Save',
     LOAD: 'Load',
     SHARE: 'Share',
-    DELETE_MODE: 'Delete Mode'
+    DELETE_MODE: 'Delete Mode',
+    ROTATION_SNAP: 'Rotation Snap'
   },
   
   // 削除モードの設定
@@ -75,6 +76,47 @@ const COMMON_CONST = {
     SNAP_DISTANCE_MULTIPLIER: 1.0,
     BUTTON_ACTIVE_COLOR: [255, 50, 50],
     BUTTON_INACTIVE_COLOR: [100, 100, 100]
+  },
+
+  // DOM要素のID定数
+  DOM_IDS: {
+    // PC用ボタン
+    PC: {
+      POWER: 'btn-power',
+      AUTO_SWITCH: 'btn-auto-switch',
+      INVERTER: 'btn-inverter',
+      BUTTON: 'btn-button',
+      WALL_SWITCH: 'btn-wall-switch',
+      COLOR_LIGHT: 'btn-color-light',
+      DELETE_MODE: 'btn-delete-mode',
+      SAVE: 'btn-save',
+      LOAD: 'btn-load',
+      SHARE: 'btn-share',
+      ROTATION_SNAP: 'rotation-snap-checkbox'
+    },
+    // モバイル用ボタン
+    MOBILE: {
+      FAB_ADD: 'btn-mobile-add',
+      FAB_DELETE: 'btn-mobile-delete',
+      MENU_OPEN: 'btn-mobile-menu',
+      MENU_CLOSE: 'btn-menu-close',
+      MENU_OVERLAY: 'mobile-menu-overlay',
+      BOTTOM_SHEET: 'mobile-bottom-sheet',
+      POWER: 'btn-mobile-power',
+      AUTO_SWITCH: 'btn-mobile-auto-switch',
+      INVERTER: 'btn-mobile-inverter',
+      BUTTON: 'btn-mobile-button',
+      WALL_SWITCH: 'btn-mobile-wall-switch',
+      COLOR_LIGHT: 'btn-mobile-color-light',
+      SAVE: 'btn-mobile-save',
+      LOAD: 'btn-mobile-load',
+      SHARE: 'btn-mobile-share',
+      ROTATION_SNAP: 'mobile-rotation-snap-checkbox'
+    },
+    // 共通要素
+    COMMON: {
+      CANVAS_CONTAINER: 'canvas-container'
+    }
   }
 };
 

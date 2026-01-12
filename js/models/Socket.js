@@ -57,11 +57,17 @@ export class Socket {
 
   /**
    * マウスがこのソケット上にあるか判定
+   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
+   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
    * @returns {boolean}
    */
-  isMouseOver() {
+  isMouseOver(mx, my) {
+    // 引数がなければグローバルのmouseXを使う（互換性維持）
+    const x = mx !== undefined ? mx : mouseX;
+    const y = my !== undefined ? my : mouseY;
+    
     const worldPos = this.getConnectorWorldPosition();
-    return dist(mouseX, mouseY, worldPos.x, worldPos.y) < CONST.PARTS.SOCKET_HIT_RADIUS;
+    return dist(x, y, worldPos.x, worldPos.y) < CONST.PARTS.SOCKET_HIT_RADIUS;
   }
 
   /**
