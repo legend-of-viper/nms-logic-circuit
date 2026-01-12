@@ -229,15 +229,19 @@ export class CircuitPart {
       const currentAngle = Math.atan2(mouseY - center.y, mouseX - center.x);
       let rotation = currentAngle - this.rotationStartAngle;
       
-      // 90度スナップが有効な場合
+      // ラジアンを度数に変換
+      let degrees = rotation * 180 / PI;
+      
       if (snapEnabled) {
-        // ラジアンを度数に変換
-        let degrees = rotation * 180 / PI;
-        // 最も近い90度の倍数に丸める
+        // 90度スナップが有効な場合
         degrees = Math.round(degrees / 90) * 90;
-        // 度数をラジアンに戻す
-        rotation = degrees * PI / 180;
+      } else {
+        // 90度スナップが無効な場合は5度単位でスナップ
+        degrees = Math.round(degrees / 5) * 5;
       }
+      
+      // 度数をラジアンに戻す
+      rotation = degrees * PI / 180;
       
       this.rotation = rotation;
     }
