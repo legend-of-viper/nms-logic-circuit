@@ -500,11 +500,14 @@ export class CircuitManager {
 
     // 1本指操作（パーツ移動など）
     if (this.draggingPart) {
+      // マウス座標をワールド座標に変換
+      const worldMouse = this.getWorldPosition(mouseX, mouseY);
+      
       // 回転モードか移動モードかで処理を分ける
       if (this.draggingPart.isRotating) {
-        this.draggingPart.onRotationMouseDragged(this.rotationSnapEnabled);
+        this.draggingPart.onRotationMouseDragged(this.rotationSnapEnabled, worldMouse.x, worldMouse.y);
       } else {
-        this.draggingPart.onMouseDragged();
+        this.draggingPart.onMouseDragged(worldMouse.x, worldMouse.y);
       }
     }
   }

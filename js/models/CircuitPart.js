@@ -240,11 +240,16 @@ export class CircuitPart {
   /**
    * マウスをドラッグしている時の回転処理
    * @param {boolean} snapEnabled - 90度スナップを有効にするか
+   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
+   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
    */
-  onRotationMouseDragged(snapEnabled = false) {
+  onRotationMouseDragged(snapEnabled = false, mx, my) {
     if (this.isRotating) {
+      const x = mx !== undefined ? mx : mouseX;
+      const y = my !== undefined ? my : mouseY;
+      
       const center = this.getCenter();
-      const currentAngle = Math.atan2(mouseY - center.y, mouseX - center.x);
+      const currentAngle = Math.atan2(y - center.y, x - center.x);
       let rotation = currentAngle - this.rotationStartAngle;
       
       // ラジアンを度数に変換
@@ -304,6 +309,18 @@ export class CircuitPart {
     const handlePos = this.getRotationHandlePos();
     const distance = dist(x, y, handlePos.x, handlePos.y);
     return distance < CONST.PARTS.ROTATION_HANDLE_HIT_RADIUS;
+  }
+
+  /**
+   * マウスをドラッグしている時の処理
+   */
+  onMouseDragged(mx, my) {
+    if (this.isDragging) {
+      const x = mx !== undefined ? mx : mouseX;
+      const y = my !== undefined ? my : mouseY;
+      this.x = x + this.offsetX;
+      this.y = y + this.offsetY;
+    }
   }
 
   /**
