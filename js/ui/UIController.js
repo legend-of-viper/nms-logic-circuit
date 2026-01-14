@@ -642,7 +642,6 @@ setupLabels() {
       this.handleToggleDeleteMode();
     }
     this.simulator.createPart(type);
-    this.closeBottomSheet();
   }
 
   /**
