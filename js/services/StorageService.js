@@ -120,14 +120,58 @@ export class StorageService {
       // アドレスバーのURLも更新（ページリロードなし）
       window.history.pushState(null, null, shareUrl);
       
-      // クリップボードにコピー
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        prompt(CONST.MESSAGES.PROMPT_SHARE_SUCCESS, shareUrl);
-        console.log('シェアURL:', shareUrl);
-      }).catch(err => {
-        // クリップボードへのコピーに失敗した場合はプロンプトで表示
-        prompt(CONST.MESSAGES.PROMPT_COPY_URL, shareUrl);
-      });
+      // ---------------------------------------------------------
+      // ★修正: クリップボードコピーの堅牢化（フォールバック実装）
+      // ---------------------------------------------------------
+      const copyToClipboard = (text) => {
+        return new Promise((resolve, reject) => {
+          // 1. モダンAPI（HTTPS環境）が使える場合
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text)
+              .then(resolve)
+              .catch(reject);
+          } else {
+            // 2. レガシー対応（HTTP環境や古いブラウザ用）
+            try {
+              const textarea = document.createElement('textarea');
+              textarea.value = text;
+              // 画面外に飛ばさず、かつ見えないように配置（スマホでのスクロール防止）
+              textarea.style.position = 'fixed';
+              textarea.style.left = '0';
+              textarea.style.top = '0';
+              textarea.style.opacity = '0';
+              document.body.appendChild(textarea);
+              
+              textarea.focus();
+              textarea.select();
+              
+              const successful = document.execCommand('copy');
+              document.body.removeChild(textarea);
+              
+              if (successful) {
+                resolve();
+              } else {
+                reject(new Error('execCommand failed'));
+              }
+            } catch (err) {
+              reject(err);
+            }
+          }
+        });
+      };
+
+      // コピー実行
+      copyToClipboard(shareUrl)
+        .then(() => {
+          // 成功時
+          prompt(CONST.MESSAGES.PROMPT_SHARE_SUCCESS, shareUrl);
+          console.log('シェアURL:', shareUrl);
+        })
+        .catch(err => {
+          // 失敗時（またはキャンセル時）は手動コピー用のプロンプトを出す
+          console.warn('クリップボードへのコピーに失敗しました（フォールバック）:', err);
+          prompt(CONST.MESSAGES.PROMPT_COPY_URL, shareUrl);
+        });
       
       return true;
     } catch (error) {
