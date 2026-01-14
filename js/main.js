@@ -45,9 +45,36 @@ window.draw = function() {
   simulator.update();
 };
 
-window.mousePressed = function() { simulator.handleMousePressed(); };
-window.mouseDragged = function() { simulator.handleMouseDragged(); };
-window.mouseReleased = function() { simulator.handleMouseReleased(); };
+window.mousePressed = function(e) {
+  // UIボタン（追加ボタンや削除ボタン）をタップした時は、
+  // ここで止めずに通常のクリック処理をさせたいので何もしない
+  if (e && e.target.nodeName !== 'CANVAS') return;
+
+  simulator.handleMousePressed();
+  
+  // ★重要: これで「ゴーストクリック（二重判定）」を防ぐ
+  return false; 
+};
+
+window.mouseDragged = function(e) {
+  // キャンバス外のドラッグは無視
+  if (e && e.target.nodeName !== 'CANVAS') return;
+
+  simulator.handleMouseDragged();
+  
+  // スマホで回路をドラッグした時に、画面全体がスクロールしてしまうのを防ぐ
+  return false; 
+};
+
+window.mouseReleased = function(e) {
+  // キャンバス外での離脱は無視
+  if (e && e.target.nodeName !== 'CANVAS') return;
+
+  simulator.handleMouseReleased();
+  
+  // 処理終了の合図
+  return false; 
+};
 
 window.windowResized = function() {
   // リサイズ時はキャンバスサイズのみ調整（モード切り替えは行わない）
