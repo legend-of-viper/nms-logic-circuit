@@ -227,121 +227,119 @@ export class CircuitManager {
   }
 
   /**
-   * 削除対象のハイライト表示
-   * カーソル位置にハイライトを描画し、近くのパーツやワイヤーにスナップ
+   * 指定座標にある削除対象を取得（ワイヤー優先、次にパーツ）
+   * PC/スマホ共通の判定ロジック
+   * @param {number} worldX - ワールドX座標
+   * @param {number} worldY - ワールドY座標
+   * @returns {{type: string, target: any} | null} 削除対象とタイプ
    */
-  highlightDeletionTarget() {
-    if (!this.isDeleteMode) return;
-    
-    // マウス座標をワールド座標に変換
-    const worldMouse = this.getWorldPosition(mouseX, mouseY);
-    
-    // 近くのワイヤーを探す（優先的に判定）
-    let targetWire = null;
+  getDeletionTarget(worldX, worldY) {
+    // 1. ワイヤーをチェック（細いので優先的に判定）
+    // 逆順ループで手前（描画順が後）のものを優先
     for (let i = this.wires.length - 1; i >= 0; i--) {
       const wire = this.wires[i];
-      if (wire.isMouseOver(worldMouse.x, worldMouse.y, 10)) {
-        targetWire = wire;
-        break;
+      // 判定閾値は少し広めに（PCは10px、スマホ操作も考慮して15pxくらい余裕を持たせる）
+      if (wire.isMouseOver(worldX, worldY, 15)) {
+        return { type: 'wire', target: wire };
       }
     }
     
-    // ワイヤーが見つかった場合はワイヤーをハイライト
-    if (targetWire) {
-      push();
-      const start = targetWire.startSocket.getConnectorWorldPosition();
-      const end = targetWire.endSocket.getConnectorWorldPosition();
+    // 2. パーツをチェック
+    const snapDistance = CONST.PARTS.WIDTH * 0.8; // 少し厳しめにして密集地での誤爆を防ぐ
+    let closestPart = null;
+    let closestDist = snapDistance;
+
+    for (let i = this.parts.length - 1; i >= 0; i--) {
+      const part = this.parts[i];
+      const center = part.getCenter();
+      const distVal = dist(worldX, worldY, center.x, center.y);
       
-      // ワイヤーを太くハイライト
+      if (distVal < closestDist) {
+        closestDist = distVal;
+        closestPart = part;
+      }
+    }
+    
+    if (closestPart) {
+      return { type: 'part', target: closestPart };
+    }
+    
+    return null;
+  }
+
+  /**
+   * 削除対象のハイライト表示（PC用）
+   */
+  highlightDeletionTarget() {
+    if (!this.isDeleteMode) return;
+    if (deviceDetector.isMobile()) return;
+    
+    const worldMouse = this.getWorldPosition(mouseX, mouseY);
+    
+    // ★修正: ここも共通メソッドで「今カーソル下にあるもの」を取得
+    const result = this.getDeletionTarget(worldMouse.x, worldMouse.y);
+    
+    if (!result) {
+      // 何もターゲットがない時は、マウス位置に薄い枠だけ出す（お好みで）
+      this.drawDeleteHighlightBox(worldMouse.x, worldMouse.y, false);
+      return;
+    }
+
+    if (result.type === 'wire') {
+      // --- ワイヤーのハイライト ---
+      const wire = result.target;
+      push();
+      const start = wire.startSocket.getConnectorWorldPosition();
+      const end = wire.endSocket.getConnectorWorldPosition();
+      
       stroke(...CONST.DELETE_MODE.HIGHLIGHT_COLOR);
       strokeWeight(CONST.DELETE_MODE.HIGHLIGHT_STROKE_WEIGHT + 2);
       line(start.x, start.y, end.x, end.y);
       
-      // ワイヤーの中点にバツ印を表示
+      // バツ印
       const midX = (start.x + end.x) / 2;
       const midY = (start.y + end.y) / 2;
-      
-      strokeWeight(3);
-      const crossSize = 12;
-      line(
-        midX - crossSize, midY - crossSize,
-        midX + crossSize, midY + crossSize
-      );
-      line(
-        midX + crossSize, midY - crossSize,
-        midX - crossSize, midY + crossSize
-      );
+      this.drawCrossMark(midX, midY);
       pop();
-      return;
-    }
-    
-    // ワイヤーが見つからなかった場合、近くのパーツを探す
-    let targetPart = null;
-    const snapDistance = CONST.PARTS.WIDTH * CONST.DELETE_MODE.SNAP_DISTANCE_MULTIPLIER;
-    
-    for (let i = this.parts.length - 1; i >= 0; i--) {
-      const part = this.parts[i];
-      const center = part.getCenter();
-      const distance = dist(worldMouse.x, worldMouse.y, center.x, center.y);
       
-      if (distance < snapDistance) {
-        targetPart = part;
-        break; // 最初に見つかったパーツにスナップ
-      }
+    } else if (result.type === 'part') {
+      // --- パーツのハイライト ---
+      const part = result.target;
+      const center = part.getCenter();
+      
+      // パーツ位置に赤枠とバツを表示
+      this.drawDeleteHighlightBox(center.x, center.y, true);
     }
-    
-    // ハイライトを描画
+  }
+
+  // （補助関数：枠線の描画を切り出し）
+  drawDeleteHighlightBox(x, y, isSnapped) {
     push();
     noFill();
     stroke(...CONST.DELETE_MODE.HIGHLIGHT_COLOR);
-    strokeWeight(CONST.DELETE_MODE.HIGHLIGHT_STROKE_WEIGHT);
     
-    const halfW = CONST.PARTS.WIDTH / 2;
-    const halfH = CONST.PARTS.HEIGHT / 2;
-    const padding = 8;
-    
-    let highlightX, highlightY;
-    
-    if (targetPart) {
-      // パーツにスナップ（中心座標を取得）
-      const center = targetPart.getCenter();
-      highlightX = center.x;
-      highlightY = center.y;
-      
-      // スナップ時はより強調（太い線、より大きなパディング）
+    if (isSnapped) {
       strokeWeight(CONST.DELETE_MODE.HIGHLIGHT_STROKE_WEIGHT + 1);
     } else {
-      // カーソル位置に表示（ワールド座標）
-      highlightX = worldMouse.x;
-      highlightY = worldMouse.y;
-      
-      // 半透明にして「まだスナップしていない」感を出す
+      // スナップしてない時は半透明
       stroke(...CONST.DELETE_MODE.HIGHLIGHT_COLOR, 150);
+      strokeWeight(CONST.DELETE_MODE.HIGHLIGHT_STROKE_WEIGHT);
     }
     
-    // ハイライト枠を描画（中心座標基準）
     rectMode(CENTER);
-    rect(
-      highlightX,
-      highlightY,
-      CONST.PARTS.WIDTH + padding * 2,
-      CONST.PARTS.HEIGHT + padding * 2,
-      5
-    );
-    rectMode(CORNER); // デフォルトに戻す
+    const padding = 8;
+    rect(x, y, CONST.PARTS.WIDTH + padding * 2, CONST.PARTS.HEIGHT + padding * 2, 5);
     
-    // バツ印を表示
-    strokeWeight(3);
-    const crossSize = 12;
-    line(
-      highlightX - crossSize, highlightY - crossSize,
-      highlightX + crossSize, highlightY + crossSize
-    );
-    line(
-      highlightX + crossSize, highlightY - crossSize,
-      highlightX - crossSize, highlightY + crossSize
-    );
+    this.drawCrossMark(x, y);
     pop();
+  }
+
+  // （補助関数：バツ印の描画）
+  drawCrossMark(x, y) {
+    strokeWeight(3);
+    const s = 12;
+    line(x - s, y - s, x + s, y + s);
+    line(x + s, y - s, x - s, y + s);
   }
 
   /**
@@ -400,26 +398,20 @@ export class CircuitManager {
     // マウス座標をワールド座標に変換
     const worldMouse = this.getWorldPosition(mouseX, mouseY);
     
-    // 削除モード中のクリック処理
-    if (this.isDeleteMode) {
-      // まずワイヤーをチェック（優先的に削除）
-      for (let i = this.wires.length - 1; i >= 0; i--) {
-        const wire = this.wires[i];
-        if (wire.isMouseOver(worldMouse.x, worldMouse.y, 10)) {
-          this.deleteWire(wire);
-          return;
-        }
-      }
+    // 削除モード中のクリック処理（スマホでは削除カーソルを使うため、PCのみ）
+    if (this.isDeleteMode && !deviceDetector.isMobile()) {
       
-      // ワイヤーが見つからなかったらパーツをチェック
-      for (let i = this.parts.length - 1; i >= 0; i--) {
-        const part = this.parts[i];
-        if (part.isMouseOver(worldMouse.x, worldMouse.y)) {
-          this.deletePart(part);
-          return;
+      // ★修正: 共通メソッドを使って判定する
+      const result = this.getDeletionTarget(worldMouse.x, worldMouse.y);
+      
+      if (result) {
+        if (result.type === 'wire') {
+          this.deleteWire(result.target);
+        } else if (result.type === 'part') {
+          this.deletePart(result.target);
         }
       }
-      // パーツもワイヤーも見つからなかった場合は何もしない
+      // 削除モード中はここで処理終了
       return;
     }
 

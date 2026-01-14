@@ -43,6 +43,11 @@ window.setup = function() {
 
 window.draw = function() {
   simulator.update();
+
+  // ★追加: UIの更新処理（削除カーソルの追従・リサイズなど）
+  if (uiController) {
+    uiController.update();
+  }
 };
 
 window.mousePressed = function(e) {

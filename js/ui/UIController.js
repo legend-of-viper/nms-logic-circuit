@@ -12,6 +12,16 @@ export class UIController {
   constructor(simulator, storage) {
     this.simulator = simulator;
     this.storage = storage;
+    
+    // スマホ専用削除カーソルの状態管理
+    this.deleteCursor = {
+      element: null,
+      handle: null,
+      isDragging: false,
+      x: 0,
+      y: 0,
+      snappedPart: null
+    };
   }
 
   /**
@@ -23,6 +33,7 @@ export class UIController {
     this.setupLabels();
     this.setupButtonIcons();
     this.setupEventListeners();
+    this.setupDeleteCursor();
   }
 
   /**
@@ -338,6 +349,223 @@ setupLabels() {
   }
 
   /**
+   * スマホ専用: 削除カーソルの初期化
+   */
+  setupDeleteCursor() {
+    if (!deviceDetector.isMobile()) return;
+    
+    this.deleteCursor.element = document.getElementById('mobile-delete-cursor');
+    this.deleteCursor.handle = document.querySelector('.delete-cursor-handle');
+    
+    if (!this.deleteCursor.element || !this.deleteCursor.handle) return;
+    
+    // 初期位置を画面中央に設定
+    this.deleteCursor.x = window.innerWidth / 2;
+    this.deleteCursor.y = window.innerHeight / 2;
+    this.updateDeleteCursorPosition();
+    
+    // ハンドルのドラッグイベント
+    this.deleteCursor.handle.addEventListener('touchstart', (e) => {
+      if (!this.simulator.getDeleteMode()) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+      this.deleteCursor.isDragging = true;
+      
+      const touch = e.touches[0];
+      this.deleteCursor.startX = touch.clientX - this.deleteCursor.x;
+      this.deleteCursor.startY = touch.clientY - this.deleteCursor.y;
+    });
+    
+    document.addEventListener('touchmove', (e) => {
+      if (!this.deleteCursor.isDragging) return;
+      
+      e.preventDefault();
+      const touch = e.touches[0];
+      this.deleteCursor.x = touch.clientX - this.deleteCursor.startX;
+      this.deleteCursor.y = touch.clientY - this.deleteCursor.startY;
+      
+      this.updateDeleteCursorPosition();
+      this.checkDeleteCursorSnap();
+    });
+    
+    document.addEventListener('touchend', (e) => {
+      if (!this.deleteCursor.isDragging) return;
+      
+      this.deleteCursor.isDragging = false;
+    });
+    
+    // 削除カーソルのタップで削除実行
+    // 削除カーソルのタップで削除実行
+    this.deleteCursor.element.addEventListener('click', (e) => {
+      if (!this.simulator.getDeleteMode()) return;
+      if (this.deleteCursor.isDragging) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // ★修正: snappedTarget ( {type, target} ) を見て処理を分ける
+      const snap = this.deleteCursor.snappedTarget;
+      
+      if (snap) {
+        if (snap.type === 'wire') {
+          this.simulator.deleteWire(snap.target);
+        } else if (snap.type === 'part') {
+          this.simulator.deletePart(snap.target);
+        }
+        
+        // 削除後の後始末
+        this.deleteCursor.snappedTarget = null;
+        this.deleteCursor.element.classList.remove('snapped');
+      }
+    });
+  }
+  
+  /**
+   * 削除カーソルの位置とサイズを更新
+   */
+  updateDeleteCursorPosition() {
+    if (!this.deleteCursor.element) return;
+    
+    // 1. 現在のズーム倍率を取得
+    const scale = this.simulator.viewScale;
+    
+    // 2. カーソル枠のサイズを計算
+    const baseSize = CONST.PARTS.WIDTH + 20; 
+    const currentSize = baseSize * scale;
+    
+    // 3. HTML要素に適用
+    const frame = this.deleteCursor.element.querySelector('.delete-cursor-frame');
+    if (frame) {
+      frame.style.width = `${currentSize}px`;
+      frame.style.height = `${currentSize}px`;
+
+      // 中の「×」マークの文字サイズも合わせる
+      const xMark = this.deleteCursor.element.querySelector('.delete-cursor-x');
+      if (xMark) {
+        xMark.style.fontSize = `${36 * scale}px`;
+      }
+    }
+    
+    // 4. 位置合わせ（★ここが修正ポイント）
+    // ハンドルの高さ（CSSで50px）
+    const handleHeight = 50;
+    
+    // コンテナ全体の高さは「枠」と「ハンドル」の大きい方になる
+    const containerHeight = Math.max(currentSize, handleHeight);
+    
+    // 横位置：枠のサイズ基準で合わせる（左端が揃っているため）
+    this.deleteCursor.element.style.left = `${this.deleteCursor.x - currentSize / 2}px`;
+    
+    // 縦位置：コンテナ全体の高さ基準で合わせる（垂直中央揃えされているため）
+    this.deleteCursor.element.style.top = `${this.deleteCursor.y - containerHeight / 2}px`;
+  }
+  
+  /**
+   * 削除カーソルのスナップ判定
+   */
+  checkDeleteCursorSnap() {
+    if (!this.simulator) return;
+
+    // キャンバスのオフセット取得（前回の修正分）
+    const container = document.getElementById(CONST.DOM_IDS.COMMON.CANVAS_CONTAINER);
+    const offset = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
+    
+    const canvasX = this.deleteCursor.x - offset.left;
+    const canvasY = this.deleteCursor.y - offset.top;
+
+    // ワールド座標に変換
+    const worldPos = this.simulator.getWorldPosition(canvasX, canvasY);
+    
+    // ★修正: 共通メソッドを使ってターゲットを取得
+    const result = this.simulator.getDeletionTarget(worldPos.x, worldPos.y);
+    
+    if (result) {
+      // ターゲットが見つかったら保存（削除実行時に使う）
+      this.deleteCursor.snappedTarget = result;
+      this.deleteCursor.element.classList.add('snapped');
+      
+      let targetX, targetY;
+      
+      // 対象の種類によってスナップ先の座標を決める
+      if (result.type === 'wire') {
+        // ワイヤーなら「中点」にスナップ
+        const w = result.target;
+        const start = w.startSocket.getConnectorWorldPosition();
+        const end = w.endSocket.getConnectorWorldPosition();
+        targetX = (start.x + end.x) / 2;
+        targetY = (start.y + end.y) / 2;
+      } else {
+        // パーツなら「中心」にスナップ
+        const center = result.target.getCenter();
+        targetX = center.x;
+        targetY = center.y;
+      }
+      
+      // 画面座標に戻してカーソルを移動
+      const screenPos = this.worldToScreenPosition(targetX, targetY);
+      this.deleteCursor.x = screenPos.x + offset.left;
+      this.deleteCursor.y = screenPos.y + offset.top;
+      
+      this.updateDeleteCursorPosition();
+    } else {
+      // 何も見つからない時
+      this.deleteCursor.snappedTarget = null;
+      this.deleteCursor.element.classList.remove('snapped');
+    }
+  }
+  
+  /**
+   * ワールド座標をスクリーン座標に変換
+   */
+  worldToScreenPosition(worldX, worldY) {
+    return {
+      x: worldX * this.simulator.viewScale + this.simulator.viewOffsetX,
+      y: worldY * this.simulator.viewScale + this.simulator.viewOffsetY
+    };
+  }
+  
+  /**
+   * 削除カーソルの表示/非表示を切り替え
+   */
+  updateDeleteCursorVisibility() {
+    if (!deviceDetector.isMobile() || !this.deleteCursor.element) return;
+    
+    const isDeleteMode = this.simulator.getDeleteMode();
+    
+    if (isDeleteMode) {
+      this.deleteCursor.element.classList.remove('hidden');
+      
+      // ★修正: 画面中央ではなく、削除ボタンの少し上にリセット
+      const deleteBtn = document.getElementById(CONST.DOM_IDS.MOBILE.FAB_DELETE);
+      
+      if (deleteBtn) {
+        const rect = deleteBtn.getBoundingClientRect();
+        
+        // X座標: ボタンの水平方向の中心
+        this.deleteCursor.x = rect.left + rect.width / 2;
+        
+        // Y座標: ボタンの上端から少し上（例: 120px上）に配置
+        // ※指でボタンが隠れないように、少し余裕を持って上に離します
+        this.deleteCursor.y = rect.top - 60;
+      } else {
+        // 万が一ボタンが見つからない場合は、今まで通り画面中央へ
+        this.deleteCursor.x = window.innerWidth / 2;
+        this.deleteCursor.y = window.innerHeight / 2;
+      }
+      
+      // スナップ状態をリセット
+      this.deleteCursor.snappedTarget = null;
+      this.deleteCursor.element.classList.remove('snapped');
+      this.updateDeleteCursorPosition();
+
+    } else {
+      this.deleteCursor.element.classList.add('hidden');
+      this.deleteCursor.snappedTarget = null;
+    }
+  }
+
+  /**
    * モバイル固有のUI操作
    * FABとメニューの開閉など
    */
@@ -350,7 +578,20 @@ setupLabels() {
       // 追加ボタンをクリックで吹き出しをトグル
       fabAdd.addEventListener('click', (e) => {
         e.stopPropagation(); // イベントの伝播を防ぐ
+        
+        // ★追加: もし削除モード中なら、ここで解除してしまう
+        if (this.simulator.getDeleteMode()) {
+          this.handleToggleDeleteMode();
+        }
+
         partsBalloon.classList.toggle('hidden');
+        
+        // ★バルーンの状態に応じてボタンのテキストを変更
+        if (partsBalloon.classList.contains('hidden')) {
+          fabAdd.textContent = '＋';
+        } else {
+          fabAdd.textContent = '×';
+        }
       });
       
       // キャンバスをタップしたら吹き出しを閉じる
@@ -359,6 +600,7 @@ setupLabels() {
         canvasContainer.addEventListener('click', (e) => {
           if (!partsBalloon.classList.contains('hidden')) {
             partsBalloon.classList.add('hidden');
+            fabAdd.textContent = '＋'; // ボタンのテキストを戻す
           }
         });
       }
@@ -369,6 +611,7 @@ setupLabels() {
             !partsBalloon.contains(e.target) && 
             e.target !== fabAdd) {
           partsBalloon.classList.add('hidden');
+          fabAdd.textContent = '＋'; // ボタンのテキストを戻す
         }
       });
     }
@@ -394,6 +637,10 @@ setupLabels() {
    * @param {string} type - 部品タイプ
    */
   handleAddPart(type) {
+    // ★追加: もし削除モードがONなら、強制的にOFFにする
+    if (this.simulator.getDeleteMode()) {
+      this.handleToggleDeleteMode();
+    }
     this.simulator.createPart(type);
     this.closeBottomSheet();
   }
@@ -404,6 +651,7 @@ setupLabels() {
   handleToggleDeleteMode() {
     this.simulator.toggleDeleteMode();
     this.updateDeleteButtonState();
+    this.updateDeleteCursorVisibility();
   }
 
   /**
@@ -435,8 +683,15 @@ setupLabels() {
    */
   closeBottomSheet() {
     const partsBalloon = document.getElementById('mobile-parts-balloon');
+    const fabAdd = document.getElementById(CONST.DOM_IDS.MOBILE.FAB_ADD);
+    
     if (partsBalloon) {
       partsBalloon.classList.add('hidden');
+    }
+    
+    // バルーンを閉じたらボタンのテキストを戻す
+    if (fabAdd) {
+      fabAdd.textContent = '＋';
     }
   }
 
@@ -478,6 +733,48 @@ setupLabels() {
       } else {
         mobileBtn.classList.remove('active');
       }
+    }
+  }
+
+  /**
+   * 毎フレーム呼ばれる描画更新処理
+   */
+  update() {
+    // モバイルかつ削除モードの時だけ処理
+    if (deviceDetector.isMobile() && this.simulator.getDeleteMode()) {
+      
+      // もし何かにスナップ中なら、ターゲットの新しい位置にカーソル座標を追従させる
+      // (これをやると、ズームやパンで回路が動いた時にカーソルも一緒に動いてくれます)
+      if (this.deleteCursor.snappedTarget) {
+        const t = this.deleteCursor.snappedTarget;
+        let worldX, worldY;
+        
+        if (t.type === 'wire') {
+          // ワイヤーなら中点
+          const start = t.target.startSocket.getConnectorWorldPosition();
+          const end = t.target.endSocket.getConnectorWorldPosition();
+          worldX = (start.x + end.x) / 2;
+          worldY = (start.y + end.y) / 2;
+        } else {
+          // パーツなら中心
+          const center = t.target.getCenter();
+          worldX = center.x;
+          worldY = center.y;
+        }
+
+        // ワールド座標 → スクリーン座標 に変換
+        const screenPos = this.worldToScreenPosition(worldX, worldY);
+        
+        // ヘッダーなどのオフセットを加算（前回の修正と同じロジック）
+        const container = document.getElementById(CONST.DOM_IDS.COMMON.CANVAS_CONTAINER);
+        const offset = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
+        
+        this.deleteCursor.x = screenPos.x + offset.left;
+        this.deleteCursor.y = screenPos.y + offset.top;
+      }
+      
+      // サイズと位置をHTMLに反映（ここでズーム倍率に応じたサイズ変更が行われる）
+      this.updateDeleteCursorPosition();
     }
   }
 }

@@ -579,3 +579,99 @@ body.mobile-mode #canvas-container canvas {
   margin-bottom: 10px;
   margin-top: 20px;
 }
+
+/* 5. 削除カーソル（スマホ専用） */
+.delete-cursor {
+  position: fixed;
+  z-index: 2500;
+  pointer-events: all;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.delete-cursor.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 削除カーソルの枠 */
+.delete-cursor-frame {
+  box-sizing: border-box;
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 50, 50, 0.2);
+  border: 3px solid #ff5555;
+  border-radius: 20%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 
+    0 0 20px rgba(255, 0, 0, 0.4),
+    inset 0 0 10px rgba(255, 0, 0, 0.2);
+  /* transition: all 0.2s ease; */
+  pointer-events: none;
+}
+
+/* スナップ時のスタイル */
+.delete-cursor.snapped .delete-cursor-frame {
+  background: rgba(255, 50, 50, 0.4);
+  border-color: #ff0000;
+  box-shadow: 
+    0 0 30px rgba(255, 0, 0, 0.8),
+    inset 0 0 15px rgba(255, 0, 0, 0.4);
+  transform: scale(1.1);
+}
+
+/* バツマーク */
+.delete-cursor-x {
+  font-size: 48px;
+  font-weight: bold;
+  color: #ff5555;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.delete-cursor.snapped .delete-cursor-x {
+  color: #ff0000;
+  text-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+}
+
+/* グラブハンドル */
+.delete-cursor-handle {
+  box-sizing: border-box;
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #444, #222);
+  border: 2px solid #666;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  cursor: grab;
+  pointer-events: all;
+  touch-action: none;
+  transition: all 0.2s ease;
+}
+
+.delete-cursor-handle:active {
+  cursor: grabbing;
+  background: linear-gradient(135deg, #555, #333);
+  transform: scale(0.95);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* ハンドルのアイコン */
+.handle-icon {
+  font-size: 24px;
+  font-weight: bold;
+  color: #aaa;
+  line-height: 1;
+  letter-spacing: -2px;
+  pointer-events: none;
+  user-select: none;
+}
