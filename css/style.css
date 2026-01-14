@@ -10,6 +10,13 @@ body {
   overflow: hidden;
   /* iOSでのバウンススクロールなどを防ぐ */
   overscroll-behavior: none;
+  
+  /* 1. テキスト選択を無効化（青いハイライトが出ないようにする） */
+  user-select: none;
+  -webkit-user-select: none; /* Safari / iOS用 */
+  
+  /* 2. 長押しメニュー（コピー/ペーストなどの吹き出し）を無効化（iOS用） */
+  -webkit-touch-callout: none;
 }
 
 /* ヘッダー領域（ボタン置き場）の設定 */
@@ -61,20 +68,45 @@ button {
   transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-/* ホバー（マウスを乗せた）時の演出 */
-button:hover {
-  /* 少し明るく発光するイメージ */
-  background-color: #333;
-  border-color: #666;
+@media (hover: hover) {
+  /* 標準ボタンのホバー */
+  button:hover {
+    background-color: #333;
+    border-color: #666;
+    transform: translateY(-2px); /* これがズレの原因でした */
+    box-shadow: 
+      inset 0 0 5px rgba(0, 0, 0, 0.5),
+      0 5px 10px rgba(0, 0, 0, 0.6),
+      0 0 8px rgba(100, 200, 255, 0.2);
+  }
+
+  /* 保存・読込ボタンのホバー（色変化もスマホだと張り付くのでここに入れるのがおすすめ） */
+  .file-btn:hover {
+    background-color: #3a7a3d;
+    border-color: #6aca6d;
+  }
+
+  /* 削除ボタンのホバー */
+  .delete-mode-btn:hover {
+    background-color: #700;
+    border-color: #c00;
+    box-shadow: 
+      inset 0 0 5px rgba(0, 0, 0, 0.5),
+      0 0 10px rgba(255, 50, 50, 0.3);
+  }
   
-  /* 浮き上がるように見せる */
-  transform: translateY(-2px);
-  
-  /* 影を調整して光が当たっている感を出す */
-  box-shadow: 
-    inset 0 0 5px rgba(0, 0, 0, 0.5), /* 内側の影を薄く */
-    0 5px 10px rgba(0, 0, 0, 0.6),    /* 外側の影を濃く */
-    0 0 8px rgba(100, 200, 255, 0.2); /* ほんのり青く光らせる */
+  .delete-mode-btn.active:hover {
+    background-color: #f00;
+    box-shadow: 0 0 30px rgba(255, 0, 0, 1);
+  }
+
+  /* トグルスイッチのホバー */
+  .toggle-switch:hover .slider {
+    background-color: #666;
+  }
+  .toggle-switch:hover input:checked + .slider {
+    background-color: #5cb85c;
+  }
 }
 
 /* アクティブ（クリックした）時の演出 */
@@ -380,15 +412,41 @@ body.mobile-mode #canvas-container canvas {
 /* 左下：削除ボタン */
 .fab-delete {
   left: 25px;
-  background-color: #500; 
+  background-color: #500 !important;
   background-position: center;
   background-repeat: no-repeat;
   background-size: 60%;
+  border-color: #a00 !important;
 }
+
+.fab-delete:active {
+  background-color: #600 !important;
+  border-color: #a00 !important;
+  transform: scale(0.9);
+}
+
+.fab-delete:focus {
+  background-color: #500 !important;
+  border-color: #a00 !important;
+  outline: none;
+}
+
 .fab-delete.active {
-  background-color: #d00;
+  background-color: #d00 !important;
   box-shadow: 0 0 15px #f00;
-  border-color: #f88;
+  border-color: #f88 !important;
+}
+
+.fab-delete.active:active {
+  background-color: #c00 !important;
+  border-color: #f88 !important;
+  transform: scale(0.85);
+}
+
+.fab-delete.active:focus {
+  background-color: #d00 !important;
+  border-color: #f88 !important;
+  outline: none;
 }
 
 /* 3. ボトムシート (パーツ一覧) */

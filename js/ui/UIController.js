@@ -459,6 +459,9 @@ setupLabels() {
     // モバイル用ボタン
     const mobileBtn = document.getElementById(CONST.DOM_IDS.MOBILE.FAB_DELETE);
     if (mobileBtn) {
+      // フォーカスを外してから状態を更新（モバイルでの:focus状態を解除）
+      mobileBtn.blur();
+      
       if (isDeleteMode) {
         mobileBtn.classList.add('active');
       } else {
