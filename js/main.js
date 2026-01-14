@@ -29,8 +29,8 @@ window.setup = function() {
   canvas.parent('canvas-container');
   
   const bgRGB = CONST.COLORS.BACKGROUND;
-  select('body').style('background-color', `rgb(${bgRGB[0]}, ${bgRGB[1]+50}, ${bgRGB[2]})`);
-  select('#canvas-container').style('background-color', `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]+50})`);
+  select('body').style('background-color', `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]})`);
+  select('#canvas-container').style('background-color', `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]})`);
   
   simulator = new CircuitManager();
   storage = new StorageService(simulator);
