@@ -4,6 +4,7 @@ import { Wire } from '../models/Wire.js';
 import { PartFactory } from '../models/PartFactory.js';
 import { PowerSystem } from './PowerSystem.js';
 import { CONST } from '../config/constants.js';
+import { deviceDetector } from '../utils/DeviceDetector.js';
 
 // 部品タイプを数値に変換するマップ（データ圧縮用）
 const TYPE_MAP = {
@@ -146,22 +147,39 @@ export class CircuitManager {
   createPart(type) {
     const newId = Date.now();
     
-    // 部品ごとの初期配置X座標
-    const basePositions = {
-      [CONST.PART_TYPE.POWER]: 100,
-      [CONST.PART_TYPE.WALL_SWITCH]: 100,
-      [CONST.PART_TYPE.BUTTON]: 200,
-      [CONST.PART_TYPE.AUTO_SWITCH]: 300,
-      [CONST.PART_TYPE.INVERTER]: 400,
-      [CONST.PART_TYPE.COLOR_LIGHT]: 500
-    };
-
-    // デフォルトは100、それ以外はマップから取得
-    const baseX = basePositions[type] || 100;
+    let x, y;
     
-    // 座標に少しランダム性を持たせる (p5.jsのrandom関数を使用)
-    const x = baseX + random(50);
-    const y = 100 + random(50);
+    // スマホUIの場合は画面中央の固定位置に配置
+    if (deviceDetector.isMobile()) {
+      // 画面中央の座標（スクリーン座標）
+      const screenX = width / 2;
+      const screenY = height / 2;
+      
+      // スクリーン座標をワールド座標に変換
+      const worldPos = this.getWorldPosition(screenX, screenY);
+      x = worldPos.x;
+      y = worldPos.y;
+      
+      console.log(`スマホモード: パーツを画面中央(${screenX}, ${screenY})に配置 → ワールド座標(${x.toFixed(1)}, ${y.toFixed(1)})`);
+    } else {
+      // PC版の場合は従来通りの配置
+      // 部品ごとの初期配置X座標
+      const basePositions = {
+        [CONST.PART_TYPE.POWER]: 100,
+        [CONST.PART_TYPE.WALL_SWITCH]: 100,
+        [CONST.PART_TYPE.BUTTON]: 200,
+        [CONST.PART_TYPE.AUTO_SWITCH]: 300,
+        [CONST.PART_TYPE.INVERTER]: 400,
+        [CONST.PART_TYPE.COLOR_LIGHT]: 500
+      };
+
+      // デフォルトは100、それ以外はマップから取得
+      const baseX = basePositions[type] || 100;
+      
+      // 座標に少しランダム性を持たせる (p5.jsのrandom関数を使用)
+      x = baseX + random(50);
+      y = 100 + random(50);
+    }
 
     // ★Factoryを使って生成
     const newPart = PartFactory.create(type, newId, x, y);
