@@ -342,24 +342,35 @@ setupLabels() {
    * FABとメニューの開閉など
    */
   setupMobileInteractions() {
-    // 追加FAB -> ボトムシート
+    // 追加FAB -> 吹き出しメニュー
     const fabAdd = document.getElementById(CONST.DOM_IDS.MOBILE.FAB_ADD);
-    const bottomSheet = document.getElementById(CONST.DOM_IDS.MOBILE.BOTTOM_SHEET);
+    const partsBalloon = document.getElementById('mobile-parts-balloon');
     
-    if (fabAdd && bottomSheet) {
-      fabAdd.addEventListener('click', () => {
-        bottomSheet.classList.toggle('hidden');
+    if (fabAdd && partsBalloon) {
+      // 追加ボタンをクリックで吹き出しをトグル
+      fabAdd.addEventListener('click', (e) => {
+        e.stopPropagation(); // イベントの伝播を防ぐ
+        partsBalloon.classList.toggle('hidden');
       });
       
-      // キャンバスをタップしたらシートを閉じる
+      // キャンバスをタップしたら吹き出しを閉じる
       const canvasContainer = document.getElementById(CONST.DOM_IDS.COMMON.CANVAS_CONTAINER);
       if (canvasContainer) {
         canvasContainer.addEventListener('click', (e) => {
-          if (e.target !== fabAdd && !bottomSheet.classList.contains('hidden')) {
-            bottomSheet.classList.add('hidden');
+          if (!partsBalloon.classList.contains('hidden')) {
+            partsBalloon.classList.add('hidden');
           }
         });
       }
+      
+      // 吹き出し外をタップしても閉じる
+      document.addEventListener('click', (e) => {
+        if (!partsBalloon.classList.contains('hidden') && 
+            !partsBalloon.contains(e.target) && 
+            e.target !== fabAdd) {
+          partsBalloon.classList.add('hidden');
+        }
+      });
     }
 
     // ハンバーガーメニュー
@@ -420,12 +431,12 @@ setupLabels() {
   }
 
   /**
-   * ボトムシートを閉じる
+   * パーツ選択メニュー（吹き出し）を閉じる
    */
   closeBottomSheet() {
-    const bottomSheet = document.getElementById(CONST.DOM_IDS.MOBILE.BOTTOM_SHEET);
-    if (bottomSheet) {
-      bottomSheet.classList.add('hidden');
+    const partsBalloon = document.getElementById('mobile-parts-balloon');
+    if (partsBalloon) {
+      partsBalloon.classList.add('hidden');
     }
   }
 
