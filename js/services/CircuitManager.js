@@ -254,82 +254,6 @@ export class CircuitManager {
   }
 
   /**
-   * 削除対象のハイライト表示（PC用）
-   * @param {boolean} isMobile - モバイルデバイスかどうか
-   */
-  highlightDeletionTarget(isMobile = false) {
-    if (!this.isDeleteMode) return;
-    if (isMobile) return;
-    
-    const worldMouse = this.getWorldPosition(mouseX, mouseY);
-    
-    // ★修正: ここも共通メソッドで「今カーソル下にあるもの」を取得
-    const result = this.getDeletionTarget(worldMouse.x, worldMouse.y);
-    
-    if (!result) {
-      // 何もターゲットがない時は、マウス位置に薄い枠だけ出す（お好みで）
-      this.drawDeleteHighlightBox(worldMouse.x, worldMouse.y, false);
-      return;
-    }
-
-    if (result.type === 'wire') {
-      // --- ワイヤーのハイライト ---
-      const wire = result.target;
-      push();
-      const start = wire.startSocket.getConnectorWorldPosition();
-      const end = wire.endSocket.getConnectorWorldPosition();
-      
-      stroke(...CONST.DELETE_MODE.HIGHLIGHT_COLOR);
-      strokeWeight(CONST.DELETE_MODE.HIGHLIGHT_STROKE_WEIGHT + 2);
-      line(start.x, start.y, end.x, end.y);
-      
-      // バツ印
-      const midX = (start.x + end.x) / 2;
-      const midY = (start.y + end.y) / 2;
-      this.drawCrossMark(midX, midY);
-      pop();
-      
-    } else if (result.type === 'part') {
-      // --- パーツのハイライト ---
-      const part = result.target;
-      const center = part.getCenter();
-      
-      // パーツ位置に赤枠とバツを表示
-      this.drawDeleteHighlightBox(center.x, center.y, true);
-    }
-  }
-
-  // （補助関数：枠線の描画を切り出し）
-  drawDeleteHighlightBox(x, y, isSnapped) {
-    push();
-    noFill();
-    stroke(...CONST.DELETE_MODE.HIGHLIGHT_COLOR);
-    
-    if (isSnapped) {
-      strokeWeight(CONST.DELETE_MODE.HIGHLIGHT_STROKE_WEIGHT + 1);
-    } else {
-      // スナップしてない時は半透明
-      stroke(...CONST.DELETE_MODE.HIGHLIGHT_COLOR, 150);
-      strokeWeight(CONST.DELETE_MODE.HIGHLIGHT_STROKE_WEIGHT);
-    }
-    
-    rectMode(CENTER);
-    const padding = 8;
-    rect(x, y, CONST.PARTS.WIDTH + padding * 2, CONST.PARTS.HEIGHT + padding * 2, 5);
-    
-    this.drawCrossMark(x, y);
-    pop();
-  }
-
-  // （補助関数：バツ印の描画）
-  drawCrossMark(x, y) {
-    strokeWeight(3);
-    const s = 12;
-    line(x - s, y - s, x + s, y + s);
-    line(x + s, y - s, x - s, y + s);
-  }
-
-  /**
    * 削除モードの警告表示
    */
   drawDeleteModeWarning() {
@@ -348,9 +272,8 @@ export class CircuitManager {
 
   /**
    * キャンバスの更新と描画
-   * @param {boolean} isMobile - モバイルデバイスかどうか
    */
-  update(isMobile = false) {
+  update() {
     this.powerSystem.update();
 
     background(CONST.COLORS.BACKGROUND);
@@ -369,12 +292,9 @@ export class CircuitManager {
     // 3. 作成中（ドラッグ中）の仮ワイヤーを描画
     this.drawTempWire();
 
-    // 4. 削除モード中なら、削除対象をハイライト
-    this.highlightDeletionTarget(isMobile);
-
     pop(); // 座標系復帰
 
-    // 5. 削除モードの警告表示（ズームの影響を受けないようにpopの後）
+    // 4. 削除モードの警告表示（ズームの影響を受けないようにpopの後）
     this.drawDeleteModeWarning();
   }
 

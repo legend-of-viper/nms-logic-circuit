@@ -28,6 +28,8 @@ body {
   gap: 10px;
   align-items: center; /* 上下中央揃えを追加 */
   flex-wrap: wrap; /* 画面が狭い時に折り返す */
+  position: relative;
+  z-index: 3000;
 }
 
 /* ボタン共通の設定 */
@@ -640,6 +642,44 @@ body.mobile-mode #canvas-container canvas {
   margin-top: 20px;
 }
 
+/* ★共通: 削除マークのベーススタイル */
+.delete-mark-base {
+  box-sizing: border-box;
+  background: rgba(255, 0, 0, 0.1);
+  border: 4px solid #ff0000;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+  
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none; /* マウスイベントを透過（重要） */
+  
+  transition: opacity 0.1s, transform 0.1s;
+}
+
+/* ★共通: ×印 */
+.delete-mark-base::after {
+  content: "×";
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 40px;
+  color: #ff0000;
+  line-height: 1;
+  text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+  padding-bottom: 6px;
+}
+
+/* PC用ハイライト（初期状態は非表示） */
+#pc-delete-highlight {
+  position: fixed;
+  z-index: 2000;
+  display: none;
+}
+#pc-delete-highlight.visible {
+  display: flex;
+}
+
 /* 5. 削除カーソル（スマホ専用） */
 .delete-cursor {
   position: fixed;
@@ -657,22 +697,16 @@ body.mobile-mode #canvas-container canvas {
   pointer-events: none;
 }
 
-/* 削除カーソルの枠 */
+/* 削除カーソルの枠（スマホ専用、共通スタイルを継承） */
 .delete-cursor-frame {
-  box-sizing: border-box;
   width: 80px;
   height: 80px;
-  background: rgba(255, 50, 50, 0.2);
-  border: 3px solid #ff5555;
-  border-radius: 20%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 
-    0 0 20px rgba(255, 0, 0, 0.4),
-    inset 0 0 10px rgba(255, 0, 0, 0.2);
-  /* transition: all 0.2s ease; */
-  pointer-events: none;
+  /* 装飾は .delete-mark-base に任せる */
+}
+
+/* delete-mark-base の × を非表示（スマホ版は独自の×を使う） */
+.delete-cursor-frame::after {
+  content: none;
 }
 
 /* スナップ時のスタイル */
@@ -685,18 +719,17 @@ body.mobile-mode #canvas-container canvas {
   transform: scale(1.1);
 }
 
-/* バツマーク */
+/* バツマーク（スマホ専用の×表示） */
 .delete-cursor-x {
   font-size: 48px;
   font-weight: bold;
-  color: #ff5555;
+  color: #ff0000;
   line-height: 1;
   text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
   pointer-events: none;
 }
 
 .delete-cursor.snapped .delete-cursor-x {
-  color: #ff0000;
   text-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
 }
 

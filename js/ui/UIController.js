@@ -27,7 +27,10 @@ export class UIController {
     this.setupLabels();
     this.setupButtonIcons();
     this.setupEventListeners();
-    this.setupDeleteCursor();
+    
+    // 削除カーソルオーバーレイの初期化（デバイスに関係なく初期化）
+    this.deleteCursorOverlay = new DeleteCursorOverlay(this.simulator);
+    this.deleteCursorOverlay.initialize();
   }
 
   /**
@@ -329,16 +332,6 @@ setupLabels() {
   }
 
   /**
-   * スマホ専用: 削除カーソルの初期化
-   */
-  setupDeleteCursor() {
-    if (!deviceDetector.isMobile()) return;
-    
-    this.deleteCursorOverlay = new DeleteCursorOverlay(this.simulator);
-    this.deleteCursorOverlay.initialize();
-  }
-
-  /**
    * モバイル固有のUI操作
    * FABとメニューの開閉など
    */
@@ -567,7 +560,7 @@ setupLabels() {
    * 毎フレーム呼ばれる描画更新処理
    */
   update() {
-    // 削除カーソルオーバーレイの更新
+    // 削除カーソルオーバーレイの更新（PC/スマホの判断は内部で行われる）
     if (this.deleteCursorOverlay) {
       this.deleteCursorOverlay.update();
     }

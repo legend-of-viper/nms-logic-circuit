@@ -17,6 +17,9 @@
   <script type="module" src="js/main.js"></script>
 </head>
 <body>
+  <!-- PC用削除ハイライト -->
+  <div id="pc-delete-highlight" class="delete-mark-base"></div>
+
   <div id="header" class="pc-ui">
     <button id="btn-power" class="btn-add-part" data-part-type="POWER"></button>
     <button id="btn-auto-switch" class="btn-add-part" data-part-type="AUTO_SWITCH"></button>
@@ -75,7 +78,7 @@
 
     <!-- 削除カーソル（スマホ専用） -->
     <div id="mobile-delete-cursor" class="delete-cursor hidden">
-      <div class="delete-cursor-frame">
+      <div class="delete-cursor-frame delete-mark-base">
         <div class="delete-cursor-x">×</div>
       </div>
       <div class="delete-cursor-handle">

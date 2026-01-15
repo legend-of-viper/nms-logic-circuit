@@ -18,6 +18,8 @@ export class Wire {
     // 両端のソケットのconnectedWires配列に自分を登録
     this.startSocket.connectWire(this);
     this.endSocket.connectWire(this);
+
+    this.isHighlighted = false;
   }
 
   /**
@@ -100,5 +102,19 @@ export class Wire {
     strokeWeight(CONST.WIRE.STROKE_WEIGHT);
     
     line(start.x, start.y, end.x, end.y);
+
+    // 2. ★追加: ハイライト時は、その上から「半透明の赤」を「太め」に重ねる
+    if (this.isHighlighted) {
+      // ハイライト色は定数から取得し、透明度(100/255)を追加
+      const highlightColor = [...CONST.DELETE_MODE.HIGHLIGHT_COLOR, 100];
+      
+      stroke(...highlightColor);
+      
+      // 元の線より少し太くして「覆っている」感を出す (+6px程度)
+      strokeWeight(CONST.WIRE.STROKE_WEIGHT + 6);
+      
+      // 同じ座標に重ね描き
+      line(start.x, start.y, end.x, end.y);
+    }
   }
 }
