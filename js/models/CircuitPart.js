@@ -29,6 +29,8 @@ export class CircuitPart {
     
     // ワイヤリング開始ソケット名（一時的なマーカー）
     this.wiringStartSocket = null;
+
+    this.isHighlighted = false;
   }
 
   /**
@@ -369,6 +371,11 @@ export class CircuitPart {
     for (let socket of this.sockets) {
       socket.draw();
     }
+
+    // ハイライト時は、その上から「半透明の赤」を重ねる
+    if (this.isHighlighted) {
+      this.drawHighlight();
+    }
     
     pop();
     
@@ -388,6 +395,21 @@ export class CircuitPart {
     fill(CONST.COLORS.BACKGROUND);
     rectMode(CENTER);
     rect(0, 0, CONST.PARTS.WIDTH, CONST.PARTS.HEIGHT, 8);
+  }
+
+  /**
+   * 削除ハイライトを描画（デフォルトは四角）
+   * 形を変えたいパーツは、このメソッドをオーバーライドしてください
+   */
+  drawHighlight() {
+    // stroke(...CONST.DELETE_MODE.HIGHLIGHT_COLOR)
+    // strokeWeight(4);
+    noStroke();
+    // 定数から赤色を取得し、透明度(100)を追加
+    fill(...CONST.DELETE_MODE.HIGHLIGHT_COLOR, 100);
+    rectMode(CENTER);
+    // デフォルト: パーツと同じサイズ・同じ角丸(8)で覆う
+    rect(0, 0, CONST.PARTS.WIDTH*1.5, CONST.PARTS.HEIGHT*1.5, 12);
   }
 
   /**

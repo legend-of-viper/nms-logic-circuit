@@ -35,9 +35,14 @@ export class DeleteCursorOverlay {
   }
 
   update() {
-    // ★追加: 毎フレームの処理の最初に、全ワイヤーのハイライトをリセット
+    // 毎フレームの処理の最初に、全ワイヤーのハイライトをリセット
     if (this.circuitManager.wires) {
       this.circuitManager.wires.forEach(w => w.isHighlighted = false);
+    }
+
+    // 全リセット（パーツ）
+    if (this.circuitManager.parts) {
+      this.circuitManager.parts.forEach(p => p.isHighlighted = false);
     }
 
     if (!this.circuitManager.getDeleteMode()) {
@@ -80,19 +85,23 @@ export class DeleteCursorOverlay {
       displayX = center.x;
       displayY = center.y;
 
-      // ★追加: ターゲットがワイヤーならハイライトさせる
+      // ターゲットがワイヤーならハイライトさせる
       if (result.type === 'wire') {
         result.target.isHighlighted = true;
+      } else if (result.type === 'part') {
+        result.target.isHighlighted = true; // ★パーツもON
       }
       
       // スナップ時の見た目変更（クラス付与などで強調したければここで）
       // this.pcElement.classList.add('snapped'); 
+      this.pcElement.classList.add('target-snapped');
     } else {
       // ターゲットなし：マウス位置に追従
       displayX = worldMouse.x;
       displayY = worldMouse.y;
       
       // this.pcElement.classList.remove('snapped');
+      this.pcElement.classList.remove('target-snapped');
     }
 
     // 座標適用
@@ -102,31 +111,61 @@ export class DeleteCursorOverlay {
     this.pcElement.classList.add('visible');
   }
 
+  /**
+   * スマホ用の更新処理
+   * ★修正: 判定ロジックをここに統合
+   */
   updateMobile() {
     if (!this.mobileElement) return;
 
     if (this.pcElement) this.pcElement.classList.remove('visible');
     
     this.mobileElement.classList.remove('hidden');
+    const frame = this.mobileElement.querySelector('.delete-cursor-frame');
+
+    // 1. 現在のカーソル位置からターゲットを判定
+    // （以前 checkSnap で行っていた処理をここに移動）
+    const canvas = document.querySelector(`#${CONST.DOM_IDS.COMMON.CANVAS_CONTAINER} canvas`);
+    const offset = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
+    
+    // カーソルのDOM座標 → キャンバス内座標
+    const canvasX = this.x - offset.left;
+    const canvasY = this.y - offset.top;
+
+    // キャンバス内座標 → ワールド座標
+    const worldPos = this.circuitManager.getWorldPosition(canvasX, canvasY);
+    
+    // ターゲット判定
+    const result = this.circuitManager.getDeletionTarget(worldPos.x, worldPos.y);
+    this.snappedTarget = result; // 結果を保存
 
     if (this.snappedTarget) {
-      // ★追加: スマホはイベント時しか判定しないため、毎フレームここでハイライトを再適用する
-      if (this.snappedTarget.type === 'wire') {
+      // ■ ターゲットあり
+      
+      // A. ターゲットをハイライト
+      if (this.snappedTarget.type === 'wire' || this.snappedTarget.type === 'part') {
         this.snappedTarget.target.isHighlighted = true;
       }
-      
+
+      // B. カーソルの枠を消す（クラス追加）
+      if (frame) frame.classList.add('target-snapped');
+
+      // C. スナップ位置へ吸着表示
       const { x, y } = this.getTargetCenter(this.snappedTarget);
       const inputMgr = this.circuitManager.getInputManager();
       const screenPos = inputMgr.getScreenPosition(x, y);
       
-      // ★修正: スマホ側もキャンバス自体のオフセットを取得するように変更
-      const canvas = document.querySelector(`#${CONST.DOM_IDS.COMMON.CANVAS_CONTAINER} canvas`);
-      const offset = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
-      
       this.x = screenPos.x + offset.left;
       this.y = screenPos.y + offset.top;
+
+    } else {
+      // ■ ターゲットなし
+      
+      // 枠を表示（クラス削除）
+      if (frame) frame.classList.remove('target-snapped');
     }
     
+    // DOM位置の更新
     this.updateMobileDOMPosition();
   }
 
@@ -192,7 +231,7 @@ export class DeleteCursorOverlay {
       this.y = touch.clientY - this.startY;
       
       this.updateMobileDOMPosition();
-      this.checkSnap();
+      // ★削除: this.checkSnap(); は不要になったので消す
     });
     
     document.addEventListener('touchend', (e) => {

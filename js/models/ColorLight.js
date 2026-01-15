@@ -63,4 +63,21 @@ export class ColorLight extends CircuitPart {
     rectMode(CENTER);
     rect(0, 0, w, h, w * 0.5);
   }
+
+  /**
+   * ハイライト描画をオーバーライド
+   * 自分の形（縦長カプセル）に合わせて描画する
+   */
+  drawHighlight() {
+    const w = CONST.PARTS.WIDTH * 1.5;
+    const h = CONST.PARTS.HEIGHT * 1.5 * 1.5;
+
+    noStroke();
+    // 半透明の赤
+    fill(...CONST.DELETE_MODE.HIGHLIGHT_COLOR, 100);
+    
+    rectMode(CENTER);
+    // drawShapeと同じサイズ・形状で描画
+    rect(0, 0, w, h, w * 0.5);
+  }
 }

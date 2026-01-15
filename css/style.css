@@ -670,6 +670,19 @@ body.mobile-mode #canvas-container canvas {
   padding-bottom: 6px;
 }
 
+/* ★追加: ターゲットにスナップした時は、カーソルの「枠」を消す（中身の×は残る） */
+.delete-mark-base.target-snapped {
+  border-color: transparent;    /* 枠線を透明に */
+  background-color: transparent; /* 背景を透明に */
+  box-shadow: none;             /* 影を消す */
+}
+
+/* オプション: スナップ時は×印を少し大きく強調する */
+.delete-mark-base.target-snapped::after {
+  transform: scale(1.2);
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+}
+
 /* PC用ハイライト（初期状態は非表示） */
 #pc-delete-highlight {
   position: fixed;
