@@ -4,7 +4,6 @@ import { Wire } from '../models/Wire.js';
 import { PartFactory } from '../models/PartFactory.js';
 import { PowerSystem } from './PowerSystem.js';
 import { CONST } from '../config/constants.js';
-import { deviceDetector } from '../utils/DeviceDetector.js';
 
 // 部品タイプを数値に変換するマップ（データ圧縮用）
 const TYPE_MAP = {
@@ -143,45 +142,13 @@ export class CircuitManager {
   /**
    * 部品を作成して追加
    * @param {string} type - 部品タイプ ('POWER', 'WALL_SWITCH', 'BUTTON', etc.)
+   * @param {number} x - ワールドX座標
+   * @param {number} y - ワールドY座標
    */
-  createPart(type) {
+  createPart(type, x, y) {
     const newId = Date.now();
     
-    let x, y;
-    
-    // スマホUIの場合は画面中央の固定位置に配置
-    if (deviceDetector.isMobile()) {
-      // 画面中央の座標（スクリーン座標）
-      const screenX = width / 2;
-      const screenY = height / 2;
-      
-      // スクリーン座標をワールド座標に変換
-      const worldPos = this.getWorldPosition(screenX, screenY);
-      x = worldPos.x;
-      y = worldPos.y;
-      
-      console.log(`スマホモード: パーツを画面中央(${screenX}, ${screenY})に配置 → ワールド座標(${x.toFixed(1)}, ${y.toFixed(1)})`);
-    } else {
-      // PC版の場合は従来通りの配置
-      // 部品ごとの初期配置X座標
-      const basePositions = {
-        [CONST.PART_TYPE.POWER]: 100,
-        [CONST.PART_TYPE.WALL_SWITCH]: 100,
-        [CONST.PART_TYPE.BUTTON]: 200,
-        [CONST.PART_TYPE.AUTO_SWITCH]: 300,
-        [CONST.PART_TYPE.INVERTER]: 400,
-        [CONST.PART_TYPE.COLOR_LIGHT]: 500
-      };
-
-      // デフォルトは100、それ以外はマップから取得
-      const baseX = basePositions[type] || 100;
-      
-      // 座標に少しランダム性を持たせる (p5.jsのrandom関数を使用)
-      x = baseX + random(50);
-      y = 100 + random(50);
-    }
-
-    // ★Factoryを使って生成
+    // Factoryを使って生成
     const newPart = PartFactory.create(type, newId, x, y);
     
     if (newPart) {
@@ -269,10 +236,11 @@ export class CircuitManager {
 
   /**
    * 削除対象のハイライト表示（PC用）
+   * @param {boolean} isMobile - モバイルデバイスかどうか
    */
-  highlightDeletionTarget() {
+  highlightDeletionTarget(isMobile = false) {
     if (!this.isDeleteMode) return;
-    if (deviceDetector.isMobile()) return;
+    if (isMobile) return;
     
     const worldMouse = this.getWorldPosition(mouseX, mouseY);
     
@@ -361,8 +329,9 @@ export class CircuitManager {
 
   /**
    * キャンバスの更新と描画
+   * @param {boolean} isMobile - モバイルデバイスかどうか
    */
-  update() {
+  update(isMobile = false) {
     this.powerSystem.update();
 
     background(CONST.COLORS.BACKGROUND);
@@ -383,7 +352,7 @@ export class CircuitManager {
     this.drawTempWire();
 
     // 4. 削除モード中なら、削除対象をハイライト
-    this.highlightDeletionTarget();
+    this.highlightDeletionTarget(isMobile);
 
     pop(); // 座標系復帰
 
@@ -393,15 +362,16 @@ export class CircuitManager {
 
   /**
    * マウスボタンを押した時の処理
+   * @param {boolean} isMobile - モバイルデバイスかどうか
    */
-  handleMousePressed() {
+  handleMousePressed(isMobile = false) {
     // マウス座標をワールド座標に変換
     const worldMouse = this.getWorldPosition(mouseX, mouseY);
     
     // 削除モード中のクリック処理（スマホでは削除カーソルを使うため、PCのみ）
-    if (this.isDeleteMode && !deviceDetector.isMobile()) {
+    if (this.isDeleteMode && !isMobile) {
       
-      // ★修正: 共通メソッドを使って判定する
+      // 共通メソッドを使って判定する
       const result = this.getDeletionTarget(worldMouse.x, worldMouse.y);
       
       if (result) {

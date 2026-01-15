@@ -42,28 +42,33 @@ window.setup = function() {
 };
 
 window.draw = function() {
-  simulator.update();
+  const isMobile = deviceDetector.isMobile();
+  simulator.update(isMobile);
 
-  // ★追加: UIの更新処理（削除カーソルの追従・リサイズなど）
+  // UIの更新処理（削除カーソルの追従・リサイズなど）
   if (uiController) {
     uiController.update();
   }
 };
 
 window.mousePressed = function(e) {
-  // UIボタン（追加ボタンや削除ボタン）をタップした時は、
-  // ここで止めずに通常のクリック処理をさせたいので何もしない
-  if (e && e.target.nodeName !== 'CANVAS') return;
+  // UIボタンやその内部要素をクリックした時は、キャンバス操作をスキップ
+  if (e && (e.target.nodeName !== 'CANVAS' || e.target.closest('button'))) {
+    return;
+  }
 
-  simulator.handleMousePressed();
+  const isMobile = deviceDetector.isMobile();
+  simulator.handleMousePressed(isMobile);
   
-  // ★重要: これで「ゴーストクリック（二重判定）」を防ぐ
+  // ゴーストクリック（二重判定）とデフォルト動作を防ぐ
   return false; 
 };
 
 window.mouseDragged = function(e) {
   // キャンバス外のドラッグは無視
-  if (e && e.target.nodeName !== 'CANVAS') return;
+  if (e && (e.target.nodeName !== 'CANVAS' || e.target.closest('button'))) {
+    return;
+  }
 
   simulator.handleMouseDragged();
   
@@ -73,7 +78,9 @@ window.mouseDragged = function(e) {
 
 window.mouseReleased = function(e) {
   // キャンバス外での離脱は無視
-  if (e && e.target.nodeName !== 'CANVAS') return;
+  if (e && (e.target.nodeName !== 'CANVAS' || e.target.closest('button'))) {
+    return;
+  }
 
   simulator.handleMouseReleased();
   
