@@ -487,7 +487,7 @@ setupLabels() {
    */
   handleReset() {
     // 確認ダイアログを表示
-    const confirmed = confirm('全てのパーツとワイヤーを削除してリセットします。よろしいですか？');
+    const confirmed = confirm(CONST.MESSAGES.CONFIRM_RESET);
     
     if (confirmed) {
       // CircuitManagerのresetAllメソッドを呼び出し

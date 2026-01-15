@@ -16,6 +16,8 @@ export class DeleteCursorOverlay {
     this.isDragging = false;
     this.x = 0;
     this.y = 0;
+    this.startX = 0; // 追加: 初期化
+    this.startY = 0; // 追加: 初期化
     this.snappedTarget = null;
 
     // PC用
@@ -113,7 +115,6 @@ export class DeleteCursorOverlay {
 
   /**
    * スマホ用の更新処理
-   * ★修正: 判定ロジックをここに統合
    */
   updateMobile() {
     if (!this.mobileElement) return;
@@ -123,50 +124,53 @@ export class DeleteCursorOverlay {
     this.mobileElement.classList.remove('hidden');
     const frame = this.mobileElement.querySelector('.delete-cursor-frame');
 
-    // 1. 現在のカーソル位置からターゲットを判定
-    // （以前 checkSnap で行っていた処理をここに移動）
-    const canvas = document.querySelector(`#${CONST.DOM_IDS.COMMON.CANVAS_CONTAINER} canvas`);
-    const offset = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
-    
+    // 共通のキャンバス情報を取得
+    const canvasInfo = this.getCanvasRect();
+    if (!canvasInfo) return;
+
     // カーソルのDOM座標 → キャンバス内座標
-    const canvasX = this.x - offset.left;
-    const canvasY = this.y - offset.top;
+    const canvasX = this.x - canvasInfo.left;
+    const canvasY = this.y - canvasInfo.top;
 
     // キャンバス内座標 → ワールド座標
     const worldPos = this.circuitManager.getWorldPosition(canvasX, canvasY);
     
     // ターゲット判定
     const result = this.circuitManager.getDeletionTarget(worldPos.x, worldPos.y);
-    this.snappedTarget = result; // 結果を保存
+    this.snappedTarget = result;
 
     if (this.snappedTarget) {
       // ■ ターゲットあり
-      
-      // A. ターゲットをハイライト
-      if (this.snappedTarget.type === 'wire' || this.snappedTarget.type === 'part') {
-        this.snappedTarget.target.isHighlighted = true;
-      }
+      this.snappedTarget.target.isHighlighted = true;
 
-      // B. カーソルの枠を消す（クラス追加）
+      // カーソルの枠を消す（target-snappedクラス付与）
       if (frame) frame.classList.add('target-snapped');
 
-      // C. スナップ位置へ吸着表示
+      // スナップ位置へ吸着表示
       const { x, y } = this.getTargetCenter(this.snappedTarget);
+      
+      // ワールド座標からスクリーン座標へ逆変換して吸着させる
       const inputMgr = this.circuitManager.getInputManager();
       const screenPos = inputMgr.getScreenPosition(x, y);
       
-      this.x = screenPos.x + offset.left;
-      this.y = screenPos.y + offset.top;
+      this.x = screenPos.x + canvasInfo.left;
+      this.y = screenPos.y + canvasInfo.top;
 
     } else {
       // ■ ターゲットなし
-      
-      // 枠を表示（クラス削除）
       if (frame) frame.classList.remove('target-snapped');
     }
     
     // DOM位置の更新
     this.updateMobileDOMPosition();
+  }
+
+  /**
+   * キャンバスの位置情報を取得するヘルパー
+   */
+  getCanvasRect() {
+    const canvas = document.querySelector(`#${CONST.DOM_IDS.COMMON.CANVAS_CONTAINER} canvas`);
+    return canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
   }
 
   getTargetCenter(result) {
@@ -184,7 +188,6 @@ export class DeleteCursorOverlay {
 
   /**
    * 座標をDOM要素に適用
-   * ★修正: コンテナではなく「キャンバス要素そのもの」のオフセットを加算する
    */
   applyPositionToElement(element, worldX, worldY) {
     const inputMgr = this.circuitManager.getInputManager();
@@ -192,13 +195,8 @@ export class DeleteCursorOverlay {
     const currentScale = inputMgr.viewScale;
     const size = (CONST.PARTS.WIDTH + 10) * currentScale;
 
-    // ★修正点: コンテナ(div)ではなく、実際のキャンバス(canvas)の座標を取得する
-    // p5.jsはcanvas要素を生成するので、それを探す
-    const canvas = document.querySelector(`#${CONST.DOM_IDS.COMMON.CANVAS_CONTAINER} canvas`);
-    // キャンバスが見つからない場合（初期化前など）のガード
-    const offset = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
+    const offset = this.getCanvasRect(); // ヘルパー再利用
 
-    // スクリーンの絶対座標 = キャンバスの左上座標 + キャンバス内の相対座標
     element.style.left = `${offset.left + screenPos.x - size / 2}px`;
     element.style.top = `${offset.top + screenPos.y - size / 2}px`;
     
@@ -207,9 +205,8 @@ export class DeleteCursorOverlay {
     element.style.fontSize = `${30 * currentScale}px`;
   }
 
-  // --- スマホ用イベントリスナー等は変更なし ---
   setupMobileEventListeners() {
-    // ... (元のコードのまま) ...
+    // ハンドルでのドラッグ開始
     this.handle.addEventListener('touchstart', (e) => {
       if (!this.circuitManager.getDeleteMode()) return;
       
@@ -222,22 +219,24 @@ export class DeleteCursorOverlay {
       this.startY = touch.clientY - this.y;
     });
     
+    // 画面全体でのドラッグ追従
     document.addEventListener('touchmove', (e) => {
       if (!this.isDragging) return;
       
-      e.preventDefault();
+      e.preventDefault(); // スクロール防止
       const touch = e.touches[0];
       this.x = touch.clientX - this.startX;
       this.y = touch.clientY - this.startY;
       
       this.updateMobileDOMPosition();
-      // ★削除: this.checkSnap(); は不要になったので消す
     });
     
+    // ドラッグ終了
     document.addEventListener('touchend', (e) => {
       this.isDragging = false;
     });
     
+    // タップ（削除実行）
     this.mobileElement.addEventListener('click', (e) => {
       if (!this.circuitManager.getDeleteMode()) return;
       if (this.isDragging) return;
@@ -255,89 +254,41 @@ export class DeleteCursorOverlay {
         }
         
         this.snappedTarget = null;
-        this.mobileElement.classList.remove('snapped');
+        // クラス削除も target-snapped に統一
+        const frame = this.mobileElement.querySelector('.delete-cursor-frame');
+        if (frame) frame.classList.remove('target-snapped');
       }
     });
   }
   
   updateMobileDOMPosition() {
-      // ... (元のコードのまま) ...
-      if (!this.mobileElement) return;
-      
-      const scale = this.circuitManager.getInputManager().viewScale;
-      const baseSize = CONST.PARTS.WIDTH + 20; 
-      const currentSize = baseSize * scale;
-      
-      const frame = this.mobileElement.querySelector('.delete-cursor-frame');
-      if (frame) {
-        frame.style.width = `${currentSize}px`;
-        frame.style.height = `${currentSize}px`;
-  
-        const xMark = this.mobileElement.querySelector('.delete-cursor-x');
-        if (xMark) {
-          xMark.style.fontSize = `${36 * scale}px`;
-        }
-      }
-      
-      const handleHeight = 50;
-      const containerHeight = Math.max(currentSize, handleHeight);
-      
-      this.mobileElement.style.left = `${this.x - currentSize / 2}px`;
-      this.mobileElement.style.top = `${this.y - containerHeight / 2}px`;
-  }
-
-  checkSnap() {
-    // ... (元のコードのまま、ただしOffset計算だけ念の為ここも修正推奨) ...
-    if (!this.circuitManager) return;
-
-    // ★修正推奨: ここもCanvas座標基準にする
-    const canvas = document.querySelector(`#${CONST.DOM_IDS.COMMON.CANVAS_CONTAINER} canvas`);
-    const offset = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
+    if (!this.mobileElement) return;
     
-    const canvasX = this.x - offset.left;
-    const canvasY = this.y - offset.top;
-
-    const worldPos = this.circuitManager.getWorldPosition(canvasX, canvasY);
-    const result = this.circuitManager.getDeletionTarget(worldPos.x, worldPos.y);
+    const scale = this.circuitManager.getInputManager().viewScale;
+    const baseSize = CONST.PARTS.WIDTH + 20; 
+    const currentSize = baseSize * scale;
     
-    if (result) {
-      this.snappedTarget = result;
-      this.mobileElement.classList.add('snapped');
-      
-      let targetX, targetY;
-      
-      if (result.type === 'wire') {
-        result.target.isHighlighted = true;
-        const w = result.target;
-        const start = w.startSocket.getConnectorWorldPosition();
-        const end = w.endSocket.getConnectorWorldPosition();
-        targetX = (start.x + end.x) / 2;
-        targetY = (start.y + end.y) / 2;
-      } else {
-        const center = result.target.getCenter();
-        targetX = center.x;
-        targetY = center.y;
+    const frame = this.mobileElement.querySelector('.delete-cursor-frame');
+    if (frame) {
+      frame.style.width = `${currentSize}px`;
+      frame.style.height = `${currentSize}px`;
+
+      const xMark = this.mobileElement.querySelector('.delete-cursor-x');
+      if (xMark) {
+        xMark.style.fontSize = `${36 * scale}px`;
       }
-      
-      const screenPos = this.worldToScreenPosition(targetX, targetY);
-      this.x = screenPos.x + offset.left;
-      this.y = screenPos.y + offset.top;
-      
-      this.updateMobileDOMPosition();
-    } else {
-      this.snappedTarget = null;
-      this.mobileElement.classList.remove('snapped');
     }
-  }
-
-  worldToScreenPosition(worldX, worldY) {
-    return this.circuitManager.getInputManager().getScreenPosition(worldX, worldY);
+    
+    const handleHeight = 50;
+    const containerHeight = Math.max(currentSize, handleHeight);
+    
+    this.mobileElement.style.left = `${this.x - currentSize / 2}px`;
+    this.mobileElement.style.top = `${this.y - containerHeight / 2}px`;
   }
   
   updateVisibility() {
-      // ... (元のコードのまま) ...
-      if (!this.mobileElement) return;
-    
+    if (!this.mobileElement) return;
+  
     const isDeleteMode = this.circuitManager.getDeleteMode();
     
     if (isDeleteMode) {
@@ -355,7 +306,11 @@ export class DeleteCursorOverlay {
       }
       
       this.snappedTarget = null;
-      this.mobileElement.classList.remove('snapped');
+      
+      // リセット
+      const frame = this.mobileElement.querySelector('.delete-cursor-frame');
+      if (frame) frame.classList.remove('target-snapped');
+      
       this.updateMobileDOMPosition();
 
     } else {

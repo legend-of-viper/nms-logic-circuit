@@ -134,7 +134,8 @@ const MESSAGES_DATA = {
     ALERT_SHARE_FAILED: 'シェアURLの生成に失敗しました',
     ALERT_URL_RESTORE_SUCCESS: 'URLから回路を復元しました',
     ALERT_URL_RESTORE_FAILED: 'URLからの復元に失敗しました',
-    ERROR_INVALID_FILE_FORMAT: '無効なファイル形式です'
+    ERROR_INVALID_FILE_FORMAT: '無効なファイル形式です',
+    CONFIRM_RESET: '全てのパーツとワイヤーを削除してリセットします。よろしいですか？'
   },
   
   // 英語（デフォルト）
@@ -149,7 +150,8 @@ const MESSAGES_DATA = {
     ALERT_SHARE_FAILED: 'Failed to generate share URL',
     ALERT_URL_RESTORE_SUCCESS: 'Restored circuit from URL',
     ALERT_URL_RESTORE_FAILED: 'Failed to restore from URL',
-    ERROR_INVALID_FILE_FORMAT: 'Invalid file format'
+    ERROR_INVALID_FILE_FORMAT: 'Invalid file format',
+    CONFIRM_RESET: 'Are you sure you want to delete all parts and wires?'
   }
 };
 

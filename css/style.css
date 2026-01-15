@@ -683,6 +683,20 @@ body.mobile-mode #canvas-container canvas {
   text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
 }
 
+/* スマホ版削除カーソルの枠にも同じスナップ効果を適用 */
+.delete-cursor-frame.target-snapped {
+  border-color: transparent;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+/* スマホ版のスナップ時の×印強調 */
+.delete-cursor-frame.target-snapped .delete-cursor-x {
+  transform: scale(1.2);
+  text-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+  transition: transform 0.2s ease;
+}
+
 /* PC用ハイライト（初期状態は非表示） */
 #pc-delete-highlight {
   position: fixed;
@@ -722,16 +736,6 @@ body.mobile-mode #canvas-container canvas {
   content: none;
 }
 
-/* スナップ時のスタイル */
-.delete-cursor.snapped .delete-cursor-frame {
-  background: rgba(255, 50, 50, 0.4);
-  border-color: #ff0000;
-  box-shadow: 
-    0 0 30px rgba(255, 0, 0, 0.8),
-    inset 0 0 15px rgba(255, 0, 0, 0.4);
-  transform: scale(1.1);
-}
-
 /* バツマーク（スマホ専用の×表示） */
 .delete-cursor-x {
   font-size: 48px;
@@ -740,10 +744,6 @@ body.mobile-mode #canvas-container canvas {
   line-height: 1;
   text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
   pointer-events: none;
-}
-
-.delete-cursor.snapped .delete-cursor-x {
-  text-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
 }
 
 /* グラブハンドル */
