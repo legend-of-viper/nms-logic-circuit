@@ -138,6 +138,27 @@ export class CircuitManager {
   }
 
   /**
+   * 全てのパーツとワイヤーをリセット（削除）
+   */
+  resetAll() {
+    // 全てのワイヤーの接続情報をクリア
+    for (let wire of this.wires) {
+      wire.startSocket.disconnectWire(wire);
+      wire.endSocket.disconnectWire(wire);
+    }
+    
+    // 配列をクリア
+    this.parts.length = 0;
+    this.wires.length = 0;
+    
+    // ドラッグ状態などもリセット
+    this.draggingPart = null;
+    this.wiringStartNode = null;
+    
+    console.log("全てのパーツとワイヤーをリセットしました");
+  }
+
+  /**
    * 部品を作成して追加
    * @param {string} type - 部品タイプ ('POWER', 'WALL_SWITCH', 'BUTTON', etc.)
    * @param {number} x - ワールドX座標

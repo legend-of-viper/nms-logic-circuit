@@ -146,6 +146,30 @@ button:active {
   border-color: #6aca6d;
 }
 
+/* リセットボタン（黄色の警告色） */
+.reset-btn {
+  background-color: #8b6914 !important; /* 暗めの黄土色 */
+  border-color: #d4a017 !important; /* 明るい金色の枠 */
+  box-shadow: 
+    inset 0 0 10px rgba(0, 0, 0, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+.reset-btn:hover {
+  background-color: #a67c1a !important; /* 少し明るい黄色 */
+  border-color: #f0c419 !important;
+  box-shadow: 
+    inset 0 0 5px rgba(0, 0, 0, 0.3),
+    0 0 10px rgba(255, 200, 50, 0.4) !important;
+}
+
+.reset-btn:active {
+  background-color: #6d5510 !important; /* さらに暗く */
+  box-shadow: 
+    inset 0 0 15px rgba(0, 0, 0, 0.8),
+    0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
 /* 削除モードボタン（ベース） */
 .delete-mode-btn {
   /* パーツボタンと同じサイズ・基本設定を継承しつつ上書き */
@@ -571,6 +595,42 @@ body.mobile-mode #canvas-container canvas {
 }
 .menu-item:active {
   background: #444;
+}
+
+/* スマホメニューのシェアボタン（PC版の緑色に合わせる） */
+#btn-mobile-share {
+  background-color: #2e5e30 !important; /* PC版と同じ緑 */
+  border: 2px solid #4a8a4d !important; /* 枠線を追加 */
+  
+  /* 立体感（影）の調整 */
+  box-shadow: 
+    inset 0 0 10px rgba(0, 0, 0, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* タップした時の色（濃い緑） */
+#btn-mobile-share:active {
+  background-color: #1e3e20 !important;
+  border-color: #3a6a3d !important;
+  box-shadow: 
+    inset 0 0 15px rgba(0, 0, 0, 0.8),
+    0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* スマホメニューのリセットボタン */
+.menu-item.reset-btn {
+  background: #8b6914 !important;
+  border: 2px solid #d4a017 !important;
+  box-shadow: 
+    inset 0 0 8px rgba(0, 0, 0, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.4) !important;
+}
+
+.menu-item.reset-btn:active {
+  background: #6d5510 !important;
+  box-shadow: 
+    inset 0 0 12px rgba(0, 0, 0, 0.7),
+    0 1px 2px rgba(0, 0, 0, 0.5) !important;
 }
 
 .menu-label {

@@ -82,6 +82,7 @@ setupLabels() {
     deleteBtn.textContent = ''; // 文字を消す
     deleteBtn.title = CONST.UI_LABELS.DELETE_MODE; // ツールチップを設定
 
+    document.getElementById('btn-reset').textContent = 'Reset';
     document.getElementById('btn-save').textContent = CONST.UI_LABELS.SAVE;
     document.getElementById('btn-load').textContent = CONST.UI_LABELS.LOAD;
     document.getElementById('btn-share').textContent = CONST.UI_LABELS.SHARE;
@@ -299,6 +300,12 @@ setupLabels() {
       () => this.handleShare()
     );
     
+    // リセットボタン（PC用とモバイル用）
+    this.bindAction(
+      ['btn-reset', 'btn-mobile-reset'],
+      () => this.handleReset()
+    );
+    
     // 90度スナップチェックボックス（PC用とモバイル用で同期）
     const pcCheckbox = document.getElementById(CONST.DOM_IDS.PC.ROTATION_SNAP);
     const mobileCheckbox = document.getElementById(CONST.DOM_IDS.MOBILE.ROTATION_SNAP);
@@ -479,6 +486,22 @@ setupLabels() {
    */
   handleShare() {
     this.storage.shareToUrl();
+    this.closeMobileMenu();
+  }
+
+  /**
+   * リセット処理（全パーツとワイヤーを削除）
+   */
+  handleReset() {
+    // 確認ダイアログを表示
+    const confirmed = confirm('全てのパーツとワイヤーを削除してリセットします。よろしいですか？');
+    
+    if (confirmed) {
+      // CircuitManagerのresetAllメソッドを呼び出し
+      this.simulator.resetAll();
+      console.log('回路をリセットしました');
+    }
+    
     this.closeMobileMenu();
   }
 
