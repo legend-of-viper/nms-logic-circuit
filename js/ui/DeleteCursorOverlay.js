@@ -102,7 +102,7 @@ export class DeleteCursorOverlay {
     if (!this.element) return;
     
     // 1. 現在のズーム倍率を取得
-    const scale = this.circuitManager.viewScale;
+    const scale = this.circuitManager.getInputManager().viewScale;
     
     // 2. カーソル枠のサイズを計算
     const baseSize = CONST.PARTS.WIDTH + 20; 
@@ -193,10 +193,7 @@ export class DeleteCursorOverlay {
    * ワールド座標をスクリーン座標に変換
    */
   worldToScreenPosition(worldX, worldY) {
-    return {
-      x: worldX * this.circuitManager.viewScale + this.circuitManager.viewOffsetX,
-      y: worldY * this.circuitManager.viewScale + this.circuitManager.viewOffsetY
-    };
+    return this.circuitManager.getInputManager().getScreenPosition(worldX, worldY);
   }
 
   /**

@@ -3,6 +3,7 @@
 import { Wire } from '../models/Wire.js';
 import { PartFactory } from '../models/PartFactory.js';
 import { PowerSystem } from './PowerSystem.js';
+import { InputManager } from './InputManager.js';
 import { CONST } from '../config/constants.js';
 
 // 部品タイプを数値に変換するマップ（データ圧縮用）
@@ -41,34 +42,31 @@ export class CircuitManager {
     this.wires = [];
 
     this.powerSystem = new PowerSystem(this.parts, this.wires);
+    this.inputManager = new InputManager();
 
     this.draggingPart = null;
     this.wiringStartNode = null;
     this.rotationSnapEnabled = true; // デフォルトで90度スナップを有効
     this.isDeleteMode = false; // 削除モード
-
-    // ビューポート管理用の変数（パン＆ズーム）
-    this.viewOffsetX = 0;
-    this.viewOffsetY = 0;
-    this.viewScale = 1.0;
-
-    // タッチ操作計算用の一時変数
-    this.prevTouchDist = -1;
-    this.prevTouchCenter = { x: 0, y: 0 };
   }
 
   /**
    * スクリーン座標をワールド座標に変換
-   * （パン＆ズーム適用後の回路内の座標を取得）
+   * （InputManagerに委譲）
    * @param {number} screenX - スクリーンX座標
    * @param {number} screenY - スクリーンY座標
    * @returns {{x: number, y: number}} ワールド座標
    */
   getWorldPosition(screenX, screenY) {
-    return {
-      x: (screenX - this.viewOffsetX) / this.viewScale,
-      y: (screenY - this.viewOffsetY) / this.viewScale
-    };
+    return this.inputManager.getWorldPosition(screenX, screenY);
+  }
+
+  /**
+   * InputManagerへのアクセス（UIなどから使用）
+   * @returns {InputManager}
+   */
+  getInputManager() {
+    return this.inputManager;
   }
 
   /**
@@ -338,9 +336,8 @@ export class CircuitManager {
 
     push(); // 座標系保存
     
-    // パンとズームを適用
-    translate(this.viewOffsetX, this.viewOffsetY);
-    scale(this.viewScale);
+    // パンとズームを適用（InputManagerに委譲）
+    this.inputManager.applyTransform();
 
     // 1. パーツを描画
     this.parts.forEach(part => part.draw());
@@ -421,62 +418,12 @@ export class CircuitManager {
    * マウスを動かしている時の処理
    */
   handleMouseDragged() {
-    // 2本指操作（パン ＆ ズーム）
-    if (touches.length === 2) {
-      // 現在の2点の座標を取得
-      const t1 = createVector(touches[0].x, touches[0].y);
-      const t2 = createVector(touches[1].x, touches[1].y);
-
-      // 1. 現在の中心点と距離を計算
-      const currentCenter = p5.Vector.add(t1, t2).div(2);
-      const currentDist = t1.dist(t2);
-
-      // 前回のデータがない場合（タッチ開始直後など）、現在値を記録して終了
-      if (this.prevTouchDist <= 0) {
-        this.prevTouchDist = currentDist;
-        this.prevTouchCenter = { x: currentCenter.x, y: currentCenter.y };
-        return;
-      }
-
-      // 2. パン（中心点の移動）の適用
-      // 前回の中心点との差分をオフセットに加算
-      const dx = currentCenter.x - this.prevTouchCenter.x;
-      const dy = currentCenter.y - this.prevTouchCenter.y;
-      this.viewOffsetX += dx;
-      this.viewOffsetY += dy;
-
-      // 3. ズーム（距離の変化）の適用
-      if (currentDist > 0 && this.prevTouchDist > 0) {
-        // 拡大率の変化比を計算
-        const scaleFactor = currentDist / this.prevTouchDist;
-        const newScale = this.viewScale * scaleFactor;
-
-        // 制限（縮小しすぎ、拡大しすぎを防ぐ）
-        // 例: 0.2倍 〜 5.0倍
-        const constrainedScale = constrain(newScale, 0.2, 5.0);
-        
-        // 実際に適用される倍率比
-        const effectiveFactor = constrainedScale / this.viewScale;
-
-        // ★重要: ズーム中心（指の間）がずれないようにオフセットを補正
-        // 公式: 新オフセット = 指位置 - (指位置 - 旧オフセット) * 倍率比
-        this.viewOffsetX = currentCenter.x - (currentCenter.x - this.viewOffsetX) * effectiveFactor;
-        this.viewOffsetY = currentCenter.y - (currentCenter.y - this.viewOffsetY) * effectiveFactor;
-
-        this.viewScale = constrainedScale;
-      }
-
-      // 次フレーム用に現在の状態を保存
-      this.prevTouchDist = currentDist;
-      this.prevTouchCenter = { x: currentCenter.x, y: currentCenter.y };
-      
-      // パーツドラッグなどはキャンセル
+    // 2本指操作（パン ＆ ズーム）をInputManagerに委譲
+    if (this.inputManager.handleTwoFingerGesture(touches)) {
+      // 2本指操作が行われた場合、パーツドラッグをキャンセル
       this.draggingPart = null;
       return;
     }
-    
-    // 指が2本でなければリセット
-    this.prevTouchDist = -1;
 
     // 1本指操作（パーツ移動など）
     if (this.draggingPart) {
@@ -497,7 +444,7 @@ export class CircuitManager {
    */
   handleMouseReleased() {
     // 2本指操作のリセット
-    this.prevTouchDist = -1;
+    this.inputManager.resetTwoFingerGesture();
     
     // マウス座標をワールド座標に変換
     const worldMouse = this.getWorldPosition(mouseX, mouseY);
