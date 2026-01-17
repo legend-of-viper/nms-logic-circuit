@@ -98,16 +98,22 @@ export class CircuitManager {
    * @param {CircuitPart} targetPart - 削除対象のパーツ
    */
   deletePart(targetPart) {
+    // 影響を受ける隣接パーツを記録するセット
+    const neighborsToCheck = new Set();
+
     // 手順A: この部品に繋がっているワイヤーを全て探して消す
     for (let i = this.wires.length - 1; i >= 0; i--) {
       const wire = this.wires[i];
       
-      // ワイヤーの始点か終点が、消そうとしている部品なら削除
       if (wire.startSocket.parent === targetPart || wire.endSocket.parent === targetPart) {
-        // ソケットの接続情報から削除（三角形が残らないようにする）
+        // 反対側のパーツを記録しておく
+        const otherPart = (wire.startSocket.parent === targetPart) 
+                          ? wire.endSocket.parent 
+                          : wire.startSocket.parent;
+        neighborsToCheck.add(otherPart);
+
         wire.startSocket.disconnectWire(wire);
         wire.endSocket.disconnectWire(wire);
-        
         this.wires.splice(i, 1);
       }
     }
@@ -118,6 +124,11 @@ export class CircuitManager {
       this.parts.splice(index, 1);
       console.log("部品を削除しました");
     }
+
+    // 手順C: 道連れでワイヤーが消えた先のJointをチェック
+    neighborsToCheck.forEach(part => {
+      this.cleanupOrphanedJoint(part);
+    });
   }
 
   /**
@@ -125,15 +136,45 @@ export class CircuitManager {
    * @param {Wire} targetWire - 削除対象のワイヤー
    */
   deleteWire(targetWire) {
-    // ワイヤーリストから削除
+    const startPart = targetWire.startSocket.parent;
+    const endPart = targetWire.endSocket.parent;
+
     const index = this.wires.indexOf(targetWire);
     if (index > -1) {
-      // ソケットの接続情報から削除
       targetWire.startSocket.disconnectWire(targetWire);
       targetWire.endSocket.disconnectWire(targetWire);
       
       this.wires.splice(index, 1);
       console.log("ワイヤーを削除しました");
+
+      // 両端がJointなら、もう不要かチェックして消す
+      this.cleanupOrphanedJoint(startPart);
+      this.cleanupOrphanedJoint(endPart);
+    }
+  }
+
+  /**
+   * 孤立したJointを自動削除
+   * @param {CircuitPart} part - チェック対象のパーツ
+   */
+  cleanupOrphanedJoint(part) {
+    // Joint以外、または既に削除済みのパーツなら何もしない
+    if (!part || part.type !== CONST.PART_TYPE.JOINT || !this.parts.includes(part)) {
+      return;
+    }
+
+    // 接続されているワイヤーの数を数える
+    let totalWires = 0;
+    for (const socket of part.sockets) {
+      totalWires += socket.connectedWires.length;
+    }
+
+    // ワイヤーが1本もなければ、Joint自体を削除
+    if (totalWires === 0) {
+      const index = this.parts.indexOf(part);
+      if (index > -1) {
+        this.parts.splice(index, 1);
+      }
     }
   }
 
@@ -237,6 +278,12 @@ export class CircuitManager {
 
     for (let i = this.parts.length - 1; i >= 0; i--) {
       const part = this.parts[i];
+      
+      // Jointは削除ターゲットとして検出しない（ユーザーに意識させない）
+      if (part.type === CONST.PART_TYPE.JOINT) {
+        continue;
+      }
+
       const center = part.getCenter();
       const distVal = dist(worldX, worldY, center.x, center.y);
       
@@ -299,6 +346,117 @@ export class CircuitManager {
   }
 
   /**
+   * ドラッグ時のJoint追従係数を計算する
+   * Source（動かすパーツ）からの距離と、Anchor（固定パーツ）からの距離の比率で決定
+   * @param {CircuitPart} sourcePart - ドラッグを開始するパーツ
+   * @returns {Map} Joint Object -> Weight(0.0~1.0) のマップ
+   */
+  calculateJointWeights(sourcePart) {
+    const weights = new Map(); // 結果用 (Joint Object -> Weight)
+    const sourceDist = new Map(); // ID -> Distance
+    const anchorDist = new Map(); // ID -> Distance
+    const visited = new Set();
+    const joints = []; // 関連する全Jointリスト
+
+    // 1. Sourceからの距離を計算 (BFS)
+    let queue = [{ part: sourcePart, dist: 0 }];
+    visited.add(sourcePart.id);
+
+    while (queue.length > 0) {
+      const { part, dist } = queue.shift();
+      
+      for (const socket of part.sockets) {
+        for (const wire of socket.connectedWires) {
+          const otherSocket = wire.getOtherEnd(socket);
+          if (!otherSocket) continue;
+          
+          const neighbor = otherSocket.parent;
+          
+          if (!visited.has(neighbor.id)) {
+            visited.add(neighbor.id);
+            
+            if (neighbor.type === CONST.PART_TYPE.JOINT) {
+              sourceDist.set(neighbor.id, dist + 1);
+              joints.push(neighbor);
+              queue.push({ part: neighbor, dist: dist + 1 });
+            }
+          }
+        }
+      }
+    }
+
+    if (joints.length === 0) return weights;
+
+    // 2. Anchor（固定端）からの最短距離を計算 (Multi-Source BFS)
+    queue = [];
+    const anchorVisited = new Set();
+    
+    // 全Jointについて、「隣がAnchor（固定パーツ）」なら距離1としてスタート
+    for (const joint of joints) {
+      anchorDist.set(joint.id, Infinity);
+
+      for (const socket of joint.sockets) {
+        for (const wire of socket.connectedWires) {
+          const otherSocket = wire.getOtherEnd(socket);
+          if (!otherSocket) continue;
+          
+          const neighbor = otherSocket.parent;
+          
+          // Source以外のパーツ（＝Anchor）を発見したら
+          if (neighbor.type !== CONST.PART_TYPE.JOINT && neighbor !== sourcePart) {
+            if (!anchorVisited.has(joint.id)) {
+               anchorDist.set(joint.id, 1);
+               queue.push({ part: joint, dist: 1 });
+               anchorVisited.add(joint.id);
+            }
+          }
+        }
+      }
+    }
+
+    // AnchorからのBFS実行
+    while (queue.length > 0) {
+      const { part, dist } = queue.shift();
+      
+      for (const socket of part.sockets) {
+        for (const wire of socket.connectedWires) {
+          const otherSocket = wire.getOtherEnd(socket);
+          if (!otherSocket) continue;
+          
+          const neighbor = otherSocket.parent;
+          
+          // Sourceから到達可能なJointのみ対象
+          if (neighbor.type === CONST.PART_TYPE.JOINT && sourceDist.has(neighbor.id)) {
+            if (!anchorVisited.has(neighbor.id)) {
+              anchorDist.set(neighbor.id, dist + 1);
+              anchorVisited.add(neighbor.id);
+              queue.push({ part: neighbor, dist: dist + 1 });
+            }
+          }
+        }
+      }
+    }
+
+    // 3. 重みの計算
+    for (const joint of joints) {
+      const sDist = sourceDist.get(joint.id);
+      const aDist = anchorDist.get(joint.id); // 繋がっていない場合はInfinity
+      
+      let w = 1.0;
+      
+      if (aDist !== Infinity) {
+        // 近いほうの影響を強く受ける（Sourceに近い=1.0、Anchorに近い=0.0）
+        w = aDist / (sDist + aDist);
+      }
+      
+      // IDではなくオブジェクトをキーにして保存（描画ループでのアクセス高速化）
+      weights.set(joint, w);
+    }
+    
+    return weights;
+  }
+
+  /**
    * マウスボタンを押した時の処理
    * @param {boolean} isMobile - モバイルデバイスかどうか
    */
@@ -349,6 +507,15 @@ export class CircuitManager {
       if (part.isMouseOver(worldMouse.x, worldMouse.y)) {
         this.draggingPart = part;
         part.onMouseDown(worldMouse.x, worldMouse.y);
+        
+        // Joint追従のための重みマップを作成
+        this.dragJointWeights = null;
+        
+        if (part.type !== CONST.PART_TYPE.JOINT) {
+          // Joint以外のパーツを掴んだ時だけ計算する
+          this.dragJointWeights = this.calculateJointWeights(part);
+        }
+        
         // interact()はmouseReleasedで呼ぶように変更
         return;
       }
@@ -363,6 +530,7 @@ export class CircuitManager {
     if (this.inputManager.handleTwoFingerGesture(touches)) {
       // 2本指操作が行われた場合、パーツドラッグをキャンセル
       this.draggingPart = null;
+      this.dragJointWeights = null;
       return;
     }
 
@@ -375,7 +543,24 @@ export class CircuitManager {
       if (this.draggingPart.isRotating) {
         this.draggingPart.onRotationMouseDragged(this.rotationSnapEnabled, worldMouse.x, worldMouse.y);
       } else {
+        // 移動前の座標を記録
+        const oldX = this.draggingPart.x;
+        const oldY = this.draggingPart.y;
+        
+        // パーツを移動
         this.draggingPart.onMouseDragged(worldMouse.x, worldMouse.y);
+        
+        // 移動量を計算
+        const dx = this.draggingPart.x - oldX;
+        const dy = this.draggingPart.y - oldY;
+        
+        // 重みマップを使ってJointを追従させる
+        if (this.dragJointWeights && (dx !== 0 || dy !== 0)) {
+          for (const [joint, weight] of this.dragJointWeights) {
+            joint.x += dx * weight;
+            joint.y += dy * weight;
+          }
+        }
       }
     }
   }
@@ -392,8 +577,29 @@ export class CircuitManager {
     
     // ワイヤー作成中だった場合
     if (this.wiringStartNode) {
+      // 引き出し元のスナップ範囲内に戻されたらキャンセルする処理
+      const startSocket = this.wiringStartNode.socket;
+      const startPos = startSocket.getConnectorWorldPosition();
+      const distFromStart = dist(worldMouse.x, worldMouse.y, startPos.x, startPos.y);
+      
+      // 判定距離を設定
+      // Jointの場合はそのヒット半径(20px等)、通常ソケットの場合はソケットヒット半径(12px等)を使用
+      let cancelThreshold = CONST.PARTS.SOCKET_HIT_RADIUS;
+      if (startSocket.parent.type === CONST.PART_TYPE.JOINT) {
+         cancelThreshold = CONST.PARTS.JOINT_HIT_RADIUS;
+      }
+      
+      // 距離が近すぎる場合はキャンセル
+      if (distFromStart < cancelThreshold) {
+        console.log("ワイヤー生成をキャンセル（元の位置に戻されました）");
+        this.wiringStartNode.part.wiringStartSocket = null;
+        this.wiringStartNode = null;
+        return; // ここで処理を終了
+      }
+
       let targetSocket = null;
       
+      // 1. 既存のソケットを探す
       for (let part of this.parts) {
         const hoveredSocket = part.getHoveredSocket(worldMouse.x, worldMouse.y);
         // 同じソケット同士の接続は禁止
@@ -404,7 +610,30 @@ export class CircuitManager {
         }
       }
 
-      // 接続成功
+      // 2. ソケットが見つからなかった場合 -> 「虚空」かチェック
+      if (!targetSocket) {
+        // マウスが他のパーツの上になければ「中継点」を作る
+        const isOverAnyPart = this.parts.some(p => p.isMouseOver(worldMouse.x, worldMouse.y));
+        
+        if (!isOverAnyPart) {
+          // 中継点（Joint）を生成して接続する
+          console.log("中継点を作成");
+          
+          // マウス位置が「中心」になるように座標を補正する
+          // CircuitPartは左上座標(x,y)で管理されるため、幅・高さの半分を引く必要がある
+          const jointX = worldMouse.x - CONST.PARTS.WIDTH / 2;
+          const jointY = worldMouse.y - CONST.PARTS.HEIGHT / 2;
+
+          // 補正した座標で作成
+          this.createPart(CONST.PART_TYPE.JOINT, jointX, jointY);
+          
+          // 今作ったばかりのパーツを取得
+          const newJoint = this.parts[this.parts.length - 1];
+          targetSocket = newJoint.getSocket('center');
+        }
+      }
+
+      // 3. 接続処理（Joint作成により targetSocket が確保されていればここを通る）
       if (targetSocket) {
         console.log("接続完了！");
         const newWire = new Wire(
@@ -415,8 +644,10 @@ export class CircuitManager {
       }
 
       // ワイヤリング開始ソケットのマークをクリア
-      this.wiringStartNode.part.wiringStartSocket = null;
-      this.wiringStartNode = null;
+      if (this.wiringStartNode) {
+        this.wiringStartNode.part.wiringStartSocket = null;
+        this.wiringStartNode = null;
+      }
     }
 
     // パーツ移動・回転中だった場合

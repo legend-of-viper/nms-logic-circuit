@@ -129,19 +129,33 @@ export class Socket {
         triangleBaseY = rectY + CONST.PARTS.SOCKET_HEIGHT;
         connectorLocalY = this.localY + CONST.PARTS.CONNECTOR_HEIGHT;
         break;
+        
+      case 'center':
+        // ジョイント用: 基部の四角は描かず、丸だけ描画
+        rectX = this.localX - CONST.PARTS.JOINT_RADIUS;
+        rectY = this.localY - CONST.PARTS.JOINT_RADIUS;
+        rectW = CONST.PARTS.JOINT_RADIUS * 2;
+        rectH = CONST.PARTS.JOINT_RADIUS * 2;
+        connectorLocalX = this.localX;
+        connectorLocalY = this.localY;
+        break;
     }
     
     // 1. ソケット基部（四角形）を描画
     // rectMode(CORNER)で描画（座標は左上隅）
-    rectMode(CORNER);
-    rect(rectX, rectY, rectW, rectH);
+    // centerの場合は基部を描画しない
+    if (this.direction !== 'center') {
+      rectMode(CORNER);
+      rect(rectX, rectY, rectW, rectH);
+    }
     
     // 2. コネクタ（三角形・丸）の描画判定
     const isHovered = this.isMouseOver();
     const hasWire = this.connectedWires.length > 0;
     const isWiringStart = this.parent.wiringStartSocket === this.name;
     
-    if (isHovered || hasWire || isWiringStart) {
+    // centerの場合は常時表示、それ以外は従来通り
+    if (isHovered || hasWire || isWiringStart || this.direction === 'center') {
       
       // ホバー時かつ未接続の場合は、一時的な色（赤半透明）で描画
       if ((isHovered || isWiringStart) && !hasWire) {
@@ -151,35 +165,40 @@ export class Socket {
       noStroke();
       fill(...fillColor);
       
-      // 三角形を描画
-      switch (this.direction) {
-        case 'left':
-          triangle(
-            connectorLocalX - CONST.PARTS.CONNECTOR_RADIUS, connectorLocalY,
-            triangleBaseX, this.localY - CONST.PARTS.SOCKET_WIDTH / 2,
-            triangleBaseX, this.localY + CONST.PARTS.SOCKET_WIDTH / 2
-          );
-          break;
-          
-        case 'right':
-          triangle(
-            connectorLocalX + CONST.PARTS.CONNECTOR_RADIUS, connectorLocalY,
-            triangleBaseX, this.localY - CONST.PARTS.SOCKET_WIDTH / 2,
-            triangleBaseX, this.localY + CONST.PARTS.SOCKET_WIDTH / 2
-          );
-          break;
-          
-        case 'bottom':
-          triangle(
-            this.localX, connectorLocalY + CONST.PARTS.CONNECTOR_RADIUS,
-            this.localX - CONST.PARTS.SOCKET_WIDTH / 2, triangleBaseY,
-            this.localX + CONST.PARTS.SOCKET_WIDTH / 2, triangleBaseY
-          );
-          break;
+      // 三角形を描画（centerの場合は三角形なし）
+      if (this.direction !== 'center') {
+        switch (this.direction) {
+          case 'left':
+            triangle(
+              connectorLocalX - CONST.PARTS.CONNECTOR_RADIUS, connectorLocalY,
+              triangleBaseX, this.localY - CONST.PARTS.SOCKET_WIDTH / 2,
+              triangleBaseX, this.localY + CONST.PARTS.SOCKET_WIDTH / 2
+            );
+            break;
+            
+          case 'right':
+            triangle(
+              connectorLocalX + CONST.PARTS.CONNECTOR_RADIUS, connectorLocalY,
+              triangleBaseX, this.localY - CONST.PARTS.SOCKET_WIDTH / 2,
+              triangleBaseX, this.localY + CONST.PARTS.SOCKET_WIDTH / 2
+            );
+            break;
+            
+          case 'bottom':
+            triangle(
+              this.localX, connectorLocalY + CONST.PARTS.CONNECTOR_RADIUS,
+              this.localX - CONST.PARTS.SOCKET_WIDTH / 2, triangleBaseY,
+              this.localX + CONST.PARTS.SOCKET_WIDTH / 2, triangleBaseY
+            );
+            break;
+        }
       }
       
-      // 丸を描画
-      circle(connectorLocalX, connectorLocalY, CONST.PARTS.CONNECTOR_RADIUS * 2);
+      // 丸を描画（centerの場合はJOINT_RADIUSを使用）
+      const radius = (this.direction === 'center') 
+                     ? CONST.PARTS.JOINT_RADIUS 
+                     : CONST.PARTS.CONNECTOR_RADIUS * 2;
+      circle(connectorLocalX, connectorLocalY, radius);
     }
   }
 }
