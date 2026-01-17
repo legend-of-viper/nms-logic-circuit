@@ -5,32 +5,8 @@ import { PartFactory } from '../models/PartFactory.js';
 import { PowerSystem } from './PowerSystem.js';
 import { InputManager } from './InputManager.js';
 import { CONST } from '../config/constants.js';
-
-// 部品タイプを数値に変換するマップ（データ圧縮用）
-const TYPE_MAP = {
-  [CONST.PART_TYPE.POWER]: 0,
-  [CONST.PART_TYPE.WALL_SWITCH]: 1,
-  [CONST.PART_TYPE.BUTTON]: 2,
-  [CONST.PART_TYPE.AUTO_SWITCH]: 3,
-  [CONST.PART_TYPE.INVERTER]: 4,
-  [CONST.PART_TYPE.COLOR_LIGHT]: 5
-};
-
-// 数値から部品タイプに戻すための配列
-const TYPE_LIST = [
-  CONST.PART_TYPE.POWER,       // 0
-  CONST.PART_TYPE.WALL_SWITCH, // 1
-  CONST.PART_TYPE.BUTTON,      // 2
-  CONST.PART_TYPE.AUTO_SWITCH, // 3
-  CONST.PART_TYPE.INVERTER,    // 4
-  CONST.PART_TYPE.COLOR_LIGHT  // 5
-];
-
-// ソケット名を数値に変換するマップ
-const SOCKET_MAP = { 'left': 0, 'right': 1, 'bottom': 2, 'control': 3 };
-
-// 数値からソケット名に戻す配列
-const SOCKET_LIST = ['left', 'right', 'bottom', 'control'];
+import { GraphUtils } from '../utils/GraphUtils.js';
+import { CircuitSerializer } from '../utils/CircuitSerializer.js';
 
 /**
  * 回路マネージャー
@@ -345,116 +321,6 @@ export class CircuitManager {
     this.drawDeleteModeWarning();
   }
 
-  /**
-   * ドラッグ時のJoint追従係数を計算する
-   * Source（動かすパーツ）からの距離と、Anchor（固定パーツ）からの距離の比率で決定
-   * @param {CircuitPart} sourcePart - ドラッグを開始するパーツ
-   * @returns {Map} Joint Object -> Weight(0.0~1.0) のマップ
-   */
-  calculateJointWeights(sourcePart) {
-    const weights = new Map(); // 結果用 (Joint Object -> Weight)
-    const sourceDist = new Map(); // ID -> Distance
-    const anchorDist = new Map(); // ID -> Distance
-    const visited = new Set();
-    const joints = []; // 関連する全Jointリスト
-
-    // 1. Sourceからの距離を計算 (BFS)
-    let queue = [{ part: sourcePart, dist: 0 }];
-    visited.add(sourcePart.id);
-
-    while (queue.length > 0) {
-      const { part, dist } = queue.shift();
-      
-      for (const socket of part.sockets) {
-        for (const wire of socket.connectedWires) {
-          const otherSocket = wire.getOtherEnd(socket);
-          if (!otherSocket) continue;
-          
-          const neighbor = otherSocket.parent;
-          
-          if (!visited.has(neighbor.id)) {
-            visited.add(neighbor.id);
-            
-            if (neighbor.type === CONST.PART_TYPE.JOINT) {
-              sourceDist.set(neighbor.id, dist + 1);
-              joints.push(neighbor);
-              queue.push({ part: neighbor, dist: dist + 1 });
-            }
-          }
-        }
-      }
-    }
-
-    if (joints.length === 0) return weights;
-
-    // 2. Anchor（固定端）からの最短距離を計算 (Multi-Source BFS)
-    queue = [];
-    const anchorVisited = new Set();
-    
-    // 全Jointについて、「隣がAnchor（固定パーツ）」なら距離1としてスタート
-    for (const joint of joints) {
-      anchorDist.set(joint.id, Infinity);
-
-      for (const socket of joint.sockets) {
-        for (const wire of socket.connectedWires) {
-          const otherSocket = wire.getOtherEnd(socket);
-          if (!otherSocket) continue;
-          
-          const neighbor = otherSocket.parent;
-          
-          // Source以外のパーツ（＝Anchor）を発見したら
-          if (neighbor.type !== CONST.PART_TYPE.JOINT && neighbor !== sourcePart) {
-            if (!anchorVisited.has(joint.id)) {
-               anchorDist.set(joint.id, 1);
-               queue.push({ part: joint, dist: 1 });
-               anchorVisited.add(joint.id);
-            }
-          }
-        }
-      }
-    }
-
-    // AnchorからのBFS実行
-    while (queue.length > 0) {
-      const { part, dist } = queue.shift();
-      
-      for (const socket of part.sockets) {
-        for (const wire of socket.connectedWires) {
-          const otherSocket = wire.getOtherEnd(socket);
-          if (!otherSocket) continue;
-          
-          const neighbor = otherSocket.parent;
-          
-          // Sourceから到達可能なJointのみ対象
-          if (neighbor.type === CONST.PART_TYPE.JOINT && sourceDist.has(neighbor.id)) {
-            if (!anchorVisited.has(neighbor.id)) {
-              anchorDist.set(neighbor.id, dist + 1);
-              anchorVisited.add(neighbor.id);
-              queue.push({ part: neighbor, dist: dist + 1 });
-            }
-          }
-        }
-      }
-    }
-
-    // 3. 重みの計算
-    for (const joint of joints) {
-      const sDist = sourceDist.get(joint.id);
-      const aDist = anchorDist.get(joint.id); // 繋がっていない場合はInfinity
-      
-      let w = 1.0;
-      
-      if (aDist !== Infinity) {
-        // 近いほうの影響を強く受ける（Sourceに近い=1.0、Anchorに近い=0.0）
-        w = aDist / (sDist + aDist);
-      }
-      
-      // IDではなくオブジェクトをキーにして保存（描画ループでのアクセス高速化）
-      weights.set(joint, w);
-    }
-    
-    return weights;
-  }
 
   /**
    * マウスボタンを押した時の処理
@@ -513,7 +379,7 @@ export class CircuitManager {
         
         if (part.type !== CONST.PART_TYPE.JOINT) {
           // Joint以外のパーツを掴んだ時だけ計算する
-          this.dragJointWeights = this.calculateJointWeights(part);
+          this.dragJointWeights = GraphUtils.calculateJointWeights(part);
         }
         
         // interact()はmouseReleasedで呼ぶように変更
@@ -673,75 +539,7 @@ export class CircuitManager {
    * @returns {Object|Array} シリアライズされた回路データ
    */
   serializeCircuitData(compact = false) {
-    if (compact) {
-      // 軽量版: IDをインデックス化
-      // 1. IDのマッピング作成（元のID -> 配列のインデックス）
-      const idToIndexMap = new Map();
-      this.parts.forEach((part, index) => {
-        idToIndexMap.set(part.id, index);
-      });
-      
-      // 2. パーツ情報: [typeNum, x, y, rot, state?]
-      // IDは配列のインデックスで代用するため保存しない
-      const partsData = this.parts.map(part => {
-        const x = Math.round(part.x);
-        const y = Math.round(part.y);
-        const rot = Math.round(part.rotation * 100) / 100;
-        const typeNum = TYPE_MAP[part.type];
-        
-        const pData = [typeNum, x, y, rot];
-        
-        // isOnを持つ場合のみ追加（0 or 1）
-        if (part.hasOwnProperty('isOn')) {
-          pData.push(part.isOn ? 1 : 0);
-        }
-        
-        return pData;
-      });
-      
-      // 3. ワイヤー情報: [startIndex, startSockNum, endIndex, endSockNum]
-      // IDではなくインデックス（0,1,2...）を保存
-      const wiresData = this.wires.map(wire => [
-        idToIndexMap.get(wire.startSocket.parent.id),
-        SOCKET_MAP[wire.startSocket.name],
-        idToIndexMap.get(wire.endSocket.parent.id),
-        SOCKET_MAP[wire.endSocket.name]
-      ]);
-      
-      // キー名すら使わず、配列のみにする
-      // 構造: [version, partsArray, wiresArray]
-      return [3, partsData, wiresData];
-    } else {
-      // 通常版: 読みやすい形式（ファイル保存用）
-      const partsData = this.parts.map(part => {
-        const data = {
-          id: part.id,
-          type: part.type,
-          x: part.x,
-          y: part.y,
-          rotation: part.rotation
-        };
-        
-        if (part.hasOwnProperty('isOn')) {
-          data.isOn = part.isOn;
-        }
-        
-        return data;
-      });
-      
-      const wiresData = this.wires.map(wire => ({
-        startPartId: wire.startSocket.parent.id,
-        startSocket: wire.startSocket.name,
-        endPartId: wire.endSocket.parent.id,
-        endSocket: wire.endSocket.name
-      }));
-      
-      return {
-        version: '1.0',
-        parts: partsData,
-        wires: wiresData
-      };
-    }
+    return CircuitSerializer.serialize(this.parts, this.wires, compact);
   }
 
   /**
@@ -749,114 +547,12 @@ export class CircuitManager {
    * @param {Object|Array} saveData - シリアライズされた回路データ
    */
   restoreFromData(saveData) {
-    // 現在の回路をクリア（配列の参照は維持）
-    this.parts.length = 0;
-    this.wires.length = 0;
+    // ドラッグ状態をクリア
     this.draggingPart = null;
     this.wiringStartNode = null;
     
-    const partIdMap = new Map();
-    
-    // 軽量版（配列のみ）の場合
-    if (Array.isArray(saveData) && saveData[0] === 3) {
-      const partsList = saveData[1];
-      const wiresList = saveData[2];
-      
-      // 復元したパーツを一時的に保持する配列（インデックスでアクセス）
-      const tempParts = [];
-      const baseId = Date.now(); // ID衝突防止のベースタイムスタンプ
-      
-      // パーツ復元: [typeNum, x, y, rot, state?]
-      partsList.forEach((pData, index) => {
-        const typeStr = TYPE_LIST[pData[0]];
-        const x = pData[1];
-        const y = pData[2];
-        const rot = pData[3];
-        
-        // IDを新規発行（ベース時刻 + インデックス）
-        const newId = baseId + index;
-        
-        const newPart = PartFactory.create(typeStr, newId, x, y);
-        
-        if (newPart) {
-          newPart.rotation = rot;
-          
-          // 5番目の要素があればisOnを復元
-          if (pData[4] !== undefined) {
-            newPart.isOn = (pData[4] === 1);
-          }
-          
-          this.parts.push(newPart);
-          tempParts.push(newPart); // インデックス参照用に保持
-        } else {
-          // 生成に失敗してもnullを入れてインデックスずれを防ぐ
-          console.warn(`パーツの復元に失敗しました: index ${index}`);
-          tempParts.push(null);
-        }
-      });
-      
-      // ワイヤー復元: [startIndex, startSockNum, endIndex, endSockNum]
-      wiresList.forEach(wData => {
-        const startPart = tempParts[wData[0]];
-        const startSockName = SOCKET_LIST[wData[1]];
-        const endPart = tempParts[wData[2]];
-        const endSockName = SOCKET_LIST[wData[3]];
-        
-        if (startPart && endPart) {
-          const startSocket = startPart.getSocket(startSockName);
-          const endSocket = endPart.getSocket(endSockName);
-          
-          if (startSocket && endSocket) {
-            const wire = new Wire(startSocket, endSocket);
-            this.wires.push(wire);
-          }
-        }
-      });
-      
-      console.log(`復元完了(v3): パーツ${this.parts.length}個, ワイヤー${this.wires.length}本`);
-    }
-    // 通常形式の場合
-    else if (saveData.version && saveData.parts && saveData.wires) {
-      // パーツを復元
-      for (const partData of saveData.parts) {
-        const newPart = PartFactory.create(
-          partData.type,
-          partData.id,
-          partData.x,
-          partData.y
-        );
-        
-        if (newPart) {
-          newPart.rotation = partData.rotation || 0;
-          
-          if (partData.hasOwnProperty('isOn')) {
-            newPart.isOn = partData.isOn;
-          }
-          
-          this.parts.push(newPart);
-          partIdMap.set(partData.id, newPart);
-        }
-      }
-      
-      // ワイヤーを復元
-      for (const wireData of saveData.wires) {
-        const startPart = partIdMap.get(wireData.startPartId);
-        const endPart = partIdMap.get(wireData.endPartId);
-        
-        if (startPart && endPart) {
-          const startSocket = startPart.getSocket(wireData.startSocket);
-          const endSocket = endPart.getSocket(wireData.endSocket);
-          
-          if (startSocket && endSocket) {
-            const wire = new Wire(startSocket, endSocket);
-            this.wires.push(wire);
-          }
-        }
-      }
-    }
-    else {
-      throw new Error(CONST.MESSAGES.ERROR_INVALID_FILE_FORMAT);
-    }
+    // CircuitSerializerに処理を委譲
+    CircuitSerializer.deserialize(saveData, this.parts, this.wires);
     
     // PowerSystemのティックをリセット
     this.powerSystem.lastTick = -1;
