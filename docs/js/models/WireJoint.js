@@ -34,12 +34,57 @@ export class WireJoint extends CircuitPart {
    */
   onTick() {}
 
-  /**
-   * 本体の描画（何も描画しない）
-   * ソケット自体が描画されるので、本体の四角い枠は不要
+/**
+   * 本体の描画
+   * 通常は描画しませんが、マウスホバー時に「移動ハンドル」を表示します
    */
   drawShape(color) {
-    // 空実装
+    // マウスが左上の「隠し判定」に乗っているか、またはドラッグ中か
+    const isHovered = this.isMouseOver(mouseX, mouseY);
+
+    if (isHovered || this.isDragging) {
+      // 親のdraw()ですでに中心へtranslateされているので、
+      // 左上の座標は (-幅/2, -高さ/2) になります
+      const handleX = -CONST.PARTS.WIDTH / 2;
+      const handleY = -CONST.PARTS.HEIGHT / 2;
+      const handleSize = 24; // 少し大きくして見やすく
+
+      push();
+      // 1. ハンドルの背景（半透明の青）
+      noStroke();
+      fill(60, 110, 255, 230); // 濃いめにしてアイコンを目立たせる
+      circle(handleX, handleY, handleSize);
+
+      // 2. 移動アイコン（上下左右の矢印）
+      stroke(255);
+      strokeWeight(1.5);
+      noFill();
+      strokeCap(ROUND);
+      strokeJoin(ROUND);
+
+      const d = 9;  // 中心からの軸の長さ
+      const s = 3;  // 矢印の羽のサイズ
+
+      // 軸を描画（十字）
+      line(handleX - d, handleY, handleX + d, handleY); // 横軸
+      line(handleX, handleY - d, handleX, handleY + d); // 縦軸
+
+      // 4方向の矢印の先端を描画
+      // 左
+      line(handleX - d, handleY, handleX - d + s, handleY - s);
+      line(handleX - d, handleY, handleX - d + s, handleY + s);
+      // 右
+      line(handleX + d, handleY, handleX + d - s, handleY - s);
+      line(handleX + d, handleY, handleX + d - s, handleY + s);
+      // 上
+      line(handleX, handleY - d, handleX - s, handleY - d + s);
+      line(handleX, handleY - d, handleX + s, handleY - d + s);
+      // 下
+      line(handleX, handleY + d, handleX - s, handleY + d - s);
+      line(handleX, handleY + d, handleX + s, handleY + d - s);
+      
+      pop();
+    }
   }
   
   /**
