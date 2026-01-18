@@ -424,9 +424,14 @@ export class CircuitPart {
   /**
    * 回転ハンドルを描画
    */
-  drawRotationHandle() {
+  drawRotationHandle(worldMouse) {
     const handlePos = this.getRotationHandlePos();
-    const isHovered = this.isMouseOverRotationHandle();
+    
+    // 引数で受け取ったワールド座標を使って判定を行う
+    // これでズーム・パン後も正しい位置で判定されます
+    const mx = worldMouse ? worldMouse.x : undefined;
+    const my = worldMouse ? worldMouse.y : undefined;
+    const isHovered = this.isMouseOverRotationHandle(mx, my);
     
     // ハンドルの円
     noStroke();
