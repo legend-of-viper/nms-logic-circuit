@@ -1,0 +1,783 @@
+/* ページ全体の基本設定 */
+body {
+  margin: 0;
+  color: #eee;
+  font-family: sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  /* アプリ全体でブラウザ標準のスクロールバーを消す */
+  overflow: hidden;
+  /* iOSでのバウンススクロールなどを防ぐ */
+  overscroll-behavior: none;
+
+  /* 1. テキスト選択を無効化（青いハイライトが出ないようにする） */
+  user-select: none;
+  -webkit-user-select: none; /* Safari / iOS用 */
+  
+  /* 2. 長押しメニュー（コピー/ペーストなどの吹き出し）を無効化（iOS用） */
+  -webkit-touch-callout: none;
+}
+
+/* ヘッダー領域（ボタン置き場）の設定 */
+#header {
+  background-color: #333;
+  padding: 10px;
+  border-bottom: 2px solid #555;
+  display: flex;
+  gap: 10px;
+  align-items: center; /* 上下中央揃えを追加 */
+  flex-wrap: wrap; /* 画面が狭い時に折り返す */
+  position: relative;
+  z-index: 3000;
+}
+
+/* ボタン共通の設定 */
+button {
+  padding: 0;
+  cursor: pointer;
+  
+  /* サイズ設定 */
+  height: 60px;
+  min-width: 60px;
+  width: 60px;
+
+  /* 配置 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  /* 背景画像の調整 */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 85%; /* 枠に収まる良いバランスに調整 */
+
+  /* ★デザインの大幅変更 */
+  /* 1. SFチックな暗めのベースカラー */
+  background-color: #222;
+  
+  /* 2. 金属っぽい枠線 */
+  border: 2px solid #444;
+  border-radius: 12px; /* 少し丸みを強める */
+
+  /* 3. 立体感の演出（重要） */
+  /* insetをつけると内側に影が落ち、ボタンが凹んで見えます */
+  box-shadow: 
+    inset 0 0 15px rgba(0, 0, 0, 0.8), /* 内側の濃い影 */
+    0 2px 4px rgba(0, 0, 0, 0.5);      /* 外側の影（ドロップシャドウ） */
+
+  /* 4. アニメーション */
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+@media (hover: hover) {
+  /* 標準ボタンのホバー */
+  button:hover {
+    background-color: #333;
+    border-color: #666;
+    transform: translateY(-2px); /* これがズレの原因でした */
+    box-shadow: 
+      inset 0 0 5px rgba(0, 0, 0, 0.5),
+      0 5px 10px rgba(0, 0, 0, 0.6),
+      0 0 8px rgba(100, 200, 255, 0.2);
+  }
+
+  /* 保存・読込ボタンのホバー（色変化もスマホだと張り付くのでここに入れるのがおすすめ） */
+  .file-btn:hover {
+    background-color: #3a7a3d;
+    border-color: #6aca6d;
+  }
+
+  /* 削除ボタンのホバー */
+  .delete-mode-btn:hover {
+    background-color: #700;
+    border-color: #c00;
+    box-shadow: 
+      inset 0 0 5px rgba(0, 0, 0, 0.5),
+      0 0 10px rgba(255, 50, 50, 0.3);
+  }
+  
+  .delete-mode-btn.active:hover {
+    background-color: #f00;
+    box-shadow: 0 0 30px rgba(255, 0, 0, 1);
+  }
+
+  /* トグルスイッチのホバー */
+  .toggle-switch:hover .slider {
+    background-color: #666;
+  }
+  .toggle-switch:hover input:checked + .slider {
+    background-color: #5cb85c;
+  }
+}
+
+/* アクティブ（クリックした）時の演出 */
+button:active {
+  /* 押し込んだ物理的な挙動 */
+  transform: translateY(1px);
+  
+  /* 強く凹ませる */
+  background-color: #1a1a1a;
+  box-shadow: 
+    inset 0 0 20px rgba(0, 0, 0, 0.9),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 個別ボタンの設定（文字を透明にする処理は維持） */
+#btn-power, #btn-auto-switch, #btn-inverter, 
+#btn-button, #btn-wall-switch, #btn-color-light {
+  color: transparent;
+}
+
+/* 保存・読込ボタンなどはアイコンがないので、文字が見えるように別途調整が必要なら以下を追加 */
+.file-btn {
+  /* パーツボタンとは違い、横長のまま文字を見せたい場合 */
+  width: auto;
+  min-width: auto;
+  padding: 0 15px;
+  color: white !important; /* 文字色を強制的に戻す */
+  background-image: none !important; /* 背景画像を消す */
+  
+  /* 色味も区別する（緑系） */
+  background-color: #2e5e30;
+  border-color: #4a8a4d;
+}
+
+.file-btn:hover {
+  background-color: #3a7a3d;
+  border-color: #6aca6d;
+}
+
+/* リセットボタン（黄色の警告色） */
+.reset-btn {
+  background-color: #8b6914 !important; /* 暗めの黄土色 */
+  border-color: #d4a017 !important; /* 明るい金色の枠 */
+  box-shadow: 
+    inset 0 0 10px rgba(0, 0, 0, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+.reset-btn:hover {
+  background-color: #a67c1a !important; /* 少し明るい黄色 */
+  border-color: #f0c419 !important;
+  box-shadow: 
+    inset 0 0 5px rgba(0, 0, 0, 0.3),
+    0 0 10px rgba(255, 200, 50, 0.4) !important;
+}
+
+.reset-btn:active {
+  background-color: #6d5510 !important; /* さらに暗く */
+  box-shadow: 
+    inset 0 0 15px rgba(0, 0, 0, 0.8),
+    0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 削除モードボタン（ベース） */
+.delete-mode-btn {
+  /* パーツボタンと同じサイズ・基本設定を継承しつつ上書き */
+  height: 60px;
+  min-width: 60px;
+  width: 60px;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 70%; /* ゴミ箱アイコンのサイズ感 */
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  
+  /* ★区別ポイント: 赤を基調とした警戒色 */
+  background-color: #500; /* 通常時は暗い赤 */
+  border: 2px solid #a00; /* 赤い枠線 */
+  
+  /* 内側に影を落として「埋め込まれたスイッチ」感を出す */
+  box-shadow: 
+    inset 0 0 10px rgba(0, 0, 0, 0.8),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ホバー時（削除しようとしている警告感） */
+.delete-mode-btn:hover {
+  background-color: #700;
+  border-color: #c00;
+  box-shadow: 
+    inset 0 0 5px rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(255, 50, 50, 0.3);
+}
+
+/* 削除モードON（アクティブ）時のスタイル */
+.delete-mode-btn.active {
+  /* 激しく発光させて「危険モード」であることを伝える */
+  background-color: #d00;
+  border-color: #ff5555;
+  
+  /* 強い発光表現 */
+  box-shadow: 
+    inset 0 0 15px rgba(100, 0, 0, 0.5), /* 内側は少し暗く */
+    0 0 20px rgba(255, 0, 0, 0.8);     /* 外側へ強く光る */
+    
+  /* 押された状態の変形 */
+  transform: scale(0.95);
+}
+
+.delete-mode-btn.active:hover {
+  background-color: #f00;
+  box-shadow: 0 0 30px rgba(255, 0, 0, 1);
+}
+
+/* スペーサー */
+.spacer {
+  flex-grow: 1;
+}
+
+/* 90度スナップトグル */
+.rotation-snap-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #eee;
+  cursor: pointer;
+  user-select: none;
+}
+
+.rotation-snap-toggle input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.rotation-snap-toggle span {
+  font-size: 14px;
+}
+
+/* キャンバス領域の設定 */
+#canvas-container {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 設定パネル（設定項目をまとめるエリア） */
+.settings-panel {
+  display: flex;
+  align-items: center;
+  background-color: #222;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 5px 12px;
+  gap: 12px;
+  height: 48px; /* ボタンと高さを合わせるなどお好みで */
+  margin-right: 10px;
+}
+
+.settings-icon {
+  font-size: 20px;
+  cursor: default;
+  opacity: 0.7;
+}
+
+/* トグルスイッチのコンテナ */
+.toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 実際のチェックボックスは隠す */
+.toggle-switch input {
+  display: none;
+}
+
+/* スイッチの土台（スライダー部分） */
+.slider {
+  position: relative;
+  width: 40px;
+  height: 20px;
+  background-color: #555;
+  border-radius: 20px;
+  transition: .3s;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
+/* スイッチのつまみ（丸い部分） */
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: .3s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* ON（チェック状態）の時のスタイル */
+.toggle-switch input:checked + .slider {
+  background-color: #4CAF50; /* 緑色 */
+}
+
+.toggle-switch input:checked + .slider:before {
+  transform: translateX(20px); /* 右に移動 */
+}
+
+/* ラベルテキスト */
+.toggle-switch .label-text {
+  font-size: 14px;
+  color: #eee;
+  font-family: sans-serif;
+  font-weight: bold;
+}
+
+/* ホバー時の反応 */
+.toggle-switch:hover .slider {
+  background-color: #666;
+}
+.toggle-switch:hover input:checked + .slider {
+  background-color: #5cb85c;
+}
+
+/* =========================================
+   表示切り替えシステム
+   ========================================= */
+/* デフォルトではスマホUIを隠す */
+.mobile-ui { display: none; }
+
+/* スマホモード時: PC用UIを隠し、スマホUIを表示 */
+body.mobile-mode .pc-ui { display: none !important; }
+body.mobile-mode .mobile-ui { display: block; }
+
+/* キャンバスのスクロール設定（スマホ用） */
+body.mobile-mode #canvas-container {
+  margin-top: 0; /* ヘッダーがrelativeになったので自動で下に配置される */
+  overflow: hidden; /* ブラウザ標準のスクロールを無効化 */
+  touch-action: none; /* ピンチズームなどブラウザのタッチ操作を無効化 */
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+body.mobile-mode #canvas-container canvas {
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+/* =========================================
+   スマホ専用UIのデザイン
+   ========================================= */
+
+/* 1. ミニマルヘッダー */
+.mobile-header {
+  position: relative; /* fixedからrelativeに変更 */
+  width: 100%;
+  height: 44px;  /* 必要最小限の高さ */
+  background: #222; /* 不透明なダークグレー */
+  border-bottom: 1px solid #444;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  z-index: 1000;
+  box-sizing: border-box;
+  flex-shrink: 0; /* フレックスボックス内で縮まないようにする */
+}
+
+.app-title {
+  font-size: 16px;
+  font-weight: normal;
+  color: #ddd;
+  margin: 0;
+  margin-left: 15px;
+  letter-spacing: 1px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  padding: 5px;
+  cursor: pointer;
+  min-width: auto;
+  width: auto;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 2. FAB (Floating Action Button) */
+.fab-add, .fab-delete {
+  position: fixed;
+  bottom: 25px;
+  width: 60px;
+  height: 60px;
+  border-radius: 30px;
+  border: 2px solid rgba(255,255,255,0.2);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  z-index: 900;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 30px;
+  color: white;
+  transition: transform 0.2s;
+  touch-action: manipulation;
+}
+.fab-add:active, .fab-delete:active {
+  transform: scale(0.9);
+}
+
+/* 右下：追加ボタン */
+.fab-add {
+  right: 25px;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+/* 左下：削除ボタン */
+.fab-delete {
+  left: 25px;
+  background-color: #500 !important;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 60%;
+  border-color: #a00 !important;
+}
+
+.fab-delete:active {
+  background-color: #600 !important;
+  border-color: #a00 !important;
+  transform: scale(0.9);
+}
+
+.fab-delete:focus {
+  background-color: #500 !important;
+  border-color: #a00 !important;
+  outline: none;
+}
+
+.fab-delete.active {
+  background-color: #d00 !important;
+  box-shadow: 0 0 15px #f00;
+  border-color: #f88 !important;
+}
+
+.fab-delete.active:active {
+  background-color: #c00 !important;
+  border-color: #f88 !important;
+  transform: scale(0.85);
+}
+
+.fab-delete.active:focus {
+  background-color: #d00 !important;
+  border-color: #f88 !important;
+  outline: none;
+}
+
+/* 3. 吹き出し形式のパーツメニュー */
+.parts-balloon {
+  position: fixed;
+  right: 15px;
+  bottom: 100px; /* FABの上に配置 */
+  background: rgba(30, 30, 30, 0.7); /* 半透明のグレー */
+  border-radius: 20px;
+  padding: 10px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.7);
+  z-index: 1900;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  opacity: 1;
+  transform: scale(1);
+  transform-origin: bottom right;
+  transition: opacity 0.2s cubic-bezier(0.25, 0.8, 0.25, 1),
+              transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  touch-action: none;
+}
+
+.parts-balloon.hidden {
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+/* 吹き出しの矢印（下向き三角形） */
+.balloon-arrow {
+  position: absolute;
+  bottom: -10px;
+  right: 25px; /* FABの中心に合わせて調整 */
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 12px solid rgba(128, 128, 128, 0.15);
+  /* filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)); */
+}
+
+.balloon-content {
+  position: relative;
+}
+
+.parts-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* 1列に変更（縦に並べる） */
+  gap: 12px;
+  justify-items: center;
+}
+
+.sheet-btn {
+  width: 60px;
+  height: 60px;
+  background-color: transparent; /* 透明に */
+  border: none; /* 枠線を削除 */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 80%;
+  box-shadow: none; /* 影を削除 */
+  transition: transform 0.2s;
+}
+
+.sheet-btn:active {
+  transform: scale(0.9); /* タップ時の反応 */
+}
+
+/* 4. ハンバーガーメニュー */
+.mobile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  z-index: 3000;
+  display: flex;
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+.mobile-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mobile-menu-content {
+  width: 50%;
+  max-width: 240px;
+  height: 100%;
+  background: #222;
+  padding: 20px;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+  transform: translateX(0);
+  transition: transform 0.3s;
+}
+.mobile-overlay.hidden .mobile-menu-content {
+  transform: translateX(-100%);
+}
+
+.menu-header {
+  font-size: 20px;
+  font-weight: bold;
+  border-bottom: 1px solid #444;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 15px;
+  margin-bottom: 10px;
+  background: #333;
+  border: none;
+  border-radius: 8px;
+  color: #eee;
+  font-size: 16px;
+}
+.menu-item:active {
+  background: #444;
+}
+
+/* スマホメニューのシェアボタン（PC版の緑色に合わせる） */
+#btn-mobile-share {
+  background-color: #2e5e30 !important; /* PC版と同じ緑 */
+  border: 2px solid #4a8a4d !important; /* 枠線を追加 */
+  
+  /* 立体感（影）の調整 */
+  box-shadow: 
+    inset 0 0 10px rgba(0, 0, 0, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* タップした時の色（濃い緑） */
+#btn-mobile-share:active {
+  background-color: #1e3e20 !important;
+  border-color: #3a6a3d !important;
+  box-shadow: 
+    inset 0 0 15px rgba(0, 0, 0, 0.8),
+    0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* スマホメニューのリセットボタン */
+.menu-item.reset-btn {
+  background: #8b6914 !important;
+  border: 2px solid #d4a017 !important;
+  box-shadow: 
+    inset 0 0 8px rgba(0, 0, 0, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.4) !important;
+}
+
+.menu-item.reset-btn:active {
+  background: #6d5510 !important;
+  box-shadow: 
+    inset 0 0 12px rgba(0, 0, 0, 0.7),
+    0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.menu-label {
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 10px;
+  margin-top: 20px;
+}
+
+/* ★共通: 削除マークのベーススタイル */
+.delete-mark-base {
+  box-sizing: border-box;
+  background: rgba(255, 0, 0, 0.1);
+  border: 4px solid #ff0000;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+  
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none; /* マウスイベントを透過（重要） */
+  
+  transition: opacity 0.1s, transform 0.1s;
+}
+
+/* ★共通: ×印 */
+.delete-mark-base::after {
+  content: "×";
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 40px;
+  color: #ff0000;
+  line-height: 1;
+  text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+  padding-bottom: 6px;
+}
+
+/* ★追加: ターゲットにスナップした時は、カーソルの「枠」を消す（中身の×は残る） */
+.delete-mark-base.target-snapped {
+  border-color: transparent;    /* 枠線を透明に */
+  background-color: transparent; /* 背景を透明に */
+  box-shadow: none;             /* 影を消す */
+}
+
+/* オプション: スナップ時は×印を少し大きく強調する */
+.delete-mark-base.target-snapped::after {
+  transform: scale(1.2);
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+}
+
+/* スマホ版削除カーソルの枠にも同じスナップ効果を適用 */
+.delete-cursor-frame.target-snapped {
+  border-color: transparent;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+/* スマホ版のスナップ時の×印強調 */
+.delete-cursor-frame.target-snapped .delete-cursor-x {
+  transform: scale(1.2);
+  text-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+  transition: transform 0.2s ease;
+}
+
+/* PC用ハイライト（初期状態は非表示） */
+#pc-delete-highlight {
+  position: fixed;
+  z-index: 2000;
+  display: none;
+}
+#pc-delete-highlight.visible {
+  display: flex;
+}
+
+/* 5. 削除カーソル（スマホ専用） */
+.delete-cursor {
+  position: fixed;
+  z-index: 2500;
+  pointer-events: all;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.delete-cursor.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 削除カーソルの枠（スマホ専用、共通スタイルを継承） */
+.delete-cursor-frame {
+  width: 80px;
+  height: 80px;
+  /* 装飾は .delete-mark-base に任せる */
+}
+
+/* delete-mark-base の × を非表示（スマホ版は独自の×を使う） */
+.delete-cursor-frame::after {
+  content: none;
+}
+
+/* バツマーク（スマホ専用の×表示） */
+.delete-cursor-x {
+  font-size: 48px;
+  font-weight: bold;
+  color: #ff0000;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+/* グラブハンドル */
+.delete-cursor-handle {
+  box-sizing: border-box;
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #444, #222);
+  border: 2px solid #666;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  cursor: grab;
+  pointer-events: all;
+  touch-action: none;
+  transition: all 0.2s ease;
+}
+
+.delete-cursor-handle:active {
+  cursor: grabbing;
+  background: linear-gradient(135deg, #555, #333);
+  transform: scale(0.95);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* ハンドルのアイコン */
+.handle-icon {
+  font-size: 24px;
+  font-weight: bold;
+  color: #aaa;
+  line-height: 1;
+  letter-spacing: -2px;
+  pointer-events: none;
+  user-select: none;
+}
