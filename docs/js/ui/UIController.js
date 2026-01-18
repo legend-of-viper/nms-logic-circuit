@@ -281,7 +281,31 @@ setupLabels() {
       btn.addEventListener('click', () => {
         const partType = btn.dataset.partType;
         if (partType) {
-          this.handleAddPart(CONST.PART_TYPE[partType]);
+          // ★修正: スマホの場合は座標を渡さず、画面中央配置のロジック（handleAddPart内の分岐）に任せる
+          if (deviceDetector.isMobile()) {
+            this.handleAddPart(CONST.PART_TYPE[partType]);
+            return;
+          }
+
+          // --- 以下、PC用（ボタン直下に生成）の処理 ---
+          
+          // ボタンの位置情報を取得
+          const btnRect = btn.getBoundingClientRect();
+          
+          // キャンバスの位置を取得して補正する
+          const canvas = document.querySelector(`#${CONST.DOM_IDS.COMMON.CANVAS_CONTAINER} canvas`);
+          let canvasRect = { left: 0, top: 0 };
+          if (canvas) {
+            canvasRect = canvas.getBoundingClientRect();
+          }
+
+          // ボタンの水平中心（キャンバス基準の座標に変換）
+          const screenX = (btnRect.left + btnRect.width / 2) - canvasRect.left;
+          
+          // ボタンの下側 + 余白（キャンバス基準の座標に変換）
+          const screenY = (btnRect.bottom + 80) - canvasRect.top;
+          
+          this.handleAddPart(CONST.PART_TYPE[partType], screenX, screenY);
         }
       });
     });
@@ -403,11 +427,13 @@ setupLabels() {
     }
   }
 
-  /**
+/**
    * 部品追加処理
    * @param {string} type - 部品タイプ
+   * @param {number} [screenX] - 生成位置のスクリーンX座標（指定がなければ自動）
+   * @param {number} [screenY] - 生成位置のスクリーンY座標（指定がなければ自動）
    */
-  handleAddPart(type) {
+  handleAddPart(type, screenX, screenY) {
     // もし削除モードがONなら、強制的にOFFにする
     if (this.simulator.getDeleteMode()) {
       this.handleToggleDeleteMode();
@@ -415,36 +441,34 @@ setupLabels() {
     
     let x, y;
     
-    // スマホUIの場合は画面中央の固定位置に配置
-    if (deviceDetector.isMobile()) {
-      // 画面中央の座標（スクリーン座標）
-      const screenX = width / 2;
-      const screenY = height / 2;
-      
+    // スクリーン座標が指定されている場合（PCヘッダーボタンなど）
+    if (screenX !== undefined && screenY !== undefined) {
       // スクリーン座標をワールド座標に変換
       const worldPos = this.simulator.getWorldPosition(screenX, screenY);
       x = worldPos.x;
       y = worldPos.y;
       
-      console.log(`スマホモード: パーツを画面中央(${screenX}, ${screenY})に配置 → ワールド座標(${x.toFixed(1)}, ${y.toFixed(1)})`);
-    } else {
-      // PC版の場合は従来通りの配置
-      // 部品ごとの初期配置X座標
-      const basePositions = {
-        [CONST.PART_TYPE.POWER]: 100,
-        [CONST.PART_TYPE.WALL_SWITCH]: 100,
-        [CONST.PART_TYPE.BUTTON]: 200,
-        [CONST.PART_TYPE.AUTO_SWITCH]: 300,
-        [CONST.PART_TYPE.INVERTER]: 400,
-        [CONST.PART_TYPE.COLOR_LIGHT]: 500
-      };
-
-      // デフォルトは100、それ以外はマップから取得
-      const baseX = basePositions[type] || 100;
+      // 連続で押した時に完全に重なると分かりにくいので、少しだけランダムにずらす
+      x += (Math.random() - 0.5) * 20;
+      y += (Math.random() - 0.5) * 20;
       
-      // 座標に少しランダム性を持たせる (p5.jsのrandom関数を使用)
-      x = baseX + random(50);
-      y = 100 + random(50);
+    } else if (deviceDetector.isMobile()) {
+      // スマホUIの場合は画面中央の固定位置に配置
+      // 画面中央の座標（スクリーン座標）
+      const cx = width / 2;
+      const cy = height / 2;
+      
+      // スクリーン座標をワールド座標に変換
+      const worldPos = this.simulator.getWorldPosition(cx, cy);
+      x = worldPos.x;
+      y = worldPos.y;
+      
+      console.log(`スマホモード: パーツを画面中央(${cx}, ${cy})に配置 → ワールド座標(${x.toFixed(1)}, ${y.toFixed(1)})`);
+    } else {
+      // PC版で座標指定がない場合のフォールバック（画面中央へ）
+      const worldPos = this.simulator.getWorldPosition(width / 2, height / 2);
+      x = worldPos.x + (Math.random() - 0.5) * 50;
+      y = worldPos.y + (Math.random() - 0.5) * 50;
     }
     
     this.simulator.createPart(type, x, y);
