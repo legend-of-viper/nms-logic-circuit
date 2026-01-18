@@ -31,6 +31,11 @@ export class UIController {
     // 削除カーソルオーバーレイの初期化（デバイスに関係なく初期化）
     this.deleteCursorOverlay = new DeleteCursorOverlay(this.simulator);
     this.deleteCursorOverlay.initialize();
+
+    // ★追加: PC用操作のセットアップ
+    if (deviceDetector.isPC()) {
+      this.setupPCViewControls();
+    }
   }
 
   /**
@@ -563,6 +568,60 @@ setupLabels() {
     // 削除カーソルオーバーレイの更新（PC/スマホの判断は内部で行われる）
     if (this.deleteCursorOverlay) {
       this.deleteCursorOverlay.update();
+    }
+  }
+
+  /**
+   * ★追加: PC用のズーム・パン操作設定
+   */
+  setupPCViewControls() {
+    const inputMgr = this.simulator.getInputManager();
+    const slider = document.getElementById('zoom-slider');
+    const valueLabel = document.getElementById('zoom-value');
+    const container = document.getElementById(CONST.DOM_IDS.COMMON.CANVAS_CONTAINER);
+
+    // 1. スライダーによるズーム
+    if (slider && valueLabel) {
+      slider.addEventListener('input', (e) => {
+        const newScale = parseFloat(e.target.value);
+        
+        // p5.jsのwidth/heightを使うため、現在のキャンバスサイズを渡す
+        inputMgr.setZoom(newScale, width, height);
+        
+        // 表示更新
+        valueLabel.textContent = `${Math.round(newScale * 100)}%`;
+      });
+    }
+
+    // 2. マウスホイールによるパン（移動）とズーム
+    if (container) {
+      container.addEventListener('wheel', (e) => {
+        e.preventDefault(); // ブラウザ標準のスクロールを無効化
+
+        // Ctrlキーが押されている場合はズーム（一般的な操作）
+        if (e.ctrlKey) {
+          const ZOOM_SPEED = 0.001;
+          const currentScale = inputMgr.viewScale;
+          const delta = -e.deltaY * ZOOM_SPEED * currentScale; // 現在のスケールに比例させる
+          let newScale = currentScale + delta;
+          
+          // スライダーと同期
+          if (slider) {
+            // スライダーのstepに合わせる等の調整はお好みで
+            newScale = Math.max(0.2, Math.min(3.0, newScale));
+            slider.value = newScale;
+            valueLabel.textContent = `${Math.round(newScale * 100)}%`;
+          }
+          
+          inputMgr.setZoom(newScale, width, height);
+          
+        } else {
+          // 通常時はパン（移動）
+          // タッチパッドなどでは deltaX も発生するので両方対応
+          // 移動方向は「キャンバスを掴んで動かす」感覚にするため、deltaと逆方向に加算
+          inputMgr.pan(-e.deltaX, -e.deltaY);
+        }
+      }, { passive: false });
     }
   }
 }

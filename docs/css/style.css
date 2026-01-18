@@ -781,3 +781,39 @@ body.mobile-mode #canvas-container canvas {
   pointer-events: none;
   user-select: none;
 }
+
+/* ★追加: PC用ズームコントロール */
+.zoom-controls {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #222;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 8px 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 1000;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  color: #eee;
+}
+
+.zoom-controls input[type="range"] {
+  width: 120px;
+  cursor: pointer;
+}
+
+.zoom-icon {
+  font-weight: bold;
+  font-size: 18px;
+  color: #aaa;
+  user-select: none;
+}
+
+#zoom-value {
+  font-size: 14px;
+  width: 45px;
+  text-align: right;
+  font-variant-numeric: tabular-nums; /* 数字の幅を等幅にする */
+}

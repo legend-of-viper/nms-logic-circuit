@@ -345,8 +345,10 @@ export class CircuitPart {
   
   /**
    * 描画処理
+   * ★変更: worldMouse引数を追加
+   * @param {{x: number, y: number}} worldMouse - ワールド座標のマウス位置
    */
-  draw() {
+  draw(worldMouse) {
     // 部品の状態と通電状態で色を判定
     let isPoweredAtLeftOrRight = false;
     const leftSocket = this.getSocket('left');
@@ -365,7 +367,8 @@ export class CircuitPart {
     rotate(this.rotation);
     
     // 部品本体を描画（原点中心）
-    this.drawShape(color);
+    // ★変更: worldMouseを渡す
+    this.drawShape(color, worldMouse);
     
     // ソケットを描画
     for (let socket of this.sockets) {
@@ -380,16 +383,22 @@ export class CircuitPart {
     pop();
     
     // 回転ハンドルを描画（回転の外で）
-    if (this.isMouseOverRotationHandle() || this.isRotating) {
-      this.drawRotationHandle();
+    // ★変更: ワールド座標を使って判定
+    const mx = worldMouse ? worldMouse.x : undefined;
+    const my = worldMouse ? worldMouse.y : undefined;
+
+    if (this.isMouseOverRotationHandle(mx, my) || this.isRotating) {
+      this.drawRotationHandle(worldMouse);
     }
   }
 
   /**
    * 部品の形を描画（子クラスでオーバーライド可能）
+   * ★変更: worldMouse引数を追加（WireJointで使用）
    * @param {Array} color - 枠線の色
+   * @param {{x: number, y: number}} worldMouse - ワールド座標のマウス位置
    */
-  drawShape(color) {
+  drawShape(color, worldMouse) {
     stroke(...color);
     strokeWeight(CONST.PARTS.STROKE_WEIGHT);
     fill(CONST.COLORS.BACKGROUND);

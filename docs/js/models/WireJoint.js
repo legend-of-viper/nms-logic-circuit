@@ -37,10 +37,15 @@ export class WireJoint extends CircuitPart {
 /**
    * 本体の描画
    * 通常は描画しませんが、マウスホバー時に「移動ハンドル」を表示します
+   * ★変更: worldMouse引数を受け取る
    */
-  drawShape(color) {
+  drawShape(color, worldMouse) {
     // マウスが左上の「隠し判定」に乗っているか、またはドラッグ中か
-    const isHovered = this.isMouseOver(mouseX, mouseY);
+    // ★変更: ワールド座標を使って判定
+    const mx = worldMouse ? worldMouse.x : undefined;
+    const my = worldMouse ? worldMouse.y : undefined;
+    
+    const isHovered = this.isMouseOver(mx, my);
 
     if (isHovered || this.isDragging) {
       // 親のdraw()ですでに中心へtranslateされているので、

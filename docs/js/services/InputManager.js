@@ -106,6 +106,44 @@ export class InputManager {
   }
 
   /**
+   * ★追加: 指定したスケールへズーム（画面中心を基準）
+   * @param {number} newScale - 新しいスケール値
+   * @param {number} canvasWidth - キャンバス幅
+   * @param {number} canvasHeight - キャンバス高さ
+   */
+  setZoom(newScale, canvasWidth, canvasHeight) {
+    // 制限（縮小しすぎ、拡大しすぎを防ぐ）
+    const constrainedScale = constrain(newScale, 0.2, 5.0);
+    
+    // 現在の画面中心（スクリーン座標）
+    const screenCenterX = canvasWidth / 2;
+    const screenCenterY = canvasHeight / 2;
+
+    // 現在の画面中心に対応するワールド座標を計算
+    // (screen - offset) / oldScale
+    const worldCenterX = (screenCenterX - this.viewOffsetX) / this.viewScale;
+    const worldCenterY = (screenCenterY - this.viewOffsetY) / this.viewScale;
+
+    // 新しいスケールを適用
+    this.viewScale = constrainedScale;
+
+    // ワールド中心が再び画面中心に来るようにオフセットを逆算
+    // offset = screen - world * newScale
+    this.viewOffsetX = screenCenterX - worldCenterX * this.viewScale;
+    this.viewOffsetY = screenCenterY - worldCenterY * this.viewScale;
+  }
+
+  /**
+   * ★追加: パン（視点移動）
+   * @param {number} dx - X移動量
+   * @param {number} dy - Y移動量
+   */
+  pan(dx, dy) {
+    this.viewOffsetX += dx;
+    this.viewOffsetY += dy;
+  }
+
+  /**
    * ビューポート変換を適用
    * p5.jsのtranslateとscaleを使用
    */

@@ -306,8 +306,12 @@ export class CircuitManager {
     // パンとズームを適用（InputManagerに委譲）
     this.inputManager.applyTransform();
 
+    // ★追加: 現在のワールドマウス座標を計算
+    const worldMouse = this.getWorldPosition(mouseX, mouseY);
+
     // 1. パーツを描画
-    this.parts.forEach(part => part.draw());
+    // ★変更: ワールド座標のマウス位置をdrawに渡す
+    this.parts.forEach(part => part.draw(worldMouse));
 
     // 2. 確定済みのワイヤーを描画
     this.wires.forEach(wire => wire.draw());
