@@ -24,6 +24,9 @@ export class CircuitManager {
     this.wiringStartNode = null;
     this.rotationSnapEnabled = true; // デフォルトで90度スナップを有効
     this.isDeleteMode = false; // 削除モード
+    
+    // ★追加: 画面パンニング中かどうか
+    this.isPanning = false;
   }
 
   /**
@@ -171,6 +174,7 @@ export class CircuitManager {
     // ドラッグ状態などもリセット
     this.draggingPart = null;
     this.wiringStartNode = null;
+    this.isPanning = false; // ★追加: パンニング状態もリセット
     
     console.log("全てのパーツとワイヤーをリセットしました");
   }
@@ -346,6 +350,9 @@ export class CircuitManager {
         } else if (result.type === 'part') {
           this.deletePart(result.target);
         }
+      } else {
+        // ★追加: 削除対象がない場合はパン操作を開始
+        this.isPanning = true;
       }
       // 削除モード中はここで処理終了
       return;
@@ -390,6 +397,11 @@ export class CircuitManager {
         return;
       }
     }
+
+    // ★追加: 何もクリックしなかった場合、PCレイアウトならパン操作を開始
+    if (!isMobile) {
+      this.isPanning = true;
+    }
   }
 
   /**
@@ -432,6 +444,11 @@ export class CircuitManager {
           }
         }
       }
+    } 
+    // ★追加: 画面のパンニング（PC用ドラッグ移動）
+    else if (this.isPanning) {
+      // p5.jsのpmouseX/Y（前フレームのマウス座標）との差分で移動
+      this.inputManager.pan(mouseX - pmouseX, mouseY - pmouseY);
     }
   }
 
@@ -442,6 +459,9 @@ export class CircuitManager {
     // 2本指操作のリセット
     this.inputManager.resetTwoFingerGesture();
     
+    // ★追加: パンニング状態のリセット
+    this.isPanning = false;
+
     // マウス座標をワールド座標に変換
     const worldMouse = this.getWorldPosition(mouseX, mouseY);
     

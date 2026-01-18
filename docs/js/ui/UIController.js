@@ -585,42 +585,34 @@ setupLabels() {
       slider.addEventListener('input', (e) => {
         const newScale = parseFloat(e.target.value);
         
-        // p5.jsのwidth/heightを使うため、現在のキャンバスサイズを渡す
-        inputMgr.setZoom(newScale, width, height);
+        // ★修正: スライダー操作時は「画面中央」を基準にズーム
+        // p5.jsのグローバル変数 width, height を使用
+        inputMgr.setZoom(newScale, width / 2, height / 2);
         
         // 表示更新
         valueLabel.textContent = `${Math.round(newScale * 100)}%`;
       });
     }
 
-    // 2. マウスホイールによるパン（移動）とズーム
+    // 2. マウスホイールによるズーム（パンはドラッグで行うため、ホイールはズーム専用）
     if (container) {
       container.addEventListener('wheel', (e) => {
         e.preventDefault(); // ブラウザ標準のスクロールを無効化
 
-        // Ctrlキーが押されている場合はズーム（一般的な操作）
-        if (e.ctrlKey) {
-          const ZOOM_SPEED = 0.001;
-          const currentScale = inputMgr.viewScale;
-          const delta = -e.deltaY * ZOOM_SPEED * currentScale; // 現在のスケールに比例させる
-          let newScale = currentScale + delta;
-          
-          // スライダーと同期
-          if (slider) {
-            // スライダーのstepに合わせる等の調整はお好みで
-            newScale = Math.max(0.2, Math.min(3.0, newScale));
-            slider.value = newScale;
-            valueLabel.textContent = `${Math.round(newScale * 100)}%`;
-          }
-          
-          inputMgr.setZoom(newScale, width, height);
-          
-        } else {
-          // 通常時はパン（移動）
-          // タッチパッドなどでは deltaX も発生するので両方対応
-          // 移動方向は「キャンバスを掴んで動かす」感覚にするため、deltaと逆方向に加算
-          inputMgr.pan(-e.deltaX, -e.deltaY);
+        const ZOOM_SPEED = 0.001;
+        const currentScale = inputMgr.viewScale;
+        const delta = -e.deltaY * ZOOM_SPEED * currentScale; // 現在のスケールに比例させる
+        let newScale = currentScale + delta;
+        
+        // スライダーと同期
+        if (slider) {
+          newScale = Math.max(0.2, Math.min(2.0, newScale));
+          slider.value = newScale;
+          valueLabel.textContent = `${Math.round(newScale * 100)}%`;
         }
+        
+        // ★修正: ホイール操作時は「マウス位置」を基準にズーム
+        inputMgr.setZoom(newScale, mouseX, mouseY);
       }, { passive: false });
     }
   }
