@@ -91,8 +91,10 @@ export class Socket {
 
   /**
    * ソケットを描画（親の回転座標系の中で呼ばれる）
+   * ★修正: worldMouse を受け取るように変更
+   * @param {{x: number, y: number}} worldMouse - ワールド座標のマウス位置
    */
-  draw() {
+  draw(worldMouse) {
     // ソケットの四角を描画
     let rectX, rectY, rectW, rectH, triangleBaseX, triangleBaseY;
     let connectorLocalX = this.localX;
@@ -150,7 +152,10 @@ export class Socket {
     }
     
     // 2. コネクタ（三角形・丸）の描画判定
-    const isHovered = this.isMouseOver();
+    // ★修正: worldMouse が渡されていれば座標を取り出し、isMouseOver に渡す
+    const mx = worldMouse ? worldMouse.x : undefined;
+    const my = worldMouse ? worldMouse.y : undefined;
+    const isHovered = this.isMouseOver(mx, my);
     const hasWire = this.connectedWires.length > 0;
     const isWiringStart = this.parent.wiringStartSocket === this.name;
     

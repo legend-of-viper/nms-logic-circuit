@@ -372,7 +372,7 @@ export class CircuitPart {
     
     // ソケットを描画
     for (let socket of this.sockets) {
-      socket.draw();
+      socket.draw(worldMouse);
     }
 
     // ハイライト時は、その上から「半透明の赤」を重ねる
