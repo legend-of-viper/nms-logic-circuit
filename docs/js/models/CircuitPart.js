@@ -21,6 +21,10 @@ export class CircuitPart {
 
     // 回転関連
     this.rotation = 0;  // ラジアン単位
+    
+    // ★追加: 目標とする角度（アニメーション用）
+    this.targetRotation = 0;
+    
     this.isRotating = false;
     this.rotationStartAngle = 0;
 
@@ -301,8 +305,13 @@ export class CircuitPart {
     const y = my !== undefined ? my : mouseY;
     
     this.isRotating = true;
+    
+    // ★追加: ドラッグ開始時に目標値を現在値に合わせる（変な飛び跳ね防止）
+    this.targetRotation = this.rotation;
+    
     const center = this.getCenter();
-    this.rotationStartAngle = Math.atan2(y - center.y, x - center.x) - this.rotation;
+    // ★変更: targetRotation を基準にオフセットを計算
+    this.rotationStartAngle = Math.atan2(y - center.y, x - center.x) - this.targetRotation;
   }
 
   /**
@@ -318,23 +327,23 @@ export class CircuitPart {
       
       const center = this.getCenter();
       const currentAngle = Math.atan2(y - center.y, x - center.x);
-      let rotation = currentAngle - this.rotationStartAngle;
+      
+      // 生の回転角度を計算
+      let rawRotation = currentAngle - this.rotationStartAngle;
       
       // ラジアンを度数に変換
-      let degrees = rotation * 180 / PI;
+      let degrees = rawRotation * 180 / PI;
       
       if (snapEnabled) {
         // 90度スナップが有効な場合
         degrees = Math.round(degrees / 90) * 90;
       } else {
-        // 90度スナップが無効な場合は5度単位でスナップ
+        // 5度単位でスナップ
         degrees = Math.round(degrees / 5) * 5;
       }
       
-      // 度数をラジアンに戻す
-      rotation = degrees * PI / 180;
-      
-      this.rotation = rotation;
+      // ★変更: 直接 this.rotation を変えず、this.targetRotation に入れる
+      this.targetRotation = degrees * PI / 180;
     }
   }
 
@@ -343,6 +352,47 @@ export class CircuitPart {
    */
   onRotationMouseUp() {
     this.isRotating = false;
+  }
+
+  /**
+   * ★追加: アニメーション更新用メソッド
+   * 毎フレーム呼び出して、rotation を targetRotation に近づける
+   */
+  updateAnimation() {
+    // 角度の差分を計算
+    let diff = this.targetRotation - this.rotation;
+    
+    // 角度の正規化（-PI ～ PI の範囲に収める）
+    // これをしないと、360度(2PI)を超えた瞬間に逆回転してしまうことがあります
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    
+    // 差分が十分小さい場合は吸着させて終了
+    if (Math.abs(diff) < CONST.ANIMATION.ROTATION_SNAP_THRESHOLD) {
+      this.rotation = this.targetRotation;
+      
+      // targetRotation自体も正規化しておくと数値の発散を防げます
+      // (任意ですが、回転し続けると数値が大きくなりすぎるのを防ぐため)
+      if (this.rotation > Math.PI) {
+        this.rotation -= Math.PI * 2;
+        this.targetRotation -= Math.PI * 2;
+      } else if (this.rotation < -Math.PI) {
+        this.rotation += Math.PI * 2;
+        this.targetRotation += Math.PI * 2;
+      }
+    } else {
+      // イージング処理
+      this.rotation += diff * CONST.ANIMATION.ROTATION_SPEED;
+    }
+  }
+
+  /**
+   * アニメーションせずに角度を即時設定する（ロード時や初期化用）
+   * @param {number} angle - ラジアン
+   */
+  setRotationImmediately(angle) {
+    this.rotation = angle;
+    this.targetRotation = angle;
   }
 
   // ==================== 描画 ====================

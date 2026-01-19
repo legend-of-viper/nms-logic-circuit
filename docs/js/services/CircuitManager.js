@@ -353,6 +353,9 @@ export class CircuitManager {
    */
   update() {
     this.powerSystem.update();
+    
+    // ★追加: 全パーツのアニメーション（回転など）を更新
+    this.parts.forEach(part => part.updateAnimation());
 
     background(CONST.COLORS.BACKGROUND);
 

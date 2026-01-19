@@ -89,6 +89,12 @@ const COMMON_CONST = {
     BUTTON_INACTIVE_COLOR: [100, 100, 100]
   },
 
+  // アニメーション設定
+  ANIMATION: {
+    ROTATION_SPEED: 0.2,              // 1フレームで近づく割合 (0.0～1.0)
+    ROTATION_SNAP_THRESHOLD: 0.001    // 目標値と見なす誤差の範囲（ラジアン）
+  },
+
   // DOM要素のID定数
   DOM_IDS: {
     // PC用ボタン

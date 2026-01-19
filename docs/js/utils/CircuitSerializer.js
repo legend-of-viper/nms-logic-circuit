@@ -170,7 +170,8 @@ export class CircuitSerializer {
         const newPart = PartFactory.create(typeStr, newId, x, y);
         
         if (newPart) {
-          newPart.rotation = rot;
+          // アニメーションせずに角度を即時設定
+          newPart.setRotationImmediately(rot);
           
           // 5番目の要素があればisOnを復元
           if (pData[4] !== undefined) {
@@ -228,7 +229,8 @@ export class CircuitSerializer {
         );
         
         if (newPart) {
-          newPart.rotation = partData.rotation || 0;
+          // アニメーションせずに角度を即時設定
+          newPart.setRotationImmediately(partData.rotation || 0);
           
           if (partData.hasOwnProperty('isOn')) {
             newPart.isOn = partData.isOn;
