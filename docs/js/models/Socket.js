@@ -24,6 +24,8 @@ export class Socket {
     this.isPowered = false;
   }
 
+  // ==================== 座標・位置計算 ====================
+  
   /**
    * ソケットのワールド座標（絶対座標）を取得
    * @returns {{x: number, y: number}}
@@ -55,21 +57,8 @@ export class Socket {
     return this.parent.localToWorld(this.localX + offsetX, this.localY + offsetY);
   }
 
-  /**
-   * マウスがこのソケット上にあるか判定
-   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
-   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
-   * @returns {boolean}
-   */
-  isMouseOver(mx, my) {
-    // 引数がなければグローバルのmouseXを使う（互換性維持）
-    const x = mx !== undefined ? mx : mouseX;
-    const y = my !== undefined ? my : mouseY;
-    
-    const worldPos = this.getConnectorWorldPosition();
-    return dist(x, y, worldPos.x, worldPos.y) < CONST.PARTS.SOCKET_HIT_RADIUS;
-  }
-
+  // ==================== 接続管理 ====================
+  
   /**
    * ワイヤーを接続
    * @param {Wire} wire
@@ -89,6 +78,25 @@ export class Socket {
     }
   }
 
+  // ==================== マウス・入力処理 ====================
+  
+  /**
+   * マウスがこのソケット上にあるか判定
+   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
+   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
+   * @returns {boolean}
+   */
+  isMouseOver(mx, my) {
+    // 引数がなければグローバルのmouseXを使う（互換性維持）
+    const x = mx !== undefined ? mx : mouseX;
+    const y = my !== undefined ? my : mouseY;
+    
+    const worldPos = this.getConnectorWorldPosition();
+    return dist(x, y, worldPos.x, worldPos.y) < CONST.PARTS.SOCKET_HIT_RADIUS;
+  }
+
+  // ==================== 描画 ====================
+  
   /**
    * ソケットを描画（親の回転座標系の中で呼ばれる）
    * ★修正: worldMouse を受け取るように変更

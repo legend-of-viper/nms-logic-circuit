@@ -19,10 +19,7 @@ export class WireJoint extends CircuitPart {
     ];
   }
 
-  /**
-   * 操作不能にする（Jointは単なる接続点のため）
-   */
-  interact() {}
+  // ==================== ライフサイクル ====================
   
   /**
    * 更新処理なし
@@ -34,7 +31,38 @@ export class WireJoint extends CircuitPart {
    */
   onTick() {}
 
-/**
+  // ==================== インタラクション ====================
+  
+  /**
+   * 操作不能にする（Jointは単なる接続点のため）
+   */
+  interact() {}
+
+  // ==================== マウス・入力処理 ====================
+  
+  /**
+   * 当たり判定を小さく上書き
+   * @param {number} mx - マウスX座標
+   * @param {number} my - マウスY座標
+   * @returns {boolean}
+   */
+  isMouseOver(mx, my) {
+    const x = mx !== undefined ? mx : mouseX;
+    const y = my !== undefined ? my : mouseY;
+    return dist(x, y, this.x, this.y) < CONST.PARTS.JOINT_HIT_RADIUS;
+  }
+
+  /**
+   * 回転ハンドルの当たり判定も無効化
+   * これをしないと、見えないハンドルを誤って掴んでしまう可能性があります
+   */
+  isMouseOverRotationHandle(mx, my) {
+    return false;
+  }
+
+  // ==================== 描画 ====================
+
+  /**
    * 本体の描画
    * 通常は描画しませんが、マウスホバー時に「移動ハンドル」を表示します
    * ★変更: worldMouse引数を受け取る
@@ -91,31 +119,11 @@ export class WireJoint extends CircuitPart {
       pop();
     }
   }
-  
-  /**
-   * 当たり判定を小さく上書き
-   * @param {number} mx - マウスX座標
-   * @param {number} my - マウスY座標
-   * @returns {boolean}
-   */
-  isMouseOver(mx, my) {
-    const x = mx !== undefined ? mx : mouseX;
-    const y = my !== undefined ? my : mouseY;
-    return dist(x, y, this.x, this.y) < CONST.PARTS.JOINT_HIT_RADIUS;
-  }
 
   /**
    * 回転ハンドルは表示しない（Jointは回転不要なため）
    */
   drawRotationHandle() {
     // 何もしない（空実装）
-  }
-
-  /**
-   * 回転ハンドルの当たり判定も無効化
-   * これをしないと、見えないハンドルを誤って掴んでしまう可能性があります
-   */
-  isMouseOverRotationHandle(mx, my) {
-    return false;
   }
 }

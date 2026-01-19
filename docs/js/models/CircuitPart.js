@@ -33,6 +33,63 @@ export class CircuitPart {
     this.isHighlighted = false;
   }
 
+  // ==================== ライフサイクル ====================
+  
+  /**
+   * 毎フレームの更新処理（アニメーションや時間経過用）
+   * デフォルトでは何もしない（子クラスで必要なら上書きする）
+   */
+  update() {}
+
+  /**
+   * 1秒ごとの論理更新処理（回路シミュレーション用）
+   * デフォルトでは何もしない（子クラスで必要なら上書きする）
+   */
+  onTick() {}
+
+  // ==================== インタラクション ====================
+  
+  /**
+   * ユーザーがクリックした時の処理（抽象メソッド）
+   */
+  interact() {
+    console.log(`Part ${this.id}: 触られました`);
+  }
+
+  // ==================== 状態管理 ====================
+  
+  /**
+   * ソケットの通電状態をリセットする
+   */
+  resetPowerState() {
+    for (let socket of this.sockets) {
+      socket.isPowered = false;
+    }
+  }
+
+  /**
+   * 指定されたソケットに電気を流す
+   * @param {string} socketName - ソケット名
+   */
+  setPowered(socketName, powered = true) {
+    const socket = this.getSocket(socketName);
+    if (socket) {
+      socket.isPowered = powered;
+    }
+  }
+
+  /**
+   * 指定されたソケットが通電しているか確認
+   * @param {string} socketName - ソケット名
+   * @returns {boolean}
+   */
+  isPoweredAt(socketName) {
+    const socket = this.getSocket(socketName);
+    return socket ? socket.isPowered : false;
+  }
+
+  // ==================== 座標・位置計算 ====================
+  
   /**
    * 部品の中心座標を取得する
    * @returns {{x: number, y: number}} 中心座標
@@ -97,16 +154,8 @@ export class CircuitPart {
     return this.localToWorld(0, -distance);
   }
 
-  /**
-   * マウスが回転ハンドル上にあるか判定
-   * @returns {boolean}
-   */
-  isMouseOverRotationHandle() {
-    const handlePos = this.getRotationHandlePos();
-    const distance = dist(mouseX, mouseY, handlePos.x, handlePos.y);
-    return distance < CONST.PARTS.ROTATION_HANDLE_HIT_RADIUS;
-  }
-
+  // ==================== 接続管理 ====================
+  
   /**
    * 名前でソケットを取得
    * @param {string} socketName
@@ -114,36 +163,6 @@ export class CircuitPart {
    */
   getSocket(socketName) {
     return this.sockets.find(s => s.name === socketName) || null;
-  }
-
-  /**
-   * ソケットの通電状態をリセットする
-   */
-  resetPowerState() {
-    for (let socket of this.sockets) {
-      socket.isPowered = false;
-    }
-  }
-
-  /**
-   * 指定されたソケットに電気を流す
-   * @param {string} socketName - ソケット名
-   */
-  setPowered(socketName, powered = true) {
-    const socket = this.getSocket(socketName);
-    if (socket) {
-      socket.isPowered = powered;
-    }
-  }
-
-  /**
-   * 指定されたソケットが通電しているか確認
-   * @param {string} socketName - ソケット名
-   * @returns {boolean}
-   */
-  isPoweredAt(socketName) {
-    const socket = this.getSocket(socketName);
-    return socket ? socket.isPowered : false;
   }
 
   /**
@@ -189,25 +208,8 @@ export class CircuitPart {
     return null;
   }
 
-  /**
-   * ユーザーがクリックした時の処理（抽象メソッド）
-   */
-  interact() {
-    console.log(`Part ${this.id}: 触られました`);
-  }
+  // ==================== マウス・入力処理 ====================
   
-  /**
-   * 毎フレームの更新処理（アニメーションや時間経過用）
-   * デフォルトでは何もしない（子クラスで必要なら上書きする）
-   */
-  update() {}
-
-  /**
-   * 1秒ごとの論理更新処理（回路シミュレーション用）
-   * デフォルトでは何もしない（子クラスで必要なら上書きする）
-   */
-  onTick() {}
-
   /**
    * マウスがこの部品の上にあるか判定（簡易版・バウンディングボックス）
    * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
@@ -222,6 +224,70 @@ export class CircuitPart {
     // 簡易的な矩形判定（回転を考慮しない）
     return (x > this.x && x < this.x + CONST.PARTS.WIDTH &&
             y > this.y && y < this.y + CONST.PARTS.HEIGHT);
+  }
+
+  /**
+   * マウスが回転ハンドル上にあるか判定
+   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
+   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
+   * @returns {boolean}
+   */
+  isMouseOverRotationHandle(mx, my) {
+    // 引数がなければグローバルのmouseXを使う（互換性維持）
+    const x = mx !== undefined ? mx : mouseX;
+    const y = my !== undefined ? my : mouseY;
+    
+    const handlePos = this.getRotationHandlePos();
+    const distance = dist(x, y, handlePos.x, handlePos.y);
+    return distance < CONST.PARTS.ROTATION_HANDLE_HIT_RADIUS;
+  }
+
+  /**
+   * マウスボタンを押した時の処理
+   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
+   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
+   */
+  onMouseDown(mx, my) {
+    // 引数がなければグローバルのmouseXを使う（互換性維持）
+    const x = mx !== undefined ? mx : mouseX;
+    const y = my !== undefined ? my : mouseY;
+    
+    this.isDragging = true;
+    this.offsetX = this.x - x;
+    this.offsetY = this.y - y;
+    
+    this.dragStartX = this.x;
+    this.dragStartY = this.y;
+  }
+
+  /**
+   * マウスをドラッグしている時の処理
+   */
+  onMouseDragged(mx, my) {
+    if (this.isDragging) {
+      const x = mx !== undefined ? mx : mouseX;
+      const y = my !== undefined ? my : mouseY;
+      this.x = x + this.offsetX;
+      this.y = y + this.offsetY;
+    }
+  }
+
+  /**
+   * マウスボタンを離した時の処理
+   */
+  onMouseUp() {
+    this.isDragging = false;
+  }
+  
+  /**
+   * 実際にドラッグ（移動）が発生したかを判定
+   * @param {number} threshold - 移動判定のしきい値（ピクセル）
+   * @returns {boolean}
+   */
+  wasDragged(threshold = 5) {
+    const dx = Math.abs(this.x - this.dragStartX);
+    const dy = Math.abs(this.y - this.dragStartY);
+    return dx > threshold || dy > threshold;
   }
 
   /**
@@ -279,69 +345,7 @@ export class CircuitPart {
     this.isRotating = false;
   }
 
-  /**
-   * マウスボタンを押した時の処理
-   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
-   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
-   */
-  onMouseDown(mx, my) {
-    // 引数がなければグローバルのmouseXを使う（互換性維持）
-    const x = mx !== undefined ? mx : mouseX;
-    const y = my !== undefined ? my : mouseY;
-    
-    this.isDragging = true;
-    this.offsetX = this.x - x;
-    this.offsetY = this.y - y;
-    
-    this.dragStartX = this.x;
-    this.dragStartY = this.y;
-  }
-
-  /**
-   * マウスが回転ハンドル上にあるか判定
-   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
-   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
-   * @returns {boolean}
-   */
-  isMouseOverRotationHandle(mx, my) {
-    // 引数がなければグローバルのmouseXを使う（互換性維持）
-    const x = mx !== undefined ? mx : mouseX;
-    const y = my !== undefined ? my : mouseY;
-    
-    const handlePos = this.getRotationHandlePos();
-    const distance = dist(x, y, handlePos.x, handlePos.y);
-    return distance < CONST.PARTS.ROTATION_HANDLE_HIT_RADIUS;
-  }
-
-  /**
-   * マウスをドラッグしている時の処理
-   */
-  onMouseDragged(mx, my) {
-    if (this.isDragging) {
-      const x = mx !== undefined ? mx : mouseX;
-      const y = my !== undefined ? my : mouseY;
-      this.x = x + this.offsetX;
-      this.y = y + this.offsetY;
-    }
-  }
-
-  /**
-   * マウスボタンを離した時の処理
-   */
-  onMouseUp() {
-    this.isDragging = false;
-  }
-  
-  /**
-   * 実際にドラッグ（移動）が発生したかを判定
-   * @param {number} threshold - 移動判定のしきい値（ピクセル）
-   * @returns {boolean}
-   */
-  wasDragged(threshold = 5) {
-    const dx = Math.abs(this.x - this.dragStartX);
-    const dy = Math.abs(this.y - this.dragStartY);
-    return dx > threshold || dy > threshold;
-  }
+  // ==================== 描画 ====================
   
   /**
    * 描画処理

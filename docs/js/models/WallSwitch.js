@@ -29,12 +29,7 @@ export class WallSwitch extends CircuitPart {
     ];
   }
   
-  /**
-   * スイッチのON/OFF切り替え
-   */
-  interact() { 
-    this.isOn = !this.isOn; 
-  }
+  // ==================== ライフサイクル ====================
   
   /**
    * 状態更新（特に処理なし）
@@ -43,6 +38,17 @@ export class WallSwitch extends CircuitPart {
     // 特に何もしない
   }
 
+  // ==================== インタラクション ====================
+  
+  /**
+   * スイッチのON/OFF切り替え
+   */
+  interact() { 
+    this.isOn = !this.isOn; 
+  }
+
+  // ==================== 描画 ====================
+  
   /**
    * スイッチの形を描画（相対座標、中心が原点）
    */

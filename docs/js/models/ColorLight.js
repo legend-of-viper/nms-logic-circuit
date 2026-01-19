@@ -27,6 +27,8 @@ export class ColorLight extends CircuitPart {
     ];
   }
 
+  // ==================== インタラクション ====================
+  
   /**
    * インタラクションなし
    */
@@ -34,14 +36,12 @@ export class ColorLight extends CircuitPart {
     // 何もしない
   }
 
-  /**
-   * 状態更新なし
-   * ライトは論理的な状態を持たず、ただ電気を表示するだけなので
-   * onTick も update も不要です。
-   */
+  // ==================== 描画 ====================
   
   /**
    * カラーライトの形を描画
+   * 状態更新なし - ライトは論理的な状態を持たず、ただ電気を表示するだけなので
+   * onTick も update も不要です。
    */
   drawShape(color) {
     const w = CONST.PARTS.WIDTH;

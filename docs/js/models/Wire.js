@@ -22,6 +22,8 @@ export class Wire {
     this.isHighlighted = false;
   }
 
+  // ==================== ヘルパー ====================
+  
   /**
    * このワイヤーの反対側の端点を取得
    * @param {Socket} socket - 基準となるソケット
@@ -34,23 +36,6 @@ export class Wire {
       return this.startSocket;
     }
     return null;
-  }
-
-  /**
-   * マウスがワイヤー上にあるかチェック
-   * @param {number} mx - マウスのX座標
-   * @param {number} my - マウスのY座標
-   * @param {number} threshold - 判定の閾値（デフォルト: 8ピクセル）
-   * @returns {boolean} ワイヤー上にマウスがあればtrue
-   */
-  isMouseOver(mx, my, threshold = 8) {
-    const start = this.startSocket.getConnectorWorldPosition();
-    const end = this.endSocket.getConnectorWorldPosition();
-    
-    // 点と線分の距離を計算
-    const distance = this.pointToLineDistance(mx, my, start.x, start.y, end.x, end.y);
-    
-    return distance < threshold;
   }
 
   /**
@@ -85,6 +70,27 @@ export class Wire {
     return dist(px, py, closestX, closestY);
   }
 
+  // ==================== マウス・入力処理 ====================
+  
+  /**
+   * マウスがワイヤー上にあるかチェック
+   * @param {number} mx - マウスのX座標
+   * @param {number} my - マウスのY座標
+   * @param {number} threshold - 判定の閾値（デフォルト: 8ピクセル）
+   * @returns {boolean} ワイヤー上にマウスがあればtrue
+   */
+  isMouseOver(mx, my, threshold = 8) {
+    const start = this.startSocket.getConnectorWorldPosition();
+    const end = this.endSocket.getConnectorWorldPosition();
+    
+    // 点と線分の距離を計算
+    const distance = this.pointToLineDistance(mx, my, start.x, start.y, end.x, end.y);
+    
+    return distance < threshold;
+  }
+
+  // ==================== 描画 ====================
+  
   /**
    * ワイヤーを描画
    */

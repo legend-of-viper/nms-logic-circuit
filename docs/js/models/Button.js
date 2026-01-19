@@ -33,14 +33,8 @@ export class Button extends CircuitPart {
     ];
   }
 
-  /**
-   * ボタンを押す（一定時間ONにする）
-   */
-  interact() {
-    this.isOn = true;
-    this.offTime = millis() + CONST.BUTTON.ON_DURATION; 
-  }
-
+  // ==================== ライフサイクル ====================
+  
   /**
    * 状態更新（時間が来たらOFFに戻す）
    */
@@ -50,6 +44,18 @@ export class Button extends CircuitPart {
     }
   }
 
+  // ==================== インタラクション ====================
+  
+  /**
+   * ボタンを押す（一定時間ONにする）
+   */
+  interact() {
+    this.isOn = true;
+    this.offTime = millis() + CONST.BUTTON.ON_DURATION; 
+  }
+
+  // ==================== 描画 ====================
+  
   /**
    * ボタンの形を描画（相対座標、中心が原点）
    */

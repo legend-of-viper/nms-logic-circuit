@@ -29,25 +29,8 @@ export class CircuitManager {
     this.isPanning = false;
   }
 
-  /**
-   * スクリーン座標をワールド座標に変換
-   * （InputManagerに委譲）
-   * @param {number} screenX - スクリーンX座標
-   * @param {number} screenY - スクリーンY座標
-   * @returns {{x: number, y: number}} ワールド座標
-   */
-  getWorldPosition(screenX, screenY) {
-    return this.inputManager.getWorldPosition(screenX, screenY);
-  }
-
-  /**
-   * InputManagerへのアクセス（UIなどから使用）
-   * @returns {InputManager}
-   */
-  getInputManager() {
-    return this.inputManager;
-  }
-
+  // ==================== 初期化・状態管理 ====================
+  
   /**
    * 回転スナップの有効/無効を設定
    * @param {boolean} enabled
@@ -70,6 +53,68 @@ export class CircuitManager {
    */
   getDeleteMode() {
     return this.isDeleteMode;
+  }
+
+  /**
+   * 全てのパーツとワイヤーをリセット（削除）
+   */
+  resetAll() {
+    // 全てのワイヤーの接続情報をクリア
+    for (let wire of this.wires) {
+      wire.startSocket.disconnectWire(wire);
+      wire.endSocket.disconnectWire(wire);
+    }
+    
+    // 配列をクリア
+    this.parts.length = 0;
+    this.wires.length = 0;
+    
+    // ドラッグ状態などもリセット
+    this.draggingPart = null;
+    this.wiringStartNode = null;
+    this.isPanning = false; // ★追加: パンニング状態もリセット
+    
+    console.log("全てのパーツとワイヤーをリセットしました");
+  }
+
+  // ==================== ヘルパー ====================
+  
+  /**
+   * スクリーン座標をワールド座標に変換
+   * （InputManagerに委譲）
+   * @param {number} screenX - スクリーンX座標
+   * @param {number} screenY - スクリーンY座標
+   * @returns {{x: number, y: number}} ワールド座標
+   */
+  getWorldPosition(screenX, screenY) {
+    return this.inputManager.getWorldPosition(screenX, screenY);
+  }
+
+  /**
+   * InputManagerへのアクセス（UIなどから使用）
+   * @returns {InputManager}
+   */
+  getInputManager() {
+    return this.inputManager;
+  }
+
+  // ==================== 部品・ワイヤー管理 ====================
+  
+  /**
+   * 部品を作成して追加
+   * @param {string} type - 部品タイプ ('POWER', 'WALL_SWITCH', 'BUTTON', etc.)
+   * @param {number} x - ワールドX座標
+   * @param {number} y - ワールドY座標
+   */
+  createPart(type, x, y) {
+    const newId = Date.now();
+    
+    // Factoryを使って生成
+    const newPart = PartFactory.create(type, newId, x, y);
+    
+    if (newPart) {
+      this.parts.push(newPart);
+    }
   }
 
   /**
@@ -157,45 +202,8 @@ export class CircuitManager {
     }
   }
 
-  /**
-   * 全てのパーツとワイヤーをリセット（削除）
-   */
-  resetAll() {
-    // 全てのワイヤーの接続情報をクリア
-    for (let wire of this.wires) {
-      wire.startSocket.disconnectWire(wire);
-      wire.endSocket.disconnectWire(wire);
-    }
-    
-    // 配列をクリア
-    this.parts.length = 0;
-    this.wires.length = 0;
-    
-    // ドラッグ状態などもリセット
-    this.draggingPart = null;
-    this.wiringStartNode = null;
-    this.isPanning = false; // ★追加: パンニング状態もリセット
-    
-    console.log("全てのパーツとワイヤーをリセットしました");
-  }
-
-  /**
-   * 部品を作成して追加
-   * @param {string} type - 部品タイプ ('POWER', 'WALL_SWITCH', 'BUTTON', etc.)
-   * @param {number} x - ワールドX座標
-   * @param {number} y - ワールドY座標
-   */
-  createPart(type, x, y) {
-    const newId = Date.now();
-    
-    // Factoryを使って生成
-    const newPart = PartFactory.create(type, newId, x, y);
-    
-    if (newPart) {
-      this.parts.push(newPart);
-    }
-  }
-
+  // ==================== 描画 ====================
+  
   /**
    * 仮ワイヤーの描画（マウスについてくる線）
    */
@@ -330,6 +338,8 @@ export class CircuitManager {
   }
 
 
+  // ==================== マウス・入力処理 ====================
+  
   /**
    * マウスボタンを押した時の処理
    * @param {boolean} isMobile - モバイルデバイスかどうか
@@ -557,6 +567,8 @@ export class CircuitManager {
     }
   }
 
+  // ==================== シリアライズ ====================
+  
   /**
    * 回路データをシリアライズ（保存・シェア共通処理）
    * @param {boolean} compact - true: URL用の軽量版、false: ファイル保存用の読みやすい版
