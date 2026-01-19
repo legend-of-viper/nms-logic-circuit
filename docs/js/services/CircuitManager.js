@@ -24,8 +24,9 @@ export class CircuitManager {
     this.wiringStartNode = null;
     this.rotationSnapEnabled = true; // デフォルトで90度スナップを有効
     this.isDeleteMode = false; // 削除モード
+    this.isGridVisible = true; // グリッド表示フラグ（デフォルトで表示）
     
-    // ★追加: 画面パンニング中かどうか
+    // 画面パンニング中かどうか
     this.isPanning = false;
   }
 
@@ -37,6 +38,14 @@ export class CircuitManager {
    */
   setRotationSnap(enabled) {
     this.rotationSnapEnabled = enabled;
+  }
+
+  /**
+   * グリッド表示の有効/無効を設定
+   * @param {boolean} visible 
+   */
+  setGridVisible(visible) {
+    this.isGridVisible = visible;
   }
 
   /**
@@ -205,6 +214,40 @@ export class CircuitManager {
   // ==================== 描画 ====================
   
   /**
+   * ★追加: グリッドの描画
+   * 現在のビューポート（表示領域）を計算して、必要な分だけ線を描く
+   */
+  drawGrid() {
+    const input = this.inputManager;
+    const scale = input.viewScale;
+    const offX = input.viewOffsetX;
+    const offY = input.viewOffsetY;
+    const gridSize = CONST.GRID.SIZE;
+
+    // 現在の画面に見えているワールド座標の範囲を計算
+    // (画面の左上座標 - オフセット) / スケール = ワールド左上
+    const startX = Math.floor((-offX / scale) / gridSize) * gridSize;
+    const endX = Math.floor(((width - offX) / scale) / gridSize + 1) * gridSize;
+    const startY = Math.floor((-offY / scale) / gridSize) * gridSize;
+    const endY = Math.floor(((height - offY) / scale) / gridSize + 1) * gridSize;
+
+    stroke(...CONST.GRID.COLOR);
+    // ズームしても線の太さが変わらないように見せたい場合は 1/scale にする
+    // ここではあえてそのままにして、ズームすると線も太くなる「図面」っぽさを出します
+    strokeWeight(CONST.GRID.STROKE_WEIGHT);
+
+    // 縦線を描画
+    for (let x = startX; x <= endX; x += gridSize) {
+      line(x, startY, x, endY);
+    }
+
+    // 横線を描画
+    for (let y = startY; y <= endY; y += gridSize) {
+      line(startX, y, endX, y);
+    }
+  }
+
+  /**
    * 仮ワイヤーの描画（マウスについてくる線）
    */
   drawTempWire() {
@@ -318,7 +361,12 @@ export class CircuitManager {
     // パンとズームを適用（InputManagerに委譲）
     this.inputManager.applyTransform();
 
-    // ★追加: 現在のワールドマウス座標を計算
+    // グリッドを描画（パーツの背面に描くため、最初に行う）
+    if (this.isGridVisible) {
+      this.drawGrid();
+    }
+
+    // 現在のワールドマウス座標を計算
     const worldMouse = this.getWorldPosition(mouseX, mouseY);
 
     // 1. パーツを描画

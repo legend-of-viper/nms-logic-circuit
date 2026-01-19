@@ -96,8 +96,15 @@ setupLabels() {
     document.getElementById('btn-share').textContent = CONST.UI_LABELS.SHARE;
 
     // スマホ用設定スイッチのラベルも更新
-    const mobileSnapLabel = document.querySelector('.mobile-toggle .label-text');
+    const mobileSnapLabel = document.querySelector('#mobile-rotation-snap-checkbox + .slider + .label-text');
     if (mobileSnapLabel) mobileSnapLabel.textContent = CONST.UI_LABELS.ROTATION_SNAP;
+
+    const mobileGridLabel = document.querySelector('#mobile-grid-visible-checkbox + .slider + .label-text');
+    if (mobileGridLabel) mobileGridLabel.textContent = CONST.UI_LABELS.GRID_VISIBLE;
+
+    // PC用グリッドラベル
+    const pcGridLabel = document.getElementById('label-grid-visible');
+    if (pcGridLabel) pcGridLabel.textContent = CONST.UI_LABELS.GRID_VISIBLE;
     
     // パーツボタンの文字はCSSで透明にしていますが、念のため空にしておくならここで行います
     const partBtnIds = ['btn-power', 'btn-auto-switch', 'btn-inverter', 'btn-button', 'btn-wall-switch', 'btn-color-light'];
@@ -353,6 +360,24 @@ setupLabels() {
       mobileCheckbox.addEventListener('change', (event) => {
         this.simulator.setRotationSnap(event.target.checked);
         if (pcCheckbox) pcCheckbox.checked = event.target.checked;
+      });
+    }
+
+    // グリッド表示チェックボックス（PC用とモバイル用で同期）
+    const pcGridCheck = document.getElementById(CONST.DOM_IDS.PC.GRID_VISIBLE);
+    const mobileGridCheck = document.getElementById(CONST.DOM_IDS.MOBILE.GRID_VISIBLE);
+
+    if (pcGridCheck) {
+      pcGridCheck.addEventListener('change', (event) => {
+        this.simulator.setGridVisible(event.target.checked);
+        if (mobileGridCheck) mobileGridCheck.checked = event.target.checked;
+      });
+    }
+
+    if (mobileGridCheck) {
+      mobileGridCheck.addEventListener('change', (event) => {
+        this.simulator.setGridVisible(event.target.checked);
+        if (pcGridCheck) pcGridCheck.checked = event.target.checked;
       });
     }
     

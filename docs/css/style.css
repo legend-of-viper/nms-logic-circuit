@@ -261,20 +261,28 @@ button:active {
 /* 設定パネル（設定項目をまとめるエリア） */
 .settings-panel {
   display: flex;
-  align-items: center;
+  flex-direction: row; /* 横並び */
+  align-items: center; /* 中央揃え */
   background-color: #222;
   border: 1px solid #444;
   border-radius: 8px;
-  padding: 5px 12px;
-  gap: 12px;
-  height: 48px; /* ボタンと高さを合わせるなどお好みで */
+  padding: 8px 12px;
+  gap: 12px; /* アイコンとトグル群の間隔 */
   margin-right: 10px;
 }
 
 .settings-icon {
-  font-size: 20px;
+  font-size: 24px;
   cursor: default;
   opacity: 0.7;
+  flex-shrink: 0; /* アイコンが縮まないようにする */
+}
+
+/* トグルスイッチを縦に並べるコンテナ */
+.settings-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* トグルスイッチのコンテナ */
@@ -640,6 +648,15 @@ body.mobile-mode #canvas-container canvas {
   color: #aaa;
   margin-bottom: 10px;
   margin-top: 20px;
+}
+
+/* モバイル用トグルスイッチの間隔調整 */
+.mobile-toggle {
+  margin-bottom: 15px; /* トグルスイッチ間の余白を追加 */
+}
+
+.mobile-toggle:last-child {
+  margin-bottom: 0; /* 最後の要素は下マージン不要 */
 }
 
 /* ★共通: 削除マークのベーススタイル */

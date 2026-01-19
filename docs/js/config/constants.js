@@ -69,7 +69,15 @@ const COMMON_CONST = {
     LOAD: 'Load',
     SHARE: 'Share',
     DELETE_MODE: 'Delete Mode',
-    ROTATION_SNAP: 'Rotation Snap'
+    ROTATION_SNAP: 'Rotation Snap',
+    GRID_VISIBLE: 'Show Grid'
+  },
+
+  // グリッドの設定
+  GRID: {
+    SIZE: 44,              // グリッドの間隔（パーツの幅の半分）
+    COLOR: [50, 50, 50],   // 線の色（背景より少し明るく）
+    STROKE_WEIGHT: 1       // 線の太さ
   },
   
   // 削除モードの設定
@@ -95,7 +103,8 @@ const COMMON_CONST = {
       SAVE: 'btn-save',
       LOAD: 'btn-load',
       SHARE: 'btn-share',
-      ROTATION_SNAP: 'rotation-snap-checkbox'
+      ROTATION_SNAP: 'rotation-snap-checkbox',
+      GRID_VISIBLE: 'grid-visible-checkbox'
     },
     // モバイル用ボタン
     MOBILE: {
@@ -114,7 +123,8 @@ const COMMON_CONST = {
       SAVE: 'btn-mobile-save',
       LOAD: 'btn-mobile-load',
       SHARE: 'btn-mobile-share',
-      ROTATION_SNAP: 'mobile-rotation-snap-checkbox'
+      ROTATION_SNAP: 'mobile-rotation-snap-checkbox',
+      GRID_VISIBLE: 'mobile-grid-visible-checkbox'
     },
     // 共通要素
     COMMON: {
