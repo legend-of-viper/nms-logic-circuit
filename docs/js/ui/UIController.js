@@ -32,9 +32,46 @@ export class UIController {
     this.deleteCursorOverlay = new DeleteCursorOverlay(this.simulator);
     this.deleteCursorOverlay.initialize();
 
-    // ★追加: PC用操作のセットアップ
+    // ローカルストレージからユーザー設定を復元
+    this.loadUserPreferences();
+
+    // PC用操作のセットアップ
     if (deviceDetector.isPC()) {
       this.setupPCViewControls();
+    }
+  }
+
+  /**
+   * ★追加: ユーザー設定（グリッド・スナップ）の読み込みと適用
+   */
+  loadUserPreferences() {
+    // 1. 回転スナップ設定の復元
+    const savedSnap = localStorage.getItem(CONST.STORAGE_KEYS.ROTATION_SNAP);
+    if (savedSnap !== null) {
+      // 文字列 "true" を boolean true に変換
+      const isSnapEnabled = (savedSnap === 'true');
+      
+      // シミュレーターに設定
+      this.simulator.setRotationSnap(isSnapEnabled);
+      
+      // チェックボックスの見た目も同期
+      const pcCheckbox = document.getElementById(CONST.DOM_IDS.PC.ROTATION_SNAP);
+      const mobileCheckbox = document.getElementById(CONST.DOM_IDS.MOBILE.ROTATION_SNAP);
+      if (pcCheckbox) pcCheckbox.checked = isSnapEnabled;
+      if (mobileCheckbox) mobileCheckbox.checked = isSnapEnabled;
+    }
+
+    // 2. グリッド表示設定の復元
+    const savedGrid = localStorage.getItem(CONST.STORAGE_KEYS.GRID_VISIBLE);
+    if (savedGrid !== null) {
+      const isGridVisible = (savedGrid === 'true');
+      
+      this.simulator.setGridVisible(isGridVisible);
+      
+      const pcGridCheck = document.getElementById(CONST.DOM_IDS.PC.GRID_VISIBLE);
+      const mobileGridCheck = document.getElementById(CONST.DOM_IDS.MOBILE.GRID_VISIBLE);
+      if (pcGridCheck) pcGridCheck.checked = isGridVisible;
+      if (mobileGridCheck) mobileGridCheck.checked = isGridVisible;
     }
   }
 
@@ -349,16 +386,23 @@ setupLabels() {
     const pcCheckbox = document.getElementById(CONST.DOM_IDS.PC.ROTATION_SNAP);
     const mobileCheckbox = document.getElementById(CONST.DOM_IDS.MOBILE.ROTATION_SNAP);
     
+    // 共通処理関数: スナップ設定を変更して保存
+    const updateSnapSetting = (isChecked) => {
+      this.simulator.setRotationSnap(isChecked);
+      // ローカルストレージに保存
+      localStorage.setItem(CONST.STORAGE_KEYS.ROTATION_SNAP, isChecked);
+    };
+
     if (pcCheckbox) {
       pcCheckbox.addEventListener('change', (event) => {
-        this.simulator.setRotationSnap(event.target.checked);
+        updateSnapSetting(event.target.checked);
         if (mobileCheckbox) mobileCheckbox.checked = event.target.checked;
       });
     }
     
     if (mobileCheckbox) {
       mobileCheckbox.addEventListener('change', (event) => {
-        this.simulator.setRotationSnap(event.target.checked);
+        updateSnapSetting(event.target.checked);
         if (pcCheckbox) pcCheckbox.checked = event.target.checked;
       });
     }
@@ -367,16 +411,23 @@ setupLabels() {
     const pcGridCheck = document.getElementById(CONST.DOM_IDS.PC.GRID_VISIBLE);
     const mobileGridCheck = document.getElementById(CONST.DOM_IDS.MOBILE.GRID_VISIBLE);
 
+    // 共通処理関数: グリッド設定を変更して保存
+    const updateGridSetting = (isChecked) => {
+      this.simulator.setGridVisible(isChecked);
+      // ローカルストレージに保存
+      localStorage.setItem(CONST.STORAGE_KEYS.GRID_VISIBLE, isChecked);
+    };
+
     if (pcGridCheck) {
       pcGridCheck.addEventListener('change', (event) => {
-        this.simulator.setGridVisible(event.target.checked);
+        updateGridSetting(event.target.checked);
         if (mobileGridCheck) mobileGridCheck.checked = event.target.checked;
       });
     }
 
     if (mobileGridCheck) {
       mobileGridCheck.addEventListener('change', (event) => {
-        this.simulator.setGridVisible(event.target.checked);
+        updateGridSetting(event.target.checked);
         if (pcGridCheck) pcGridCheck.checked = event.target.checked;
       });
     }

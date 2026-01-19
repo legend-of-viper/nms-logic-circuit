@@ -130,6 +130,11 @@ const COMMON_CONST = {
     COMMON: {
       CANVAS_CONTAINER: 'canvas-container'
     }
+  },
+  // ローカルストレージのキー定義
+  STORAGE_KEYS: {
+    ROTATION_SNAP: 'nms_circuit_rotation_snap', // 回転スナップ設定
+    GRID_VISIBLE: 'nms_circuit_grid_visible'    // グリッド表示設定
   }
 };
 
