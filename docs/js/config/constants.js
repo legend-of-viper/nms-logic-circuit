@@ -70,6 +70,7 @@ const COMMON_CONST = {
     SHARE: 'Share',
     DELETE_MODE: 'Delete Mode',
     ROTATION_SNAP: 'Rotation Snap',
+    MOVE_SNAP: 'Grid Snap',
     GRID_VISIBLE: 'Show Grid'
   },
 
@@ -77,7 +78,9 @@ const COMMON_CONST = {
   GRID: {
     SIZE: 44,              // グリッドの間隔（パーツの幅の半分）
     COLOR: [50, 50, 50],   // 線の色（背景より少し明るく）
-    STROKE_WEIGHT: 1       // 線の太さ
+    STROKE_WEIGHT: 1,      // 線の太さ
+    SNAP_COARSE: 22,       // スナップON時の単位 (44の半分)
+    SNAP_FINE: 2.75        // スナップOFF時の単位
   },
   
   // 削除モードの設定
@@ -92,7 +95,9 @@ const COMMON_CONST = {
   // アニメーション設定
   ANIMATION: {
     ROTATION_SPEED: 0.2,              // 1フレームで近づく割合 (0.0～1.0)
-    ROTATION_SNAP_THRESHOLD: 0.001    // 目標値と見なす誤差の範囲（ラジアン）
+    ROTATION_SNAP_THRESHOLD: 0.001,   // 目標値と見なす誤差の範囲（ラジアン）
+    MOVE_SPEED: 0.3,                  // ★追加: 移動アニメーションの速度 (0.0～1.0)
+    MOVE_SNAP_THRESHOLD: 0.5          // ★追加: 移動目標値とみなす誤差（ピクセル）
   },
 
   // DOM要素のID定数
@@ -110,6 +115,7 @@ const COMMON_CONST = {
       LOAD: 'btn-load',
       SHARE: 'btn-share',
       ROTATION_SNAP: 'rotation-snap-checkbox',
+      MOVE_SNAP: 'move-snap-checkbox',
       GRID_VISIBLE: 'grid-visible-checkbox'
     },
     // モバイル用ボタン
@@ -130,6 +136,7 @@ const COMMON_CONST = {
       LOAD: 'btn-mobile-load',
       SHARE: 'btn-mobile-share',
       ROTATION_SNAP: 'mobile-rotation-snap-checkbox',
+      MOVE_SNAP: 'mobile-move-snap-checkbox',
       GRID_VISIBLE: 'mobile-grid-visible-checkbox'
     },
     // 共通要素
@@ -140,6 +147,7 @@ const COMMON_CONST = {
   // ローカルストレージのキー定義
   STORAGE_KEYS: {
     ROTATION_SNAP: 'nms_circuit_rotation_snap', // 回転スナップ設定
+    MOVE_SNAP: 'nms_circuit_move_snap',         // 移動スナップ設定
     GRID_VISIBLE: 'nms_circuit_grid_visible'    // グリッド表示設定
   }
 };

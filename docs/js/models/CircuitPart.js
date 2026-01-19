@@ -11,6 +11,11 @@ export class CircuitPart {
     this.id = id;
     this.x = x;
     this.y = y;
+    
+    // ★追加: 目標とする座標（アニメーション用）
+    this.targetX = x;
+    this.targetY = y;
+    
     this.isDragging = false;
     this.offsetX = 0;
     this.offsetY = 0;
@@ -112,17 +117,24 @@ export class CircuitPart {
    * @returns {{x: number, y: number}} ワールド座標
    */
   localToWorld(localX, localY) {
-    // 1. 回転を適用
+    const pivot = this.getPivotOffset();
+    
+    // 1. 回転中心からの相対座標に変換
+    // localX, localY は「部品中心」からの座標なので、そこからPivot分を引く
+    const relX = localX - pivot.x;
+    const relY = localY - pivot.y;
+
+    // 2. 回転を適用
     const cos = Math.cos(this.rotation);
     const sin = Math.sin(this.rotation);
-    const rotatedX = localX * cos - localY * sin;
-    const rotatedY = localX * sin + localY * cos;
+    const rotatedX = relX * cos - relY * sin;
+    const rotatedY = relX * sin + relY * cos;
     
-    // 2. 平行移動を適用
-    const center = this.getCenter();
+    // 3. ワールド座標上の回転中心位置に加算
+    const rotCenter = this.getRotationCenter();
     return {
-      x: center.x + rotatedX,
-      y: center.y + rotatedY
+      x: rotCenter.x + rotatedX,
+      y: rotCenter.y + rotatedY
     };
   }
 
@@ -133,19 +145,23 @@ export class CircuitPart {
    * @returns {{x: number, y: number}} ローカル座標
    */
   worldToLocal(worldX, worldY) {
-    const center = this.getCenter();
+    const rotCenter = this.getRotationCenter();
     
-    // 1. 平行移動の逆
-    const dx = worldX - center.x;
-    const dy = worldY - center.y;
+    // 1. 回転中心からの相対座標
+    const dx = worldX - rotCenter.x;
+    const dy = worldY - rotCenter.y;
     
-    // 2. 回転の逆（角度をマイナスにする）
+    // 2. 回転の逆
     const cos = Math.cos(-this.rotation);
     const sin = Math.sin(-this.rotation);
+    const unrotatedX = dx * cos - dy * sin;
+    const unrotatedY = dx * sin + dy * cos;
     
+    // 3. ピボットオフセットを足して「部品中心」からの座標に戻す
+    const pivot = this.getPivotOffset();
     return {
-      x: dx * cos - dy * sin,
-      y: dx * sin + dy * cos
+      x: unrotatedX + pivot.x,
+      y: unrotatedY + pivot.y
     };
   }
 
@@ -226,6 +242,7 @@ export class CircuitPart {
     const y = my !== undefined ? my : mouseY;
     
     // 簡易的な矩形判定（回転を考慮しない）
+    // ★注意: アニメーション中は表示位置(this.x)を基準にする
     return (x > this.x && x < this.x + CONST.PARTS.WIDTH &&
             y > this.y && y < this.y + CONST.PARTS.HEIGHT);
   }
@@ -247,6 +264,40 @@ export class CircuitPart {
   }
 
   /**
+   * スナップ時のオフセット（補正値）を取得
+   * 通常は {x:0, y:0} だが、サイズが特殊なパーツ等はこれをオーバーライドする
+   */
+  getSnapOffset() {
+    return { x: 0, y: 0 };
+  }
+
+  /**
+   * 回転中心のオフセット（補正値）を取得
+   * スナップオフセットの「逆」を返すことで、
+   * 位置をずらしても回転中心はグリッド上に維持されるようにする
+   */
+  getPivotOffset() {
+    const snap = this.getSnapOffset();
+    return {
+      x: -snap.x,
+      y: -snap.y
+    };
+  }
+
+  /**
+   * ★追加: ワールド座標系での回転中心を取得
+   */
+  getRotationCenter() {
+    const center = this.getCenter();
+    const pivot = this.getPivotOffset();
+    // 回転前のワールド座標上のピボット位置
+    return {
+      x: center.x + pivot.x,
+      y: center.y + pivot.y
+    };
+  }
+
+  /**
    * マウスボタンを押した時の処理
    * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
    * @param {number} my - マウスY座標（省略時はグローバルmouseY）
@@ -257,22 +308,39 @@ export class CircuitPart {
     const y = my !== undefined ? my : mouseY;
     
     this.isDragging = true;
-    this.offsetX = this.x - x;
-    this.offsetY = this.y - y;
     
-    this.dragStartX = this.x;
-    this.dragStartY = this.y;
+    // ★変更: アニメーション中かもしれないので、ターゲット座標を基準にオフセットを計算
+    // こうすることで、移動中に掴んでもターゲットグリッドとの相対位置が維持される
+    this.offsetX = this.targetX - x;
+    this.offsetY = this.targetY - y;
+    
+    // ドラッグ判定の基準点もターゲット座標にする
+    this.dragStartX = this.targetX;
+    this.dragStartY = this.targetY;
   }
 
   /**
    * マウスをドラッグしている時の処理
+   * @param {number} mx - マウスX座標
+   * @param {number} my - マウスY座標
+   * @param {number} snapUnit - スナップする単位（ピクセル）
    */
-  onMouseDragged(mx, my) {
+  onMouseDragged(mx, my, snapUnit) {
     if (this.isDragging) {
       const x = mx !== undefined ? mx : mouseX;
       const y = my !== undefined ? my : mouseY;
-      this.x = x + this.offsetX;
-      this.y = y + this.offsetY;
+      
+      const rawX = x + this.offsetX;
+      const rawY = y + this.offsetY;
+      
+      const snap = snapUnit || CONST.GRID.SNAP_FINE;
+      
+      // オフセットを考慮したスナップ計算
+      // (生座標 - オフセット) を丸めてから、オフセットを足し戻す
+      const offset = this.getSnapOffset();
+      
+      this.targetX = Math.round((rawX - offset.x) / snap) * snap + offset.x;
+      this.targetY = Math.round((rawY - offset.y) / snap) * snap + offset.y;
     }
   }
 
@@ -289,8 +357,9 @@ export class CircuitPart {
    * @returns {boolean}
    */
   wasDragged(threshold = 5) {
-    const dx = Math.abs(this.x - this.dragStartX);
-    const dy = Math.abs(this.y - this.dragStartY);
+    // ★変更: ターゲット座標の移動量で判定（スナップ単位で動いたか）
+    const dx = Math.abs(this.targetX - this.dragStartX);
+    const dy = Math.abs(this.targetY - this.dragStartY);
     return dx > threshold || dy > threshold;
   }
 
@@ -356,23 +425,25 @@ export class CircuitPart {
 
   /**
    * ★追加: アニメーション更新用メソッド
-   * 毎フレーム呼び出して、rotation を targetRotation に近づける
+   * 毎フレーム呼び出して、現在値を目標値に近づける
    */
   updateAnimation() {
+    this.updateRotationAnimation();
+    this.updatePositionAnimation();
+  }
+  
+  updateRotationAnimation() {
     // 角度の差分を計算
     let diff = this.targetRotation - this.rotation;
     
     // 角度の正規化（-PI ～ PI の範囲に収める）
-    // これをしないと、360度(2PI)を超えた瞬間に逆回転してしまうことがあります
     while (diff > Math.PI) diff -= Math.PI * 2;
     while (diff < -Math.PI) diff += Math.PI * 2;
     
-    // 差分が十分小さい場合は吸着させて終了
+    // 差分が十分小さい場合は吸着
     if (Math.abs(diff) < CONST.ANIMATION.ROTATION_SNAP_THRESHOLD) {
       this.rotation = this.targetRotation;
       
-      // targetRotation自体も正規化しておくと数値の発散を防げます
-      // (任意ですが、回転し続けると数値が大きくなりすぎるのを防ぐため)
       if (this.rotation > Math.PI) {
         this.rotation -= Math.PI * 2;
         this.targetRotation -= Math.PI * 2;
@@ -387,7 +458,31 @@ export class CircuitPart {
   }
 
   /**
-   * アニメーションせずに角度を即時設定する（ロード時や初期化用）
+   * ★追加: 位置のアニメーション（スナップ移動用）
+   */
+  updatePositionAnimation() {
+    const speed = CONST.ANIMATION.MOVE_SPEED;
+    const threshold = CONST.ANIMATION.MOVE_SNAP_THRESHOLD;
+    
+    // X座標
+    let diffX = this.targetX - this.x;
+    if (Math.abs(diffX) < threshold) {
+      this.x = this.targetX;
+    } else {
+      this.x += diffX * speed;
+    }
+    
+    // Y座標
+    let diffY = this.targetY - this.y;
+    if (Math.abs(diffY) < threshold) {
+      this.y = this.targetY;
+    } else {
+      this.y += diffY * speed;
+    }
+  }
+
+  /**
+   * アニメーションせずに角度と位置を即時設定する（ロード時や初期化用）
    * @param {number} angle - ラジアン
    */
   setRotationImmediately(angle) {
@@ -416,12 +511,19 @@ export class CircuitPart {
     
     // 回転座標系で描画
     push();
-    const center = this.getCenter();
-    translate(center.x, center.y);
+
+    // 部品中心(getCenter)ではなく、回転中心(getRotationCenter)に移動
+    const rotCenter = this.getRotationCenter();
+    translate(rotCenter.x, rotCenter.y);
     rotate(this.rotation);
     
+    // 描画原点は「部品中心」である必要があるので、
+    // 回転した後にピボット分だけ逆移動して原点を戻す
+    const pivot = this.getPivotOffset();
+    translate(-pivot.x, -pivot.y);
+    
     // 部品本体を描画（原点中心）
-    // ★変更: worldMouseを渡す
+    // worldMouseを渡す
     this.drawShape(color, worldMouse);
     
     // ソケットを描画

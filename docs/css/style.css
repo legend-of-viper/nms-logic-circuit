@@ -278,17 +278,37 @@ button:active {
   flex-shrink: 0; /* アイコンが縮まないようにする */
 }
 
-/* トグルスイッチを縦に並べるコンテナ */
+/* トグルスイッチをグリッドレイアウトで配置 */
 .settings-toggles {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto auto; /* 2列 */
+  grid-template-rows: auto auto;    /* 2行 */
   gap: 8px;
+}
+
+/* Rotation Snap: 1列目1行目 */
+.settings-toggles .toggle-switch:nth-child(1) {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+/* Show Grid: 2列目1行目 */
+.settings-toggles .toggle-switch:nth-child(2) {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+/* Grid Snap: 1列目2行目 */
+.settings-toggles .toggle-switch:nth-child(3) {
+  grid-column: 1;
+  grid-row: 2;
 }
 
 /* トグルスイッチのコンテナ */
 .toggle-switch {
   display: flex;
   align-items: center;
+  padding: 0px 12px;
   gap: 8px;
   cursor: pointer;
   user-select: none;

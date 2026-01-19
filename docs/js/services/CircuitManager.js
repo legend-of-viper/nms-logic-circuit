@@ -23,6 +23,7 @@ export class CircuitManager {
     this.draggingPart = null;
     this.wiringStartNode = null;
     this.rotationSnapEnabled = true; // デフォルトで90度スナップを有効
+    this.moveSnapEnabled = false;    // デフォルトはOFF（細かい移動 2.75px）
     this.isDeleteMode = false; // 削除モード
     this.isGridVisible = true; // グリッド表示フラグ（デフォルトで表示）
     
@@ -38,6 +39,14 @@ export class CircuitManager {
    */
   setRotationSnap(enabled) {
     this.rotationSnapEnabled = enabled;
+  }
+
+  /**
+   * 移動スナップの有効/無効を設定
+   * @param {boolean} enabled
+   */
+  setMoveSnap(enabled) {
+    this.moveSnapEnabled = enabled;
   }
 
   /**
@@ -226,9 +235,9 @@ export class CircuitManager {
 
     // 現在の画面に見えているワールド座標の範囲を計算
     // (画面の左上座標 - オフセット) / スケール = ワールド左上
-    const startX = Math.floor((-offX / scale) / gridSize) * gridSize;
+    const startX = -2+Math.floor((-offX / scale) / gridSize) * gridSize;
     const endX = Math.floor(((width - offX) / scale) / gridSize + 1) * gridSize;
-    const startY = Math.floor((-offY / scale) / gridSize) * gridSize;
+    const startY = -2+Math.floor((-offY / scale) / gridSize) * gridSize;
     const endY = Math.floor(((height - offY) / scale) / gridSize + 1) * gridSize;
 
     stroke(...CONST.GRID.COLOR);
@@ -486,22 +495,27 @@ export class CircuitManager {
       if (this.draggingPart.isRotating) {
         this.draggingPart.onRotationMouseDragged(this.rotationSnapEnabled, worldMouse.x, worldMouse.y);
       } else {
-        // 移動前の座標を記録
-        const oldX = this.draggingPart.x;
-        const oldY = this.draggingPart.y;
+        // 移動量の計算は「ターゲット座標」の差分で行う
+        // これにより、パーツがスナップ移動した時だけジョイントも追従する
+        const oldX = this.draggingPart.targetX;
+        const oldY = this.draggingPart.targetY;
         
-        // パーツを移動
-        this.draggingPart.onMouseDragged(worldMouse.x, worldMouse.y);
+        // 設定に応じてスナップ単位を決定 (ON: 22px, OFF: 2.75px)
+        const snapUnit = this.moveSnapEnabled ? CONST.GRID.SNAP_COARSE : CONST.GRID.SNAP_FINE;
         
-        // 移動量を計算
-        const dx = this.draggingPart.x - oldX;
-        const dy = this.draggingPart.y - oldY;
+        // パーツを移動（スナップ単位を渡す）
+        this.draggingPart.onMouseDragged(worldMouse.x, worldMouse.y, snapUnit);
+        
+        // 移動量を計算（スナップ済みの値同士の差分）
+        const dx = this.draggingPart.targetX - oldX;
+        const dy = this.draggingPart.targetY - oldY;
         
         // 重みマップを使ってJointを追従させる
         if (this.dragJointWeights && (dx !== 0 || dy !== 0)) {
           for (const [joint, weight] of this.dragJointWeights) {
-            joint.x += dx * weight;
-            joint.y += dy * weight;
+            // Jointのターゲット座標を更新（スナップに合わせて動く）
+            joint.targetX += dx * weight;
+            joint.targetY += dy * weight;
           }
         }
       }

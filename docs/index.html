@@ -30,7 +30,7 @@
     <button id="btn-delete-mode" class="delete-mode-btn"></button>
     <div class="spacer"></div>
     <div class="settings-panel">
-      <div class="settings-icon" title="Settings">⚙️</div>
+      <!-- <div class="settings-icon" title="Settings">⚙️</div> -->
       <div class="settings-toggles">
         <label class="toggle-switch">
           <input type="checkbox" id="rotation-snap-checkbox" checked>
@@ -42,6 +42,12 @@
           <input type="checkbox" id="grid-visible-checkbox" checked>
           <span class="slider"></span>
           <span class="label-text" id="label-grid-visible">Show Grid</span>
+        </label>
+
+        <label class="toggle-switch">
+          <input type="checkbox" id="move-snap-checkbox">
+          <span class="slider"></span>
+          <span class="label-text" id="label-move-snap">Grid Snap</span>
         </label>
       </div>
     </div>
@@ -75,6 +81,12 @@
             <input type="checkbox" id="mobile-rotation-snap-checkbox" checked>
             <span class="slider"></span>
             <span class="label-text">Rotation Snap</span>
+          </label>
+
+          <label class="toggle-switch mobile-toggle">
+            <input type="checkbox" id="mobile-move-snap-checkbox">
+            <span class="slider"></span>
+            <span class="label-text">Grid Snap</span>
           </label>
 
           <label class="toggle-switch mobile-toggle">

@@ -55,24 +55,31 @@ export class UIController {
     // 1. 回転スナップ設定の復元
     const savedSnap = localStorage.getItem(CONST.STORAGE_KEYS.ROTATION_SNAP);
     if (savedSnap !== null) {
-      // 文字列 "true" を boolean true に変換
       const isSnapEnabled = (savedSnap === 'true');
-      
-      // シミュレーターに設定
       this.simulator.setRotationSnap(isSnapEnabled);
       
-      // チェックボックスの見た目も同期
       const pcCheckbox = document.getElementById(CONST.DOM_IDS.PC.ROTATION_SNAP);
       const mobileCheckbox = document.getElementById(CONST.DOM_IDS.MOBILE.ROTATION_SNAP);
       if (pcCheckbox) pcCheckbox.checked = isSnapEnabled;
       if (mobileCheckbox) mobileCheckbox.checked = isSnapEnabled;
     }
 
-    // 2. グリッド表示設定の復元
+    // 2. 移動スナップ設定の復元
+    const savedMoveSnap = localStorage.getItem(CONST.STORAGE_KEYS.MOVE_SNAP);
+    if (savedMoveSnap !== null) {
+      const isMoveSnapEnabled = (savedMoveSnap === 'true');
+      this.simulator.setMoveSnap(isMoveSnapEnabled);
+      
+      const pcMoveCheck = document.getElementById(CONST.DOM_IDS.PC.MOVE_SNAP);
+      const mobileMoveCheck = document.getElementById(CONST.DOM_IDS.MOBILE.MOVE_SNAP);
+      if (pcMoveCheck) pcMoveCheck.checked = isMoveSnapEnabled;
+      if (mobileMoveCheck) mobileMoveCheck.checked = isMoveSnapEnabled;
+    }
+
+    // 3. グリッド表示設定の復元
     const savedGrid = localStorage.getItem(CONST.STORAGE_KEYS.GRID_VISIBLE);
     if (savedGrid !== null) {
       const isGridVisible = (savedGrid === 'true');
-      
       this.simulator.setGridVisible(isGridVisible);
       
       const pcGridCheck = document.getElementById(CONST.DOM_IDS.PC.GRID_VISIBLE);
@@ -143,10 +150,19 @@ setupLabels() {
     const mobileSnapLabel = document.querySelector('#mobile-rotation-snap-checkbox + .slider + .label-text');
     if (mobileSnapLabel) mobileSnapLabel.textContent = CONST.UI_LABELS.ROTATION_SNAP;
 
+    const mobileMoveSnapLabel = document.querySelector('#mobile-move-snap-checkbox + .slider + .label-text');
+    if (mobileMoveSnapLabel) mobileMoveSnapLabel.textContent = CONST.UI_LABELS.MOVE_SNAP;
+
     const mobileGridLabel = document.querySelector('#mobile-grid-visible-checkbox + .slider + .label-text');
     if (mobileGridLabel) mobileGridLabel.textContent = CONST.UI_LABELS.GRID_VISIBLE;
 
-    // PC用グリッドラベル
+    // PC用ラベル
+    const pcRotationLabel = document.getElementById('label-rotation-snap');
+    if (pcRotationLabel) pcRotationLabel.textContent = CONST.UI_LABELS.ROTATION_SNAP;
+
+    const pcMoveSnapLabel = document.getElementById('label-move-snap');
+    if (pcMoveSnapLabel) pcMoveSnapLabel.textContent = CONST.UI_LABELS.MOVE_SNAP;
+
     const pcGridLabel = document.getElementById('label-grid-visible');
     if (pcGridLabel) pcGridLabel.textContent = CONST.UI_LABELS.GRID_VISIBLE;
     
@@ -418,14 +434,12 @@ setupLabels() {
       () => this.handleReset()
     );
     
-    // 90度スナップチェックボックス（PC用とモバイル用で同期）
+    // 回転スナップチェックボックス（PC用とモバイル用で同期）
     const pcCheckbox = document.getElementById(CONST.DOM_IDS.PC.ROTATION_SNAP);
     const mobileCheckbox = document.getElementById(CONST.DOM_IDS.MOBILE.ROTATION_SNAP);
     
-    // 共通処理関数: スナップ設定を変更して保存
     const updateSnapSetting = (isChecked) => {
       this.simulator.setRotationSnap(isChecked);
-      // ローカルストレージに保存
       localStorage.setItem(CONST.STORAGE_KEYS.ROTATION_SNAP, isChecked);
     };
 
@@ -440,6 +454,29 @@ setupLabels() {
       mobileCheckbox.addEventListener('change', (event) => {
         updateSnapSetting(event.target.checked);
         if (pcCheckbox) pcCheckbox.checked = event.target.checked;
+      });
+    }
+
+    // 移動スナップチェックボックス（PC用とモバイル用で同期）
+    const pcMoveCheck = document.getElementById(CONST.DOM_IDS.PC.MOVE_SNAP);
+    const mobileMoveCheck = document.getElementById(CONST.DOM_IDS.MOBILE.MOVE_SNAP);
+    
+    const updateMoveSnapSetting = (isChecked) => {
+      this.simulator.setMoveSnap(isChecked);
+      localStorage.setItem(CONST.STORAGE_KEYS.MOVE_SNAP, isChecked);
+    };
+
+    if (pcMoveCheck) {
+      pcMoveCheck.addEventListener('change', (event) => {
+        updateMoveSnapSetting(event.target.checked);
+        if (mobileMoveCheck) mobileMoveCheck.checked = event.target.checked;
+      });
+    }
+
+    if (mobileMoveCheck) {
+      mobileMoveCheck.addEventListener('change', (event) => {
+        updateMoveSnapSetting(event.target.checked);
+        if (pcMoveCheck) pcMoveCheck.checked = event.target.checked;
       });
     }
 
