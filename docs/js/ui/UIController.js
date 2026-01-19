@@ -35,6 +35,13 @@ export class UIController {
     // ローカルストレージからユーザー設定を復元
     this.loadUserPreferences();
 
+    // ★修正: URLハッシュからのロード後にUIを同期
+    if (this.storage.loadFromUrlHash(() => {
+      this.syncZoomUI();
+    })) {
+      // URLから復元成功
+    }
+
     // PC用操作のセットアップ
     if (deviceDetector.isPC()) {
       this.setupPCViewControls();
@@ -316,6 +323,35 @@ setupLabels() {
   }
 
   /**
+   * 毎フレーム呼ばれる描画更新処理
+   */
+  update() {
+    // 削除カーソルオーバーレイの更新（PC/スマホの判断は内部で行われる）
+    if (this.deleteCursorOverlay) {
+      this.deleteCursorOverlay.update();
+    }
+  }
+
+  /**
+   * ★追加: ズームスライダー等のUI表示を現在の内部状態と同期させる
+   * ロード直後やリセット時に呼び出す
+   */
+  syncZoomUI() {
+    if (!deviceDetector.isPC()) return;
+
+    const currentScale = this.simulator.getInputManager().viewScale;
+    const slider = document.getElementById('zoom-slider');
+    const valueLabel = document.getElementById('zoom-value');
+
+    if (slider) {
+      slider.value = currentScale;
+    }
+    if (valueLabel) {
+      valueLabel.textContent = `${Math.round(currentScale * 100)}%`;
+    }
+  }
+
+  /**
    * イベントリスナーの登録
    * PC用とモバイル用のイベントを統合的に管理
    */
@@ -575,7 +611,10 @@ setupLabels() {
    * 読み込み処理
    */
   handleLoad() {
-    this.storage.loadFromFile();
+    // ★修正: ロード完了時に syncZoomUI を実行するようコールバックを渡す
+    this.storage.loadFromFile(() => {
+      this.syncZoomUI();
+    });
     this.closeMobileMenu();
   }
 
@@ -597,6 +636,8 @@ setupLabels() {
     if (confirmed) {
       // CircuitManagerのresetAllメソッドを呼び出し
       this.simulator.resetAll();
+      // ★追加: リセット時もズーム等が初期化されるのでUIも同期
+      this.syncZoomUI();
       console.log('回路をリセットしました');
     }
     

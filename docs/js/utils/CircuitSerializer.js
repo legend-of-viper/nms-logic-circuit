@@ -39,12 +39,14 @@ const SOCKET_LIST = ['left', 'right', 'bottom', 'control', 'center'];
 export class CircuitSerializer {
   /**
    * 回路データをシリアライズ（保存・シェア共通処理）
+   * ★修正: viewState引数を追加
    * @param {Array} parts - パーツ配列
    * @param {Array} wires - ワイヤー配列
    * @param {boolean} compact - true: URL用の軽量版、false: ファイル保存用の読みやすい版
+   * @param {Object} viewState - {x, y, scale} 視点情報
    * @returns {Object|Array} シリアライズされた回路データ
    */
-  static serialize(parts, wires, compact = false) {
+  static serialize(parts, wires, compact = false, viewState = {x:0, y:0, scale:1}) {
     if (compact) {
       // 軽量版: IDをインデックス化
       // 1. IDのマッピング作成（元のID -> 配列のインデックス）
@@ -80,9 +82,17 @@ export class CircuitSerializer {
         SOCKET_MAP[wire.endSocket.name]
       ]);
       
+      // ★追加: 視点データを軽量配列化 [x, y, scale]
+      // URLを短くするため整数化や小数点切り詰めを行う
+      const viewData = [
+        Math.round(viewState.x),
+        Math.round(viewState.y),
+        Math.round(viewState.scale * 100) / 100 // 小数点2位まで
+      ];
+      
       // キー名すら使わず、配列のみにする
-      // 構造: [version, partsArray, wiresArray]
-      return [3, partsData, wiresData];
+      // 構造: [version, partsArray, wiresArray, viewArray]
+      return [3, partsData, wiresData, viewData];
     } else {
       // 通常版: 読みやすい形式（ファイル保存用）
       const partsData = parts.map(part => {
@@ -109,18 +119,26 @@ export class CircuitSerializer {
       }));
       
       return {
-        version: '1.0',
+        version: '1.1', // バージョンを少し上げておく（管理上）
         parts: partsData,
-        wires: wiresData
+        wires: wiresData,
+        // ★追加: 視点情報オブジェクト
+        view: {
+          x: viewState.x,
+          y: viewState.y,
+          scale: viewState.scale
+        }
       };
     }
   }
 
   /**
    * シリアライズされたデータから回路を復元（読込・URL復元共通処理）
+   * ★修正: 視点情報 {x, y, scale} を戻り値として返すように変更
    * @param {Object|Array} saveData - シリアライズされた回路データ
    * @param {Array} partsArray - 復元先のパーツ配列
    * @param {Array} wiresArray - 復元先のワイヤー配列
+   * @returns {Object|null} 復元した視点情報 {x, y, scale} または null
    */
   static deserialize(saveData, partsArray, wiresArray) {
     // 配列をクリア（参照は維持）
@@ -128,6 +146,7 @@ export class CircuitSerializer {
     wiresArray.length = 0;
     
     const partIdMap = new Map();
+    let restoredView = null; // 復元した視点情報を格納する変数
     
     // 軽量版（配列のみ）の場合
     if (Array.isArray(saveData) && saveData[0] === 3) {
@@ -185,6 +204,16 @@ export class CircuitSerializer {
         }
       });
       
+      // ★追加: 視点情報の復元
+      const viewList = saveData[3]; // 4番目の要素があれば視点情報
+      if (viewList && viewList.length >= 3) {
+        restoredView = {
+          x: viewList[0],
+          y: viewList[1],
+          scale: viewList[2]
+        };
+      }
+
       console.log(`復元完了(v3): パーツ${partsArray.length}個, ワイヤー${wiresArray.length}本`);
     }
     // 通常形式の場合
@@ -225,9 +254,21 @@ export class CircuitSerializer {
           }
         }
       }
+      
+      // ★追加: 視点情報の復元
+      if (saveData.view) {
+        restoredView = {
+          x: saveData.view.x || 0,
+          y: saveData.view.y || 0,
+          scale: saveData.view.scale || 1.0
+        };
+      }
     }
     else {
       throw new Error(CONST.MESSAGES.ERROR_INVALID_FILE_FORMAT);
     }
+    
+    // 視点情報を返す（CircuitManager側で受け取る）
+    return restoredView;
   }
 }

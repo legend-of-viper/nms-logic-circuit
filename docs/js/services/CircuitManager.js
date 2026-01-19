@@ -619,24 +619,47 @@ export class CircuitManager {
   
   /**
    * 回路データをシリアライズ（保存・シェア共通処理）
+   * ★修正: 視点情報（パン・ズーム）も含める
    * @param {boolean} compact - true: URL用の軽量版、false: ファイル保存用の読みやすい版
    * @returns {Object|Array} シリアライズされた回路データ
    */
   serializeCircuitData(compact = false) {
-    return CircuitSerializer.serialize(this.parts, this.wires, compact);
+    // InputManagerから現在の視点情報を取得
+    const viewState = {
+      x: this.inputManager.viewOffsetX,
+      y: this.inputManager.viewOffsetY,
+      scale: this.inputManager.viewScale
+    };
+
+    // シリアライザーに視点情報（viewState）を第4引数として渡す
+    return CircuitSerializer.serialize(this.parts, this.wires, compact, viewState);
   }
 
   /**
    * シリアライズされたデータから回路を復元（読込・URL復元共通処理）
+   * ★修正: 復元された視点情報を適用する
    * @param {Object|Array} saveData - シリアライズされた回路データ
    */
   restoreFromData(saveData) {
     // ドラッグ状態をクリア
     this.draggingPart = null;
     this.wiringStartNode = null;
+    this.isPanning = false; // パン中フラグもリセット
     
-    // CircuitSerializerに処理を委譲
-    CircuitSerializer.deserialize(saveData, this.parts, this.wires);
+    // CircuitSerializerに処理を委譲（戻り値として視点情報を受け取る）
+    const restoredView = CircuitSerializer.deserialize(saveData, this.parts, this.wires);
+    
+    // 視点情報が復元できた場合、InputManagerに適用
+    if (restoredView) {
+      this.inputManager.viewOffsetX = restoredView.x;
+      this.inputManager.viewOffsetY = restoredView.y;
+      this.inputManager.viewScale = restoredView.scale;
+    } else {
+      // 古いデータなどで視点情報がない場合はリセット（初期位置）
+      this.inputManager.viewOffsetX = 0;
+      this.inputManager.viewOffsetY = 0;
+      this.inputManager.viewScale = 1.0;
+    }
     
     // PowerSystemのティックをリセット
     this.powerSystem.lastTick = -1;

@@ -63,8 +63,10 @@ export class StorageService {
 
   /**
    * ファイルから読込
+   * ★修正: 完了時のコールバック関数を受け取るように変更
+   * @param {Function} onLoaded - 読み込み完了時に実行する関数
    */
-  loadFromFile() {
+  loadFromFile(onLoaded) {
     try {
       const input = document.createElement('input');
       input.type = 'file';
@@ -84,7 +86,11 @@ export class StorageService {
             this.circuitManager.restoreFromData(saveData);
             
             console.log(`回路データを読み込みました: パーツ${this.circuitManager.parts.length}個, ワイヤー${this.circuitManager.wires.length}本`);
-            // alert(CONST.MESSAGES.ALERT_LOAD_SUCCESS);
+            
+            // ★追加: 完了コールバックがあれば実行
+            if (onLoaded) {
+              onLoaded();
+            }
           } catch (error) {
             console.error("ファイルの読み込み中にエラーが発生しました:", error);
             alert(CONST.MESSAGES.ALERT_LOAD_FAILED + ': ' + error.message);
@@ -183,8 +189,11 @@ export class StorageService {
 
   /**
    * URLハッシュから復元
+   * ★修正: 完了時のコールバック関数を受け取るように変更
+   * @param {Function} onLoaded - 読み込み完了時に実行する関数
+   * @returns {boolean} 復元が成功したかどうか
    */
-  loadFromUrlHash() {
+  loadFromUrlHash(onLoaded) {
     try {
       const hash = window.location.hash.substring(1);
       
@@ -207,7 +216,11 @@ export class StorageService {
       this.circuitManager.restoreFromData(saveData);
       
       console.log(`URLから回路を復元しました: パーツ${this.circuitManager.parts.length}個, ワイヤー${this.circuitManager.wires.length}本`);
-      // 復元成功時はアラートを出さず、静かに開始（モダンなUX）
+      
+      // ★追加: 完了コールバックがあれば実行
+      if (onLoaded) {
+        onLoaded();
+      }
       
       return true;
     } catch (error) {
