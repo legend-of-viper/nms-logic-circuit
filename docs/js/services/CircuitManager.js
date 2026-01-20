@@ -29,6 +29,9 @@ export class CircuitManager {
     
     // 画面パンニング中かどうか
     this.isPanning = false;
+
+    // ★追加: 仮ワイヤーの先端位置（アニメーション用）
+    this.tempWireEnd = { x: 0, y: 0 };
   }
 
   // ==================== 初期化・状態管理 ====================
@@ -267,30 +270,50 @@ export class CircuitManager {
     // マウス座標をワールド座標に変換
     const worldMouse = this.getWorldPosition(mouseX, mouseY);
     
-    // 近くのコネクタを探してスナップする
-    let endPos = { x: worldMouse.x, y: worldMouse.y };
+    // ★変更: 目標座標（ターゲット）を計算
+    let targetX = worldMouse.x;
+    let targetY = worldMouse.y;
+    
+    if (this.moveSnapEnabled) {
+      const snap = CONST.GRID.SNAP_COARSE; // 22px
+      targetX = Math.round(targetX / snap) * snap;
+      targetY = Math.round(targetY / snap) * snap;
+    }
+    
+    // 近くのコネクタを探してスナップする（こちらはGridSnapに関わらず優先）
     let snapped = false;
     
     for (let part of this.parts) {
       for (let socket of part.sockets) {
         const connectorPos = socket.getConnectorWorldPosition();
+        
+        // ★重要: ソケット吸着判定は「生のマウス座標」との距離で行う
         const distance = dist(worldMouse.x, worldMouse.y, connectorPos.x, connectorPos.y);
         
         // 同じソケットでなく、かつヒット範囲内ならスナップ
         const isSameSocket = (socket === this.wiringStartNode.socket);
         if (!isSameSocket && distance < CONST.PARTS.SOCKET_HIT_RADIUS) {
-          endPos = connectorPos;
+          targetX = connectorPos.x;
+          targetY = connectorPos.y;
           snapped = true;
           break;
         }
       }
       if (snapped) break;
     }
+
+    // ★追加: アニメーション処理（現在値を目標値に近づける）
+    const speed = CONST.ANIMATION.MOVE_SPEED; // 0.3
     
+    this.tempWireEnd.x += (targetX - this.tempWireEnd.x) * speed;
+    this.tempWireEnd.y += (targetY - this.tempWireEnd.y) * speed;
+    
+    // 描画
     stroke(...CONST.COLORS.WIRE_TEMP, CONST.WIRE.TEMP_ALPHA);
     strokeWeight(2);
     
-    line(startPos.x, startPos.y, endPos.x, endPos.y);
+    // アニメーション済みの座標を使用
+    line(startPos.x, startPos.y, this.tempWireEnd.x, this.tempWireEnd.y);
   }
 
   /**
@@ -447,6 +470,10 @@ export class CircuitManager {
         this.wiringStartNode = { part: part, socket: hoveredSocket };
         // ワイヤリング開始ソケットをマーク
         part.wiringStartSocket = hoveredSocket.name;
+
+        // ★追加: 仮ワイヤーの現在位置をマウス位置で初期化（アニメーション用）
+        this.tempWireEnd.x = worldMouse.x;
+        this.tempWireEnd.y = worldMouse.y;
         return;
       }
 
@@ -584,10 +611,20 @@ export class CircuitManager {
           // 中継点（Joint）を生成して接続する
           console.log("中継点を作成");
           
-          // マウス位置が「中心」になるように座標を補正する
+          // ★追加: Grid Snapが有効なら、生成位置（中心）をスナップさせる
+          let centerX = worldMouse.x;
+          let centerY = worldMouse.y;
+          
+          if (this.moveSnapEnabled) {
+            const snap = CONST.GRID.SNAP_COARSE;
+            centerX = Math.round(centerX / snap) * snap;
+            centerY = Math.round(centerY / snap) * snap;
+          }
+          
+          // マウス位置（またはスナップ後の位置）が「中心」になるように座標を補正する
           // CircuitPartは左上座標(x,y)で管理されるため、幅・高さの半分を引く必要がある
-          const jointX = worldMouse.x - CONST.PARTS.WIDTH / 2;
-          const jointY = worldMouse.y - CONST.PARTS.HEIGHT / 2;
+          const jointX = centerX - CONST.PARTS.WIDTH / 2;
+          const jointY = centerY - CONST.PARTS.HEIGHT / 2;
 
           // 補正した座標で作成
           this.createPart(CONST.PART_TYPE.JOINT, jointX, jointY);
