@@ -1,6 +1,8 @@
 'use strict';
 
 import { CONST } from '../config/constants.js';
+import { SmoothValue, SmoothRotation } from '../utils/Animator.js';
+import { MathUtils } from '../utils/MathUtils.js';
 
 /**
  * 回路部品の基底クラス
@@ -9,12 +11,10 @@ import { CONST } from '../config/constants.js';
 export class CircuitPart {
   constructor(id, x, y) {
     this.id = id;
-    this.x = x;
-    this.y = y;
     
-    // ★追加: 目標とする座標（アニメーション用）
-    this.targetX = x;
-    this.targetY = y;
+    // ★リファクタリング: アニメーション対応の座標管理
+    this.posX = new SmoothValue(x, CONST.ANIMATION.MOVE_SPEED, CONST.ANIMATION.MOVE_SNAP_THRESHOLD);
+    this.posY = new SmoothValue(y, CONST.ANIMATION.MOVE_SPEED, CONST.ANIMATION.MOVE_SNAP_THRESHOLD);
     
     this.isDragging = false;
     this.offsetX = 0;
@@ -24,11 +24,8 @@ export class CircuitPart {
     this.dragStartX = 0;
     this.dragStartY = 0;
 
-    // 回転関連
-    this.rotation = 0;  // ラジアン単位
-    
-    // ★追加: 目標とする角度（アニメーション用）
-    this.targetRotation = 0;
+    // ★リファクタリング: アニメーション対応の回転管理
+    this.rot = new SmoothRotation(0, CONST.ANIMATION.ROTATION_SPEED, CONST.ANIMATION.ROTATION_SNAP_THRESHOLD);
     
     this.isRotating = false;
     this.rotationStartAngle = 0;
@@ -40,6 +37,50 @@ export class CircuitPart {
     this.wiringStartSocket = null;
 
     this.isHighlighted = false;
+  }
+
+  // ==================== プロパティアクセサ ====================
+  
+  /**
+   * X座標のゲッター（既存コードとの互換性維持）
+   */
+  get x() {
+    return this.posX.value;
+  }
+  
+  /**
+   * Y座標のゲッター（既存コードとの互換性維持）
+   */
+  get y() {
+    return this.posY.value;
+  }
+  
+  /**
+   * 回転角度のゲッター（既存コードとの互換性維持）
+   */
+  get rotation() {
+    return this.rot.value;
+  }
+  
+  /**
+   * 目標X座標のゲッター
+   */
+  get targetX() {
+    return this.posX.target;
+  }
+  
+  /**
+   * 目標Y座標のゲッター
+   */
+  get targetY() {
+    return this.posY.target;
+  }
+  
+  /**
+   * 目標回転角度のゲッター
+   */
+  get targetRotation() {
+    return this.rot.target;
   }
 
   // ==================== ライフサイクル ====================
@@ -311,12 +352,12 @@ export class CircuitPart {
     
     // ★変更: アニメーション中かもしれないので、ターゲット座標を基準にオフセットを計算
     // こうすることで、移動中に掴んでもターゲットグリッドとの相対位置が維持される
-    this.offsetX = this.targetX - x;
-    this.offsetY = this.targetY - y;
+    this.offsetX = this.posX.target - x;
+    this.offsetY = this.posY.target - y;
     
     // ドラッグ判定の基準点もターゲット座標にする
-    this.dragStartX = this.targetX;
-    this.dragStartY = this.targetY;
+    this.dragStartX = this.posX.target;
+    this.dragStartY = this.posY.target;
   }
 
   /**
@@ -335,12 +376,12 @@ export class CircuitPart {
       
       const snap = snapUnit || CONST.GRID.SNAP_FINE;
       
-      // オフセットを考慮したスナップ計算
-      // (生座標 - オフセット) を丸めてから、オフセットを足し戻す
+      // ★リファクタリング: MathUtilsを使用したスナップ処理
       const offset = this.getSnapOffset();
+      const snapped = MathUtils.snapPosition(rawX, rawY, snap, offset);
       
-      this.targetX = Math.round((rawX - offset.x) / snap) * snap + offset.x;
-      this.targetY = Math.round((rawY - offset.y) / snap) * snap + offset.y;
+      this.posX.setTarget(snapped.x);
+      this.posY.setTarget(snapped.y);
     }
   }
 
@@ -358,8 +399,8 @@ export class CircuitPart {
    */
   wasDragged(threshold = 5) {
     // ★変更: ターゲット座標の移動量で判定（スナップ単位で動いたか）
-    const dx = Math.abs(this.targetX - this.dragStartX);
-    const dy = Math.abs(this.targetY - this.dragStartY);
+    const dx = Math.abs(this.posX.target - this.dragStartX);
+    const dy = Math.abs(this.posY.target - this.dragStartY);
     return dx > threshold || dy > threshold;
   }
 
@@ -376,11 +417,11 @@ export class CircuitPart {
     this.isRotating = true;
     
     // ★追加: ドラッグ開始時に目標値を現在値に合わせる（変な飛び跳ね防止）
-    this.targetRotation = this.rotation;
+    this.rot.setTarget(this.rot.value);
     
     const center = this.getCenter();
     // ★変更: targetRotation を基準にオフセットを計算
-    this.rotationStartAngle = Math.atan2(y - center.y, x - center.x) - this.targetRotation;
+    this.rotationStartAngle = Math.atan2(y - center.y, x - center.x) - this.rot.target;
   }
 
   /**
@@ -398,21 +439,13 @@ export class CircuitPart {
       const currentAngle = Math.atan2(y - center.y, x - center.x);
       
       // 生の回転角度を計算
-      let rawRotation = currentAngle - this.rotationStartAngle;
+      const rawRotation = currentAngle - this.rotationStartAngle;
       
-      // ラジアンを度数に変換
-      let degrees = rawRotation * 180 / PI;
+      // ★リファクタリング: MathUtilsを使用したスナップ処理
+      const snapDegrees = snapEnabled ? 90 : 5;
+      const snappedRotation = MathUtils.snapAngle(rawRotation, snapDegrees);
       
-      if (snapEnabled) {
-        // 90度スナップが有効な場合
-        degrees = Math.round(degrees / 90) * 90;
-      } else {
-        // 5度単位でスナップ
-        degrees = Math.round(degrees / 5) * 5;
-      }
-      
-      // ★変更: 直接 this.rotation を変えず、this.targetRotation に入れる
-      this.targetRotation = degrees * PI / 180;
+      this.rot.setTarget(snappedRotation);
     }
   }
 
@@ -424,61 +457,13 @@ export class CircuitPart {
   }
 
   /**
-   * ★追加: アニメーション更新用メソッド
+   * ★リファクタリング: アニメーション更新用メソッド
    * 毎フレーム呼び出して、現在値を目標値に近づける
    */
   updateAnimation() {
-    this.updateRotationAnimation();
-    this.updatePositionAnimation();
-  }
-  
-  updateRotationAnimation() {
-    // 角度の差分を計算
-    let diff = this.targetRotation - this.rotation;
-    
-    // 角度の正規化（-PI ～ PI の範囲に収める）
-    while (diff > Math.PI) diff -= Math.PI * 2;
-    while (diff < -Math.PI) diff += Math.PI * 2;
-    
-    // 差分が十分小さい場合は吸着
-    if (Math.abs(diff) < CONST.ANIMATION.ROTATION_SNAP_THRESHOLD) {
-      this.rotation = this.targetRotation;
-      
-      if (this.rotation > Math.PI) {
-        this.rotation -= Math.PI * 2;
-        this.targetRotation -= Math.PI * 2;
-      } else if (this.rotation < -Math.PI) {
-        this.rotation += Math.PI * 2;
-        this.targetRotation += Math.PI * 2;
-      }
-    } else {
-      // イージング処理
-      this.rotation += diff * CONST.ANIMATION.ROTATION_SPEED;
-    }
-  }
-
-  /**
-   * ★追加: 位置のアニメーション（スナップ移動用）
-   */
-  updatePositionAnimation() {
-    const speed = CONST.ANIMATION.MOVE_SPEED;
-    const threshold = CONST.ANIMATION.MOVE_SNAP_THRESHOLD;
-    
-    // X座標
-    let diffX = this.targetX - this.x;
-    if (Math.abs(diffX) < threshold) {
-      this.x = this.targetX;
-    } else {
-      this.x += diffX * speed;
-    }
-    
-    // Y座標
-    let diffY = this.targetY - this.y;
-    if (Math.abs(diffY) < threshold) {
-      this.y = this.targetY;
-    } else {
-      this.y += diffY * speed;
-    }
+    this.rot.update();
+    this.posX.update();
+    this.posY.update();
   }
 
   /**
@@ -486,8 +471,17 @@ export class CircuitPart {
    * @param {number} angle - ラジアン
    */
   setRotationImmediately(angle) {
-    this.rotation = angle;
-    this.targetRotation = angle;
+    this.rot.setImmediate(angle);
+  }
+  
+  /**
+   * アニメーションせずに位置を即時設定する（ロード時や初期化用）
+   * @param {number} x - X座標
+   * @param {number} y - Y座標
+   */
+  setPositionImmediately(x, y) {
+    this.posX.setImmediate(x);
+    this.posY.setImmediate(y);
   }
 
   // ==================== 描画 ====================

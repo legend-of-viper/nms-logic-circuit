@@ -7,6 +7,8 @@ import { InputManager } from './InputManager.js';
 import { CONST } from '../config/constants.js';
 import { GraphUtils } from '../utils/GraphUtils.js';
 import { CircuitSerializer } from '../utils/CircuitSerializer.js';
+import { SmoothValue } from '../utils/Animator.js';
+import { MathUtils } from '../utils/MathUtils.js';
 
 /**
  * 回路マネージャー
@@ -31,7 +33,8 @@ export class CircuitManager {
     this.isPanning = false;
 
     // ★追加: 仮ワイヤーの先端位置（アニメーション用）
-    this.tempWireEnd = { x: 0, y: 0 };
+    this.tempWireEndX = new SmoothValue(0, CONST.ANIMATION.MOVE_SPEED, CONST.ANIMATION.MOVE_SNAP_THRESHOLD);
+    this.tempWireEndY = new SmoothValue(0, CONST.ANIMATION.MOVE_SPEED, CONST.ANIMATION.MOVE_SNAP_THRESHOLD);
   }
 
   // ==================== 初期化・状態管理 ====================
@@ -235,13 +238,14 @@ export class CircuitManager {
     const offX = input.viewOffsetX;
     const offY = input.viewOffsetY;
     const gridSize = CONST.GRID.SIZE;
+    const offset = CONST.GRID.DRAW_OFFSET;
 
     // 現在の画面に見えているワールド座標の範囲を計算
     // (画面の左上座標 - オフセット) / スケール = ワールド左上
-    const startX = -2+Math.floor((-offX / scale) / gridSize) * gridSize;
-    const endX = Math.floor(((width - offX) / scale) / gridSize + 1) * gridSize;
-    const startY = -2+Math.floor((-offY / scale) / gridSize) * gridSize;
-    const endY = Math.floor(((height - offY) / scale) / gridSize + 1) * gridSize;
+    const startX = Math.floor((-offX / scale) / gridSize) * gridSize + offset;
+    const endX = Math.floor(((width - offX) / scale) / gridSize + 1) * gridSize + offset;
+    const startY = Math.floor((-offY / scale) / gridSize) * gridSize + offset;
+    const endY = Math.floor(((height - offY) / scale) / gridSize + 1) * gridSize + offset;
 
     stroke(...CONST.GRID.COLOR);
     // ズームしても線の太さが変わらないように見せたい場合は 1/scale にする
@@ -266,19 +270,18 @@ export class CircuitManager {
     if (!this.wiringStartNode) return;
     
     const startPos = this.wiringStartNode.socket.getConnectorWorldPosition();
-    
-    // マウス座標をワールド座標に変換
     const worldMouse = this.getWorldPosition(mouseX, mouseY);
     
-    // ★変更: 目標座標（ターゲット）を計算
+    // 目標座標（ターゲット）を計算
     let targetX = worldMouse.x;
     let targetY = worldMouse.y;
     
-    if (this.moveSnapEnabled) {
-      const snap = CONST.GRID.SNAP_COARSE; // 22px
-      targetX = Math.round(targetX / snap) * snap;
-      targetY = Math.round(targetY / snap) * snap;
-    }
+    const snap = this.moveSnapEnabled ? CONST.GRID.SNAP_COARSE : CONST.GRID.SNAP_FINE; // 22px or 2.75px
+    const offset = {x: CONST.GRID.DRAW_OFFSET, y: CONST.GRID.DRAW_OFFSET};
+    const snapPos = MathUtils.snapPosition(targetX, targetY, snap, offset);
+
+    targetX = snapPos.x;
+    targetY = snapPos.y;
     
     // 近くのコネクタを探してスナップする（こちらはGridSnapに関わらず優先）
     let snapped = false;
@@ -303,17 +306,19 @@ export class CircuitManager {
     }
 
     // ★追加: アニメーション処理（現在値を目標値に近づける）
-    const speed = CONST.ANIMATION.MOVE_SPEED; // 0.3
     
-    this.tempWireEnd.x += (targetX - this.tempWireEnd.x) * speed;
-    this.tempWireEnd.y += (targetY - this.tempWireEnd.y) * speed;
-    
+    this.tempWireEndX.setTarget(targetX);
+    this.tempWireEndY.setTarget(targetY);
+
+    this.tempWireEndX.update();
+    this.tempWireEndY.update();
+
     // 描画
     stroke(...CONST.COLORS.WIRE_TEMP, CONST.WIRE.TEMP_ALPHA);
     strokeWeight(2);
     
     // アニメーション済みの座標を使用
-    line(startPos.x, startPos.y, this.tempWireEnd.x, this.tempWireEnd.y);
+    line(startPos.x, startPos.y, this.tempWireEndX.value, this.tempWireEndY.value);
   }
 
   /**
@@ -472,8 +477,8 @@ export class CircuitManager {
         part.wiringStartSocket = hoveredSocket.name;
 
         // ★追加: 仮ワイヤーの現在位置をマウス位置で初期化（アニメーション用）
-        this.tempWireEnd.x = worldMouse.x;
-        this.tempWireEnd.y = worldMouse.y;
+        this.tempWireEndX.setImmediate(worldMouse.x);
+        this.tempWireEndY.setImmediate(worldMouse.y);
         return;
       }
 
@@ -541,8 +546,8 @@ export class CircuitManager {
         if (this.dragJointWeights && (dx !== 0 || dy !== 0)) {
           for (const [joint, weight] of this.dragJointWeights) {
             // Jointのターゲット座標を更新（スナップに合わせて動く）
-            joint.targetX += dx * weight;
-            joint.targetY += dy * weight;
+            joint.posX.setTarget(joint.posX.target + dx * weight);
+            joint.posY.setTarget(joint.posY.target + dy * weight);
           }
         }
       }

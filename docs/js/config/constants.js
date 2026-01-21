@@ -80,7 +80,8 @@ const COMMON_CONST = {
     COLOR: [50, 50, 50],   // 線の色（背景より少し明るく）
     STROKE_WEIGHT: 1,      // 線の太さ
     SNAP_COARSE: 22,       // スナップON時の単位 (44の半分)
-    SNAP_FINE: 2.75        // スナップOFF時の単位
+    SNAP_FINE: 2.75,       // スナップOFF時の単位
+    DRAW_OFFSET: -2        // 描画オフセット（PARTS.STROKE_WEIGHT の半分）
   },
   
   // 削除モードの設定
