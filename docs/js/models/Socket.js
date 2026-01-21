@@ -22,6 +22,7 @@ export class Socket {
     this.direction = direction;
     this.connectedWires = [];
     this.isPowered = false;
+    this.isTargeted = false;
   }
 
   // ==================== 座標・位置計算 ====================
@@ -166,12 +167,13 @@ export class Socket {
     const isHovered = this.isMouseOver(mx, my);
     const hasWire = this.connectedWires.length > 0;
     const isWiringStart = this.parent.wiringStartSocket === this.name;
+    const showTempSocket = isHovered || isWiringStart || this.isTargeted;
     
     // centerの場合は常時表示、それ以外は従来通り
-    if (isHovered || hasWire || isWiringStart || this.direction === 'center') {
+    if (showTempSocket || hasWire || this.direction === 'center') {
       
       // ホバー時かつ未接続の場合は、一時的な色（赤半透明）で描画
-      if ((isHovered || isWiringStart) && !hasWire) {
+      if (showTempSocket && !hasWire) {
         fillColor = [...CONST.COLORS.WIRE_TEMP, CONST.WIRE.TEMP_ALPHA];
       }
       
