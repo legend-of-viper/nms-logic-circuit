@@ -131,15 +131,17 @@ export class CircuitManager {
    * 指定座標の近くにある、自分以外のパーツのソケットを探す
    * @param {number} x - ワールドX座標（探索の中心点）
    * @param {number} y - ワールドY座標（探索の中心点）
-   * @param {CircuitPart} excludePart - 除外するパーツ（自分自身）
+   * @param {CircuitPart|Socket|null} excludeTarget - 除外する対象（パーツまたはソケット）
    * @param {number} threshold - 検索半径
    * @returns {Socket|null} 見つかったソケット
    */
-  findNearbySocket(x, y, excludePart, threshold = CONST.PARTS.SOCKET_HIT_RADIUS) {
+  findNearbySocket(x, y, excludeTarget, threshold = CONST.PARTS.SOCKET_HIT_RADIUS) {
     for (let part of this.parts) {
-      if (part === excludePart) continue; // 自分自身は無視
+      if (part === excludeTarget) continue;
 
       for (let socket of part.sockets) {
+        if(socket === excludeTarget) continue;
+
         const pos = socket.getConnectorWorldPosition();
         const distVal = dist(x, y, pos.x, pos.y);
         if (distVal < threshold) {
@@ -312,25 +314,11 @@ export class CircuitManager {
     targetY = snapPos.y;
     
     // 近くのコネクタを探してスナップする（こちらはGridSnapに関わらず優先）
-    let snapped = false;
-    
-    for (let part of this.parts) {
-      for (let socket of part.sockets) {
-        const connectorPos = socket.getConnectorWorldPosition();
-        
-        // ★重要: ソケット吸着判定は「生のマウス座標」との距離で行う
-        const distance = dist(worldMouse.x, worldMouse.y, connectorPos.x, connectorPos.y);
-        
-        // 同じソケットでなく、かつヒット範囲内ならスナップ
-        const isSameSocket = (socket === this.wiringStartNode.socket);
-        if (!isSameSocket && distance < CONST.PARTS.SOCKET_HIT_RADIUS) {
-          targetX = connectorPos.x;
-          targetY = connectorPos.y;
-          snapped = true;
-          break;
-        }
-      }
-      if (snapped) break;
+    const nearbySocket = this.findNearbySocket(worldMouse.x, worldMouse.y, this.wiringStartNode.socket)
+    if (nearbySocket) {
+      const connectorPos = nearbySocket.getConnectorWorldPosition();
+      targetX = connectorPos.x;
+      targetY = connectorPos.y;
     }
 
     // ★追加: アニメーション処理（現在値を目標値に近づける）
@@ -718,19 +706,10 @@ export class CircuitManager {
         this.wiringStartNode = null;
         return; // ここで処理を終了
       }
-
-      let targetSocket = null;
       
       // 1. 既存のソケットを探す
-      for (let part of this.parts) {
-        const hoveredSocket = part.getHoveredSocket(worldMouse.x, worldMouse.y);
-        // 同じソケット同士の接続は禁止
-        const isSameSocket = (hoveredSocket === this.wiringStartNode.socket);
-        if (hoveredSocket && !isSameSocket) {
-          targetSocket = hoveredSocket;
-          break;
-        }
-      }
+      let targetSocket = this.findNearbySocket(worldMouse.x, worldMouse.y, this.wiringStartNode.socket);
+      
 
       // 2. ソケットが見つからなかった場合 -> 「虚空」かチェック
       if (!targetSocket) {
@@ -837,10 +816,10 @@ export class CircuitManager {
               const pushY = otherPos.y + Math.sin(angle) * min_dist;
 
               this.draggingPart.posX.setTarget(pushX - CONST.PARTS.WIDTH / 2);
-              this.draggingPart.posY.setTarget(pushY = CONST.PARTS.HEIGHT / 2);
+              this.draggingPart.posY.setTarget(pushY - CONST.PARTS.HEIGHT / 2);
             }
           }
-
+          this.draggingPart.onMouseUp();
         }
       } else {
         // 移動モードで、ドラッグが発生しなかった場合のみinteract()を呼ぶ
