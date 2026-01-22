@@ -75,12 +75,12 @@ export class WireJoint extends CircuitPart {
     
     const isHovered = this.isMouseOver(mx, my);
 
-    if (isHovered || this.isDragging) {
+    if (isHovered || (this.isDragging && mouseIsPressed)) {
       // 親のdraw()ですでに中心へtranslateされているので、
       // 左上の座標は (-幅/2, -高さ/2) になります
       const handleX = -CONST.PARTS.WIDTH / 2;
       const handleY = -CONST.PARTS.HEIGHT / 2;
-      const handleSize = 24; // 少し大きくして見やすく
+      const handleSize = CONST.PARTS.JOINT_HANDLE_RADIUS * 2; // 少し大きくして見やすく
 
       push();
       // 1. ハンドルの背景（半透明の青）

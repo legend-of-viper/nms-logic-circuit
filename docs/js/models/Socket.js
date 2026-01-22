@@ -58,6 +58,19 @@ export class Socket {
     return this.parent.localToWorld(this.localX + offsetX, this.localY + offsetY);
   }
 
+  /**
+   * ★追加: 取り外しハンドルのワールド座標を取得
+   * ソケット中心から左上(-20, -20)の位置
+   */
+  getDetachHandleWorldPosition() {
+    const socketPos = this.getConnectorWorldPosition();
+    
+    return {
+      x: socketPos.x - CONST.PARTS.WIDTH / 2,
+      y: socketPos.y - CONST.PARTS.HEIGHT / 2
+    }
+  }
+
   // ==================== 接続管理 ====================
   
   /**
@@ -94,6 +107,22 @@ export class Socket {
     
     const worldPos = this.getConnectorWorldPosition();
     return dist(x, y, worldPos.x, worldPos.y) < CONST.PARTS.SOCKET_HIT_RADIUS;
+  }
+
+  /**
+   * ★追加: 取り外しハンドル上にマウスがあるか判定
+   */
+  isMouseOverDetachHandle(mx, my) {
+    // ワイヤーが繋がっていない、または親がJointの場合はハンドルを出さない
+    if (this.connectedWires.length === 0) return false;
+    if (this.parent.type === CONST.PART_TYPE.JOINT) return false;
+
+    const x = mx !== undefined ? mx : mouseX;
+    const y = my !== undefined ? my : mouseY;
+
+    const handlePos = this.getDetachHandleWorldPosition();
+    // 判定半径は15px程度（Jointのハンドルと同じくらい）
+    return dist(x, y, handlePos.x, handlePos.y) < CONST.PARTS.DETACH_HANDLE_HIT_RADIUS;
   }
 
   // ==================== 描画 ====================
@@ -214,6 +243,83 @@ export class Socket {
                      ? CONST.PARTS.JOINT_RADIUS 
                      : CONST.PARTS.CONNECTOR_RADIUS * 2;
       circle(connectorLocalX, connectorLocalY, radius);
+    }
+
+    this.drawDetachHandle(worldMouse);
+  }
+
+  /**
+   * ★追加: 取り外しハンドルを描画
+   */
+  drawDetachHandle(worldMouse) {
+    // ワイヤーが繋がっていない、または親がJointの場合はハンドルを出さない
+    if (this.connectedWires.length === 0) return;
+    if (this.parent.type === CONST.PART_TYPE.JOINT) return;
+
+    const mx = worldMouse ? worldMouse.x : undefined;
+    const my = worldMouse ? worldMouse.y : undefined;
+    const isHovered = this.isMouseOverDetachHandle(mx, my);
+
+    if (isHovered) {
+      let cx = this.localX;
+      let cy = this.localY;
+      
+      // directionに応じてオフセットを計算
+      switch (this.direction) {
+        case 'left':
+          cx -= CONST.PARTS.CONNECTOR_HEIGHT;
+          break;
+        case 'right':
+          cx += CONST.PARTS.CONNECTOR_HEIGHT;
+          break;
+        case 'bottom':
+          cy += CONST.PARTS.CONNECTOR_HEIGHT;
+          break;
+      }
+
+      push();
+      // 親パーツの回転を逆回転させてハンドルを水平に保つ
+      translate(cx,cy);
+      rotate(-this.parent.rotation);
+
+      // 左上にずらして描画（WireJointと同じ位置）
+      const offset = -CONST.PARTS.WIDTH / 2;
+      translate(offset, offset);
+
+      // WireJointのハンドルと同じデザイン
+      noStroke();
+      fill(60, 110, 255, 230);
+      circle(0, 0, CONST.PARTS.DETACH_HANDLE_RADIUS * 2);
+
+      stroke(255);
+      strokeWeight(1.5);
+      noFill();
+      strokeCap(ROUND);
+      strokeJoin(ROUND);
+
+      const d = 9;  // 中心からの軸の長さ
+      const s = 3;  // 矢印の羽のサイズ
+
+      // 軸を描画（十字）
+      line(-d, 0, d, 0); // 横軸
+      line(0, -d, 0, d); // 縦軸
+
+      // 4方向の矢印の先端を描画
+      // 左
+      line(-d, 0, -d + s, -s);
+      line(-d, 0, -d + s, s);
+      line(-d, 0, -d + s, s);
+      // 右
+      line(d, 0, d - s, -s);
+      line(d, 0, d - s, s);
+      // 上
+      line(0, -d, -s, -d + s);
+      line(0, -d, s, -d + s);
+      // 下
+      line(0, d, -s, d - s);
+      line(0, d, s, d - s);
+
+      pop();
     }
   }
 }

@@ -37,6 +37,9 @@ export class CircuitManager {
     this.tempWireEndY = new SmoothValue(0, CONST.ANIMATION.MOVE_SPEED, CONST.ANIMATION.MOVE_SNAP_THRESHOLD);
     
     this.currentSnapSocket = null; // 仮ワイヤーのスナップ先ソケット
+
+    this.detachTargetSocket = null; // 切断対象のソケット
+    this.detachStartPos = null;  // 切断開始時のマウス位置
   }
 
   // ==================== 初期化・状態管理 ====================
@@ -492,6 +495,18 @@ export class CircuitManager {
         part.onRotationMouseDown(worldMouse.x, worldMouse.y);
         return;
       }
+
+      // ★追加: ソケットの取り外しハンドルをクリックしたか？
+      for (let socket of part.sockets) {
+        if (socket.isMouseOverDetachHandle(worldMouse.x, worldMouse.y)) {
+           console.log("デタッチ操作待機中:", socket.name);
+           
+          this.detachTargetSocket = socket;
+          this.detachStartPos = { x: mouseX, y: mouseY };
+           
+           return; // 処理終了
+        }
+      }
       
       // B. ソケットをクリックしたか？（ワイヤーモード）
       const hoveredSocket = part.getHoveredSocket(worldMouse.x, worldMouse.y);
@@ -543,6 +558,48 @@ export class CircuitManager {
       return;
     }
 
+    if (this.detachTargetSocket) {
+      // 一定距離以上ドラッグしたら切断を実行
+      const dragDistance = dist(mouseX, mouseY, this.detachStartPos.x, this.detachStartPos.y);
+      const threshold = CONST.PARTS.SOCKET_HIT_RADIUS; // ピクセル単位の閾値
+      if (dragDistance > threshold) {
+        console.log("ソケットのワイヤーを切断:", this.detachTargetSocket.name); 
+
+        const socket = this.detachTargetSocket;
+
+        // ソケット位置に新しいWireJointを作成
+        const socketPos = socket.getConnectorWorldPosition();
+        const jointX = socketPos.x - CONST.PARTS.WIDTH / 2;
+        const jointY = socketPos.y - CONST.PARTS.HEIGHT / 2;
+        
+        this.createPart(CONST.PART_TYPE.JOINT, jointX, jointY);
+        const newJoint = this.parts[this.parts.length - 1]; // 最新のパーツが新しいJoint
+        const jointSocket = newJoint.getSocket('center');
+
+        // 既存のワイヤーを新しいJointに接続し直す
+        const wiresToDetach = [...socket.connectedWires];
+        wiresToDetach.forEach(wire => {
+          socket.disconnectWire(wire);
+          if (wire.startSocket === socket) wire.startSocket = jointSocket;
+          if (wire.endSocket === socket) wire.endSocket = jointSocket;
+          jointSocket.connectWire(wire);
+        });
+
+        const worldMouse = this.getWorldPosition(mouseX, mouseY);
+        newJoint.posX.setTarget(worldMouse.x);
+        newJoint.posY.setTarget(worldMouse.y);
+
+        // 新しいWireJointをドラッグ状態にする
+        this.draggingPart = newJoint;
+        // const worldMouse = this.getWorldPosition(mouseX, mouseY);
+        newJoint.onMouseDown(worldMouse.x, worldMouse.y);
+
+        // リセット
+        this.detachTargetSocket = null;
+        this.detachStartPos = null;
+      }
+    }
+
     // 1本指操作（パーツ移動など）
     if (this.draggingPart) {
       // マウス座標をワールド座標に変換
@@ -572,12 +629,17 @@ export class CircuitManager {
           }
 
           // ジョイントの中心座標に近いソケットを探す
-          // const jointCenter = this.draggingPart.getCenter();
           const jointCenterX = this.draggingPart.targetX + CONST.PARTS.WIDTH / 2;
           const jointCenterY = this.draggingPart.targetY + CONST.PARTS.HEIGHT / 2;
           const targetSocket = this.findNearbySocket(jointCenterX, jointCenterY, this.draggingPart);
 
-          if (targetSocket) {
+          // 見つけたソケットが、現在ドラッグ中のJointの反対側のソケットでないか確認
+          const jointSocket = this.draggingPart.getSocket('center');
+          const otherEndSockets = jointSocket.connectedWires.map(wire => wire.getOtherEnd(jointSocket));
+          const isConnectingToSelf = otherEndSockets.includes(targetSocket);
+
+          // 近くにソケットが見つかり、かつ自分自身に接続しようとしていない場合
+          if (targetSocket && !isConnectingToSelf) {
             // 見つかったソケットにスナップさせる
             const socketPos = targetSocket.getConnectorWorldPosition();
             this.draggingPart.posX.setTarget(socketPos.x - CONST.PARTS.WIDTH / 2);
@@ -624,6 +686,12 @@ export class CircuitManager {
     if (this.currentSnapSocket) {
       this.currentSnapSocket.isTargeted = false;
       this.currentSnapSocket = null;
+    }
+
+    // デタッチ操作のリセット
+    if(this.detachTargetSocket) {
+      this.detachTargetSocket = null;
+      this.detachStartPos = null;
     }
 
     // マウス座標をワールド座標に変換
@@ -720,11 +788,18 @@ export class CircuitManager {
       if (this.draggingPart.isRotating) {
         this.draggingPart.onRotationMouseUp();
       } else if (this.draggingPart.type === CONST.PART_TYPE.JOINT) {
+
         const jointCenterX = this.draggingPart.targetX + CONST.PARTS.WIDTH / 2;
         const jointCenterY = this.draggingPart.targetY + CONST.PARTS.HEIGHT / 2;
         const targetSocket = this.findNearbySocket(jointCenterX, jointCenterY, this.draggingPart);
         
-        if (targetSocket) {
+        // 見つけたソケットが、現在ドラッグ中のJointの反対側のソケットでないか確認
+        const jointSocket = this.draggingPart.getSocket('center');
+        const otherEndSockets = jointSocket.connectedWires.map(wire => wire.getOtherEnd(jointSocket));
+        const isConnectingToSelf = otherEndSockets.includes(targetSocket);
+
+        // 近くにソケットが見つかり、かつ自分自身に接続しようとしていない場合
+        if (targetSocket && !isConnectingToSelf) {
           console.log("ジョイントをソケットにスナップ");
           const joint = this.draggingPart;
           const jointSocket = joint.getSocket('center');
@@ -743,6 +818,29 @@ export class CircuitManager {
 
           // ジョイントを削除
           this.deletePart(joint);
+        } else {
+          // 接続しなかった場合で、相手と自分の距離が近すぎる場合は距離を取る
+          const min_dist = CONST.PARTS.SOCKET_HIT_RADIUS;
+          
+          for (let otherSocket of otherEndSockets) {
+            if (!otherSocket) continue;
+
+            const otherPos = otherSocket.getConnectorWorldPosition();
+            const d = dist(jointCenterX, jointCenterY, otherPos.x, otherPos.y);
+
+            if (d < min_dist) {
+              // 相手と自分との角度を計算
+              let angle = Math.atan2(jointCenterY - otherPos.y, jointCenterX - otherPos.x);
+              if (d === 0) angle = 0;
+
+              const pushX = otherPos.x + Math.cos(angle) * min_dist;
+              const pushY = otherPos.y + Math.sin(angle) * min_dist;
+
+              this.draggingPart.posX.setTarget(pushX - CONST.PARTS.WIDTH / 2);
+              this.draggingPart.posY.setTarget(pushY = CONST.PARTS.HEIGHT / 2);
+            }
+          }
+
         }
       } else {
         // 移動モードで、ドラッグが発生しなかった場合のみinteract()を呼ぶ
