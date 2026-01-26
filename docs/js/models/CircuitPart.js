@@ -37,6 +37,9 @@ export class CircuitPart {
     this.wiringStartSocket = null;
 
     this.isHighlighted = false;
+    
+    // ★追加: 選択状態フラグ
+    this.isSelected = false;
   }
 
   // ==================== プロパティアクセサ ====================
@@ -530,6 +533,11 @@ export class CircuitPart {
       this.drawHighlight();
     }
     
+    // ★追加: 選択されている場合、青緑色の枠を表示
+    if (this.isSelected) {
+      this.drawSelectionBorder();
+    }
+    
     pop();
     
     // 回転ハンドルを描画（回転の外で）
@@ -569,6 +577,18 @@ export class CircuitPart {
     rectMode(CENTER);
     // デフォルト: パーツと同じサイズ・同じ角丸(8)で覆う
     rect(0, 0, CONST.PARTS.WIDTH*1.5, CONST.PARTS.HEIGHT*1.5, 12);
+  }
+
+  /**
+   * ★追加: 選択時の枠線描画
+   */
+  drawSelectionBorder() {
+    noFill();
+    stroke(...CONST.COLORS.PART_SELECTED);
+    strokeWeight(2); // 少し細めの明瞭な線
+    rectMode(CENTER);
+    // パーツより一回り大きく描画
+    rect(0, 0, CONST.PARTS.WIDTH * 1.2, CONST.PARTS.HEIGHT * 1.2, 4);
   }
 
   /**

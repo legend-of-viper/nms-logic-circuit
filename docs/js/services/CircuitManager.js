@@ -40,6 +40,13 @@ export class CircuitManager {
 
     this.detachTargetSocket = null; // 切断対象のソケット
     this.detachStartPos = null;  // 切断開始時のマウス位置
+
+    // ★追加: 複数選択モード用変数
+    this.isMultiSelectMode = false; 
+    this.selectedParts = new Set();      // ユーザーが明示的に選択したパーツ
+    this.implicitJoints = new Set();     // 自動的に追従するJoint
+    this.isGroupDragging = false;
+    this.clickedPartWasSelected = false; // Press時点で既に選択済みだったか
   }
 
   // ==================== 初期化・状態管理 ====================
@@ -69,10 +76,14 @@ export class CircuitManager {
   }
 
   /**
-   * 削除モードの切り替え
+   * 削除モードの切り替え（修正）
    */
   toggleDeleteMode() {
     this.isDeleteMode = !this.isDeleteMode;
+    // ★追加: 削除モードに入ったら複数選択は解除
+    if (this.isDeleteMode) {
+      this.setMultiSelectMode(false);
+    }
     console.log(`削除モード: ${this.isDeleteMode ? 'ON' : 'OFF'}`);
   }
 
@@ -82,6 +93,76 @@ export class CircuitManager {
    */
   getDeleteMode() {
     return this.isDeleteMode;
+  }
+
+  /**
+   * ★追加: 複数選択モード切り替え
+   */
+  toggleMultiSelectMode() {
+    this.setMultiSelectMode(!this.isMultiSelectMode);
+  }
+
+  setMultiSelectMode(enabled) {
+    this.isMultiSelectMode = enabled;
+    
+    // モードOFF時に選択を全解除
+    if (!enabled) {
+      this.clearSelection();
+    } else {
+      // 選択モード時は削除モードをOFF
+      this.isDeleteMode = false;
+    }
+    console.log(`複数選択モード: ${this.isMultiSelectMode ? 'ON' : 'OFF'}`);
+  }
+  
+  getMultiSelectMode() {
+    return this.isMultiSelectMode;
+  }
+
+  /**
+   * ★追加: 選択状態のクリア
+   */
+  clearSelection() {
+    this.selectedParts.forEach(part => part.isSelected = false);
+    this.selectedParts.clear();
+    this.implicitJoints.clear();
+  }
+
+  /**
+   * ★追加: 内部Joint（挟まれたJoint）を特定する
+   * 選択されたパーツ群だけを見て、その間にあるJointを抽出
+   */
+  detectImplicitJoints() {
+    this.implicitJoints.clear();
+
+    // 全パーツの中からJointを探す
+    this.parts.forEach(part => {
+      if (part.type === CONST.PART_TYPE.JOINT) {
+        // このJointにつながっている全ワイヤーを調べる
+        const socket = part.getSocket('center');
+        if (!socket) return;
+
+        let isInternal = true;
+        let connectionCount = 0;
+
+        for (const wire of socket.connectedWires) {
+          const otherEnd = wire.getOtherEnd(socket);
+          if (otherEnd) {
+            connectionCount++;
+            // 接続先のパーツが「選択済み」でなければ、このJointは内部ではない
+            if (!this.selectedParts.has(otherEnd.parent)) {
+              isInternal = false;
+              break;
+            }
+          }
+        }
+
+        // 1つ以上つながっていて、かつ全ての接続先が選択パーツなら「道連れ」にする
+        if (connectionCount > 0 && isInternal) {
+          this.implicitJoints.add(part);
+        }
+      }
+    });
   }
 
   /**
@@ -452,12 +533,9 @@ export class CircuitManager {
     // マウス座標をワールド座標に変換
     const worldMouse = this.getWorldPosition(mouseX, mouseY);
     
-    // 削除モード中のクリック処理（スマホでは削除カーソルを使うため、PCのみ）
+    // 1. 削除モード（優先）
     if (this.isDeleteMode && !isMobile) {
-      
-      // 共通メソッドを使って判定する
       const result = this.getDeletionTarget(worldMouse.x, worldMouse.y);
-      
       if (result) {
         if (result.type === 'wire') {
           this.deleteWire(result.target);
@@ -465,73 +543,139 @@ export class CircuitManager {
           this.deletePart(result.target);
         }
       } else {
-        // ★追加: 削除対象がない場合はパン操作を開始
         this.isPanning = true;
       }
-      // 削除モード中はここで処理終了
       return;
     }
 
-    // 通常モード：後ろ（手前に表示されているもの）から判定
+    // 2. 通常のクリック判定（手前から判定）
+    let clickedPart = null;
     for (let i = this.parts.length - 1; i >= 0; i--) {
       const part = this.parts[i];
       
-      // A. 回転ハンドルをクリックしたか？（回転モード）
+      // A. 特殊操作（回転ハンドル、ソケット、取り外しハンドル）
+      if (part.isMouseOverRotationHandle(worldMouse.x, worldMouse.y) || 
+          part.getHoveredSocket(worldMouse.x, worldMouse.y) ||
+          part.sockets.some(s => s.isMouseOverDetachHandle(worldMouse.x, worldMouse.y))) {
+        
+        // ★追加: 複数選択モード中は、これら（回転・配線）の操作をブロックする
+        if (this.isMultiSelectMode) {
+          return; 
+        }
+        
+        // 通常モードなら、後続の既存ロジックに任せるためにループを抜ける
+        // （clickedPartには入れない）
+        break; 
+      }
+
+      // B. パーツ本体のクリック判定
+      if (part.isMouseOver(worldMouse.x, worldMouse.y)) {
+        clickedPart = part;
+        break; 
+      }
+    }
+
+    // ★ここから新ロジック（複数選択モード）
+    if (this.isMultiSelectMode) {
+      if (clickedPart) {
+        // Jointは直接選択させない
+        if (clickedPart.type === CONST.PART_TYPE.JOINT) {
+          return; 
+        }
+
+        // 【修正】操作対象としてdraggingPartにセットしておく
+        this.draggingPart = clickedPart;
+
+        // Press時点で既に選択済みかを記録
+        this.clickedPartWasSelected = this.selectedParts.has(clickedPart);
+        
+        // 未選択の場合のみ、選択に追加
+        if (!this.clickedPartWasSelected) {
+          clickedPart.isSelected = true;
+          this.selectedParts.add(clickedPart);
+        }
+        
+        this.startGroupDrag(worldMouse);
+        return;
+      } else {
+        // 余白クリック -> 選択は維持したまま、パン操作へ
+        if (!isMobile) this.isPanning = true;
+        return; 
+      }
+    }
+
+    // ★以下、通常モードの既存ロジック（そのまま維持）
+    
+    // 回転ハンドルやソケットがクリックされていた場合の処理は
+    // ループ内の判定で clickedPart が null のままここに来るため、再度判定が必要
+    // （効率化のため既存コード構造を維持しつつ、clickedPartがあれば優先処理）
+    
+    if (clickedPart) {
+      // 通常モードでパーツをクリック -> 単体移動やスイッチ操作
+      this.draggingPart = clickedPart;
+      clickedPart.onMouseDown(worldMouse.x, worldMouse.y);
+      
+      this.dragJointWeights = null;
+      if (clickedPart.type !== CONST.PART_TYPE.JOINT) {
+        this.dragJointWeights = GraphUtils.calculateJointWeights(clickedPart);
+      }
+      return;
+    }
+
+    // パーツ以外（回転ハンドルやソケット）の再判定
+    for (let i = this.parts.length - 1; i >= 0; i--) {
+      const part = this.parts[i];
+      
       if (part.isMouseOverRotationHandle(worldMouse.x, worldMouse.y)) {
-        console.log("回転ハンドルクリック");
         this.draggingPart = part;
         part.onRotationMouseDown(worldMouse.x, worldMouse.y);
         return;
       }
 
-      // ★追加: ソケットの取り外しハンドルをクリックしたか？
       for (let socket of part.sockets) {
         if (socket.isMouseOverDetachHandle(worldMouse.x, worldMouse.y)) {
-           console.log("デタッチ操作待機中:", socket.name);
-           
           this.detachTargetSocket = socket;
           this.detachStartPos = { x: mouseX, y: mouseY };
-           
-           return; // 処理終了
+          return;
         }
       }
       
-      // B. ソケットをクリックしたか？（ワイヤーモード）
       const hoveredSocket = part.getHoveredSocket(worldMouse.x, worldMouse.y);
       if (hoveredSocket) {
-        console.log("ソケットクリック:", hoveredSocket.name);
         this.wiringStartNode = { part: part, socket: hoveredSocket };
-        // ワイヤリング開始ソケットをマーク
         part.wiringStartSocket = hoveredSocket.name;
-
-        // ★追加: 仮ワイヤーの現在位置をマウス位置で初期化（アニメーション用）
         this.tempWireEndX.setImmediate(worldMouse.x);
         this.tempWireEndY.setImmediate(worldMouse.y);
         return;
       }
-
-      // C. パーツ本体をクリックしたか？（移動モード or スイッチ操作）
-      if (part.isMouseOver(worldMouse.x, worldMouse.y)) {
-        this.draggingPart = part;
-        part.onMouseDown(worldMouse.x, worldMouse.y);
-        
-        // Joint追従のための重みマップを作成
-        this.dragJointWeights = null;
-        
-        if (part.type !== CONST.PART_TYPE.JOINT) {
-          // Joint以外のパーツを掴んだ時だけ計算する
-          this.dragJointWeights = GraphUtils.calculateJointWeights(part);
-        }
-        
-        // interact()はmouseReleasedで呼ぶように変更
-        return;
-      }
     }
 
-    // ★追加: 何もクリックしなかった場合、PCレイアウトならパン操作を開始
+    // 何もクリックしなかった場合
     if (!isMobile) {
       this.isPanning = true;
     }
+  }
+
+  /**
+   * ★追加: グループドラッグ開始処理
+   */
+  startGroupDrag(worldMouse) {
+    this.isGroupDragging = true;
+    
+    // 1. 各パーツのドラッグ開始位置を記録（相対移動用）
+    this.selectedParts.forEach(part => {
+      part.onMouseDown(worldMouse.x, worldMouse.y);
+    });
+
+    // 2. 内部Joint（道連れにするJoint）を検出
+    this.detectImplicitJoints();
+    
+    // 3. 内部Jointもドラッグ開始状態にする
+    this.implicitJoints.forEach(joint => {
+      joint.onMouseDown(worldMouse.x, worldMouse.y);
+    });
+    
+    console.log(`グループ移動開始: パーツ${this.selectedParts.size}個 + Joint${this.implicitJoints.size}個`);
   }
 
   /**
@@ -543,6 +687,7 @@ export class CircuitManager {
       // 2本指操作が行われた場合、パーツドラッグをキャンセル
       this.draggingPart = null;
       this.dragJointWeights = null;
+      this.isGroupDragging = false; // ★追加: グループドラッグもキャンセル
       return;
     }
 
@@ -586,13 +731,29 @@ export class CircuitManager {
         this.detachTargetSocket = null;
         this.detachStartPos = null;
       }
+      return;
     }
 
-    // 1本指操作（パーツ移動など）
-    if (this.draggingPart) {
-      // マウス座標をワールド座標に変換
-      const worldMouse = this.getWorldPosition(mouseX, mouseY);
+    const worldMouse = this.getWorldPosition(mouseX, mouseY);
+
+    // ★追加: グループドラッグ中
+    if (this.isGroupDragging) {
+      const snapUnit = this.moveSnapEnabled ? CONST.GRID.SNAP_COARSE : CONST.GRID.SNAP_FINE;
       
+      // 選択パーツを移動
+      this.selectedParts.forEach(part => {
+        part.onMouseDragged(worldMouse.x, worldMouse.y, snapUnit);
+      });
+      
+      // 道連れJointも移動
+      this.implicitJoints.forEach(joint => {
+        joint.onMouseDragged(worldMouse.x, worldMouse.y, snapUnit);
+      });
+      return;
+    }
+
+    // 通常の1本指操作（既存ロジック）
+    if (this.draggingPart) {
       // 回転モードか移動モードかで処理を分ける
       if (this.draggingPart.isRotating) {
         this.draggingPart.onRotationMouseDragged(this.rotationSnapEnabled, worldMouse.x, worldMouse.y);
@@ -669,6 +830,39 @@ export class CircuitManager {
     
     // ★追加: パンニング状態のリセット
     this.isPanning = false;
+
+    // ★追加: グループドラッグ終了
+    if (this.isGroupDragging) {
+      // ドラッグが発生したかチェック
+      let anyPartMoved = false;
+      for (const part of this.selectedParts) {
+        if (part.wasDragged()) {
+          anyPartMoved = true;
+          break;
+        }
+      }
+      
+      // 【修正】ドラッグが発生せず(クリックのみ)、かつ元々選択済みだった場合 -> 解除
+      if (!anyPartMoved && this.clickedPartWasSelected) {
+        // draggingPart（クリックしたパーツ）を解除対象にする
+        if (this.draggingPart && this.selectedParts.has(this.draggingPart)) {
+          this.draggingPart.isSelected = false;
+          this.selectedParts.delete(this.draggingPart);
+          console.log(`パーツの選択を解除しました: ${this.draggingPart.id}`);
+        }
+      }
+      
+      this.isGroupDragging = false;
+      this.clickedPartWasSelected = false;
+      
+      // 【修正】重要: 操作対象をリセット
+      this.draggingPart = null;
+      
+      this.selectedParts.forEach(part => part.onMouseUp());
+      this.implicitJoints.forEach(joint => joint.onMouseUp());
+      this.implicitJoints.clear();
+      return;
+    }
 
     // スナップソケットをリセット
     if (this.currentSnapSocket) {

@@ -172,6 +172,39 @@ button:active {
     0 1px 2px rgba(0, 0, 0, 0.5) !important;
 }
 
+/* ★追加: 複数選択ボタンのスタイル */
+#btn-multi-select {
+  /* パーツボタンの基本スタイル(button)を継承しつつ独自カスタム */
+  background-color: #004455;
+  border: 2px solid #0088aa;
+  position: relative;
+}
+
+/* アイコン：四角い点線枠 */
+#btn-multi-select::after {
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 2px dashed #00ccff; 
+  border-radius: 4px;
+  background-color: rgba(0, 204, 255, 0.2);
+}
+
+#btn-multi-select:hover {
+  background-color: #005566;
+  border-color: #00aadd;
+}
+
+/* アクティブ（ON）状態 */
+#btn-multi-select.active {
+  background-color: #0088aa;
+  border-color: #00ffff;
+  box-shadow: 
+    inset 0 0 10px rgba(0, 0, 0, 0.5),
+    0 0 15px rgba(0, 255, 255, 0.6);
+}
+
 /* 削除モードボタン（ベース） */
 .delete-mode-btn {
   /* パーツボタンと同じサイズ・基本設定を継承しつつ上書き */

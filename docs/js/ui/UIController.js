@@ -141,6 +141,12 @@ setupLabels() {
     deleteBtn.textContent = ''; // 文字を消す
     deleteBtn.title = CONST.UI_LABELS.DELETE_MODE; // ツールチップを設定
 
+    // ★追加: 複数選択ボタンのツールチップ
+    const multiSelectBtn = document.getElementById(CONST.DOM_IDS.PC.MULTI_SELECT);
+    if (multiSelectBtn) {
+       multiSelectBtn.title = CONST.UI_LABELS.MULTI_SELECT;
+    }
+
     document.getElementById('btn-reset').textContent = 'Reset';
     document.getElementById('btn-save').textContent = CONST.UI_LABELS.SAVE;
     document.getElementById('btn-load').textContent = CONST.UI_LABELS.LOAD;
@@ -411,6 +417,12 @@ setupLabels() {
       [CONST.DOM_IDS.PC.DELETE_MODE, CONST.DOM_IDS.MOBILE.FAB_DELETE],
       () => this.handleToggleDeleteMode()
     );
+
+    // ★追加: 複数選択モードボタン
+    this.bindAction(
+      [CONST.DOM_IDS.PC.MULTI_SELECT],
+      () => this.handleToggleMultiSelectMode()
+    );
     
     // ファイル操作ボタン（PC用とモバイル用）
     this.bindAction(
@@ -624,15 +636,49 @@ setupLabels() {
   }
 
   /**
-   * 削除モード切り替え処理
+   * 削除モード切り替え処理（修正）
    */
   handleToggleDeleteMode() {
     this.simulator.toggleDeleteMode();
     this.updateDeleteButtonState();
     
+    // ★追加: 複数選択モードは排他制御でOFFになるので見た目も更新
+    this.updateMultiSelectButtonState();
+    
     // モバイルの場合は削除カーソルの表示/非表示を切り替え
     if (this.deleteCursorOverlay) {
       this.deleteCursorOverlay.updateVisibility();
+    }
+  }
+
+  /**
+   * ★追加: 複数選択モード切り替え
+   */
+  handleToggleMultiSelectMode() {
+    this.simulator.toggleMultiSelectMode();
+    this.updateMultiSelectButtonState();
+    
+    // 削除モードは排他制御でOFFになるので見た目も更新
+    this.updateDeleteButtonState();
+    
+    // 削除カーソルも隠す
+    if (this.deleteCursorOverlay) {
+      this.deleteCursorOverlay.updateVisibility();
+    }
+  }
+  
+  /**
+   * ★追加: 複数選択ボタンの見た目更新
+   */
+  updateMultiSelectButtonState() {
+    const isMulti = this.simulator.getMultiSelectMode();
+    const btn = document.getElementById(CONST.DOM_IDS.PC.MULTI_SELECT);
+    if (btn) {
+      if (isMulti) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
     }
   }
 

@@ -21,7 +21,9 @@ const COMMON_CONST = {
     WIRE_ON: [0, 128, 255],
     WIRE_TEMP: [255, 50, 50],
     ON_STATE: [0, 128, 255],
-    OFF_STATE: [255, 50, 50]
+    OFF_STATE: [255, 50, 50],
+    // ★追加: 選択時の色
+    PART_SELECTED: [0, 255, 255]            // パーツ選択時の枠色（シアン）
   },
   
   // 部品の設定
@@ -72,6 +74,7 @@ const COMMON_CONST = {
     LOAD: 'Load',
     SHARE: 'Share',
     DELETE_MODE: 'Delete Mode',
+    MULTI_SELECT: 'Multi Select Mode', // ★追加
     ROTATION_SNAP: 'Rotation Snap',
     MOVE_SNAP: 'Grid Snap',
     GRID_VISIBLE: 'Show Grid'
@@ -115,6 +118,7 @@ const COMMON_CONST = {
       WALL_SWITCH: 'btn-wall-switch',
       COLOR_LIGHT: 'btn-color-light',
       DELETE_MODE: 'btn-delete-mode',
+      MULTI_SELECT: 'btn-multi-select', // ★追加
       SAVE: 'btn-save',
       LOAD: 'btn-load',
       SHARE: 'btn-share',
