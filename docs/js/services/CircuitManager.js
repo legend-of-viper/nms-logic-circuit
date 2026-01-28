@@ -877,8 +877,11 @@ export class CircuitManager {
           let centerY = worldMouse.y;
           if (this.moveSnapEnabled) {
             const snap = CONST.GRID.SNAP_COARSE;
-            centerX = Math.round(centerX / snap) * snap;
-            centerY = Math.round(centerY / snap) * snap;
+            // オフセット（-2px）を適用して、描画位置と一致させる
+            const offset = {x: CONST.GRID.DRAW_OFFSET, y: CONST.GRID.DRAW_OFFSET};
+            const snapped = MathUtils.snapPosition(centerX, centerY, snap, offset);
+            centerX = snapped.x;
+            centerY = snapped.y;
           }
           const jointX = centerX - CONST.PARTS.WIDTH / 2;
           const jointY = centerY - CONST.PARTS.HEIGHT / 2;
