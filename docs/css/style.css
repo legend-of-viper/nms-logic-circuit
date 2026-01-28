@@ -772,6 +772,10 @@ body.mobile-mode #canvas-container canvas {
   position: fixed;
   z-index: 2000;
   display: none;
+  /* ★追加: 位置とサイズの変更を滑らかにする */
+  transition: left 0.1s cubic-bezier(0.2, 0.8, 0.2, 1), 
+              top 0.1s cubic-bezier(0.2, 0.8, 0.2, 1), 
+              width 0.1s, height 0.1s;
 }
 #pc-delete-highlight.visible {
   display: flex;
@@ -783,10 +787,13 @@ body.mobile-mode #canvas-container canvas {
   z-index: 2500;
   pointer-events: all;
   opacity: 1;
-  transition: opacity 0.2s ease;
   display: flex;
   align-items: center;
   gap: 10px;
+  /* ★追加: スマホ版カーソルも滑らかに移動 */
+  transition: left 0.1s cubic-bezier(0.2, 0.8, 0.2, 1), 
+              top 0.1s cubic-bezier(0.2, 0.8, 0.2, 1), 
+              opacity 0.2s;
 }
 
 .delete-cursor.hidden {

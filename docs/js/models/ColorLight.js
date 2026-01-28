@@ -27,6 +27,32 @@ export class ColorLight extends CircuitPart {
     ];
   }
 
+  // ==================== マウス・入力処理 ====================
+  
+  /**
+   * マウスがこの部品の上にあるか判定（簡易版・バウンディングボックス）
+   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
+   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
+   * @param {number} scale - 判定サイズの倍率（デフォルト1.0）
+   */
+  isMouseOver(mx, my, scale = 1.0) {
+    // 引数がなければグローバルのmouseXを使う（互換性維持）
+    const x = mx !== undefined ? mx : mouseX;
+    const y = my !== undefined ? my : mouseY;
+    
+    // 中心座標を計算
+    const cx = this.x + CONST.PARTS.WIDTH / 2;
+    const cy = this.y + CONST.PARTS.HEIGHT / 2;
+    
+    // 判定幅の半分を計算
+    const halfW = (CONST.PARTS.WIDTH * scale) / 2;
+    const halfH = (CONST.PARTS.HEIGHT * 1.5 * scale) / 2;
+    
+    // 中心からの範囲で判定
+    return (x > cx - halfW && x < cx + halfW &&
+            y > cy - halfH && y < cy + halfH);
+  }
+
   // ==================== 設定 ====================
 
   /**
@@ -37,6 +63,20 @@ export class ColorLight extends CircuitPart {
   getSnapOffset() {
     // 40 * 0.2 = 8px ずらす
     return { x: 0, y: -CONST.PARTS.HEIGHT * 0.2 };
+  }
+
+  /**
+   * ★追加: 選択枠サイズをオーバーライド（縦長カプセル）
+   */
+  getSelectionBox() {
+    const scale = CONST.MULTI_SELECT_MODE.SELECTION_BORDER_SCALE;
+    const w = CONST.PARTS.WIDTH * scale;
+    // drawSelectionBorderの実装に合わせて高さを調整
+    // (1.5倍パーツ * 1.5倍枠 = 2.25倍) だが、見た目のバランス調整
+    const h = CONST.PARTS.HEIGHT * 1.5 * scale;
+    const r = w * 0.5; // 完全な円形カプセルにするため幅の半分
+    
+    return { w, h, r };
   }
 
   // ==================== インタラクション ====================

@@ -95,7 +95,8 @@ const COMMON_CONST = {
     HIGHLIGHT_SCALE: 1.5,                   // パーツサイズに対する倍率
     HIGHLIGHT_CORNER_RADIUS: 12,            // ハイライト表示の角丸
     HIGHLIGHT_STROKE_WEIGHT: 4,             // 現在は未使用だが将来用
-    SNAP_DISTANCE_MULTIPLIER: 1.0,
+    SNAP_DISTANCE_MULTIPLIER: 1.6,
+    WIRE_HIT_DISTANCE: 15,
     BUTTON_ACTIVE_COLOR: [255, 50, 50],
     BUTTON_INACTIVE_COLOR: [100, 100, 100]
   },
@@ -121,7 +122,9 @@ const COMMON_CONST = {
     CURSOR_HEIGHT: 40*1.3,                 // PARTS.HEIGHTと同じ
     CURSOR_CORNER_RADIUS: 12,
     CURSOR_STROKE_WEIGHT: 2,
-    CURSOR_DASH_PATTERN: [4, 4]        // 点線パターン
+    CURSOR_DASH_PATTERN: [4, 4],        // 点線パターン
+
+    SNAP_DISTANCE_MULTIPLIER: 1.0,
   },
 
   // アニメーション設定

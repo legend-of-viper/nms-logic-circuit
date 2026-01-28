@@ -278,17 +278,24 @@ export class CircuitPart {
    * マウスがこの部品の上にあるか判定（簡易版・バウンディングボックス）
    * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
    * @param {number} my - マウスY座標（省略時はグローバルmouseY）
-   * @returns {boolean}
+   * @param {number} scale - 判定サイズの倍率（デフォルト1.0）
    */
-  isMouseOver(mx, my) {
+  isMouseOver(mx, my, scale = 1.0) {
     // 引数がなければグローバルのmouseXを使う（互換性維持）
     const x = mx !== undefined ? mx : mouseX;
     const y = my !== undefined ? my : mouseY;
     
-    // 簡易的な矩形判定（回転を考慮しない）
-    // ★注意: アニメーション中は表示位置(this.x)を基準にする
-    return (x > this.x && x < this.x + CONST.PARTS.WIDTH &&
-            y > this.y && y < this.y + CONST.PARTS.HEIGHT);
+    // 中心座標を計算
+    const cx = this.x + CONST.PARTS.WIDTH / 2;
+    const cy = this.y + CONST.PARTS.HEIGHT / 2;
+    
+    // 判定幅の半分を計算
+    const halfW = (CONST.PARTS.WIDTH * scale) / 2;
+    const halfH = (CONST.PARTS.HEIGHT * scale) / 2;
+    
+    // 中心からの範囲で判定
+    return (x > cx - halfW && x < cx + halfW &&
+            y > cy - halfH && y < cy + halfH);
   }
 
   /**
@@ -577,6 +584,20 @@ export class CircuitPart {
     fill(...CONST.DELETE_MODE.HIGHLIGHT_COLOR, alpha);
     rectMode(CENTER);
     rect(0, 0, CONST.PARTS.WIDTH * scale, CONST.PARTS.HEIGHT * scale, cornerRadius);
+  }
+
+  /**
+   * ★追加: 複数選択モード用の枠サイズ情報を取得
+   * アニメーションターゲットとして使用する
+   * @returns {{w: number, h: number, r: number}} 幅, 高さ, 角丸半径
+   */
+  getSelectionBox() {
+    const scale = CONST.MULTI_SELECT_MODE.SELECTION_BORDER_SCALE;
+    return {
+      w: CONST.PARTS.WIDTH * scale,
+      h: CONST.PARTS.HEIGHT * scale,
+      r: CONST.MULTI_SELECT_MODE.SELECTION_BORDER_CORNER_RADIUS
+    };
   }
 
   /**

@@ -7,7 +7,7 @@ import { InputManager } from './InputManager.js';
 import { CONST } from '../config/constants.js';
 import { GraphUtils } from '../utils/GraphUtils.js'; // GraphUtilsを使用
 import { CircuitSerializer } from '../utils/CircuitSerializer.js';
-import { SmoothValue } from '../utils/Animator.js';
+import { SmoothValue, SmoothRotation } from '../utils/Animator.js';
 import { MathUtils } from '../utils/MathUtils.js';
 
 /**
@@ -47,6 +47,17 @@ export class CircuitManager {
     this.implicitJoints = new Set();     // 自動的に追従するJoint
     this.isGroupDragging = false;
     this.clickedPartWasSelected = false; // Press時点で既に選択済みだったか
+
+    // ★追加: 複数選択カーソルのアニメーション用パラメータ
+    // 位置(X,Y), 回転(Rot), サイズ(W,H), 角丸(R) をすべて滑らかに補間する
+    this.msCursor = {
+      x: new SmoothValue(0, 0.4, 1.0),
+      y: new SmoothValue(0, 0.4, 1.0),
+      rot: new SmoothRotation(0, 0.3, 0.01),
+      w: new SmoothValue(CONST.MULTI_SELECT_MODE.CURSOR_WIDTH, 0.3, 1.0),
+      h: new SmoothValue(CONST.MULTI_SELECT_MODE.CURSOR_HEIGHT, 0.3, 1.0),
+      r: new SmoothValue(CONST.MULTI_SELECT_MODE.CURSOR_CORNER_RADIUS, 0.3, 1.0)
+    };
   }
 
   // ==================== 初期化・状態管理 ====================
@@ -383,12 +394,12 @@ export class CircuitManager {
   getDeletionTarget(worldX, worldY) {
     for (let i = this.wires.length - 1; i >= 0; i--) {
       const wire = this.wires[i];
-      if (wire.isMouseOver(worldX, worldY, 15)) {
+      if (wire.isMouseOver(worldX, worldY, CONST.DELETE_MODE.WIRE_HIT_DISTANCE)) {
         return { type: 'wire', target: wire };
       }
     }
     
-    const snapDistance = CONST.PARTS.WIDTH * 0.8;
+    const snapDistance = CONST.PARTS.WIDTH * CONST.DELETE_MODE.SNAP_DISTANCE_MULTIPLIER / 2;
     let closestPart = null;
     let closestDist = snapDistance;
 
@@ -448,55 +459,90 @@ export class CircuitManager {
 
     // 2. カーソル/ハイライト表示（ワールド座標系）
     push();
-    this.inputManager.applyTransform(); // <--- ワールド座標系へ変換
+    this.inputManager.applyTransform();
 
     const worldMouse = this.getWorldPosition(mouseX, mouseY);
 
-    // マウス下にあるパーツを探す
-    let hoveredPart = null;
+    // 吸着対象を探す
+    let targetPart = null;
     
-    for (let i = this.parts.length - 1; i >= 0; i--) {
-      const part = this.parts[i];
-      if (part.type === CONST.PART_TYPE.JOINT) continue;
+    // ドラッグ中や操作中は吸着させない（カーソルが暴れるのを防ぐ）
+    if (!this.isGroupDragging && !this.draggingPart) {
+      for (let i = this.parts.length - 1; i >= 0; i--) {
+        const part = this.parts[i];
+        if (part.type === CONST.PART_TYPE.JOINT) continue;
+        if (part.isSelected) continue; // 既に選択済みのものはスキップ
 
-      if (part.isMouseOver(worldMouse.x, worldMouse.y)) {
-        hoveredPart = part;
-        break;
+        // 広めの判定範囲で吸着チェック
+        if (part.isMouseOver(worldMouse.x, worldMouse.y, CONST.MULTI_SELECT_MODE.SNAP_DISTANCE_MULTIPLIER)) {
+          targetPart = part;
+          break;
+        }
       }
     }
 
-    if (hoveredPart) {
-      if (!hoveredPart.isSelected) {
-        push();
-        const rotCenter = hoveredPart.getRotationCenter();
-        translate(rotCenter.x, rotCenter.y);
-        rotate(hoveredPart.rotation);
-        const pivot = hoveredPart.getPivotOffset();
-        translate(-pivot.x, -pivot.y);
-        
-        hoveredPart.drawSelectionBorder(true);
-        pop();
-      }
+    // --- 目標値の設定 ---
+    if (targetPart) {
+      // ■ パーツに吸着する場合
+      const rotCenter = targetPart.getRotationCenter();
+      
+      this.msCursor.x.setTarget(rotCenter.x);
+      this.msCursor.y.setTarget(rotCenter.y);
+      this.msCursor.rot.setTarget(targetPart.rotation);
+
+      // パーツごとのサイズ情報を取得
+      const box = targetPart.getSelectionBox();
+      this.msCursor.w.setTarget(box.w);
+      this.msCursor.h.setTarget(box.h);
+      this.msCursor.r.setTarget(box.r);
+
     } else {
-      push();
-      translate(worldMouse.x, worldMouse.y);
-      
-      noStroke();
-      fill(...CONST.MULTI_SELECT_MODE.COLOR_BG);
-      rectMode(CENTER);
-      rect(0, 0, CONST.MULTI_SELECT_MODE.CURSOR_WIDTH, CONST.MULTI_SELECT_MODE.CURSOR_HEIGHT, 
-           CONST.MULTI_SELECT_MODE.CURSOR_CORNER_RADIUS);
+      // ■ マウス位置に追従する場合
+      this.msCursor.x.setTarget(worldMouse.x);
+      this.msCursor.y.setTarget(worldMouse.y);
+      this.msCursor.rot.setTarget(0); // 回転なし
 
-      stroke(...CONST.MULTI_SELECT_MODE.COLOR_STROKE);
-      strokeWeight(CONST.MULTI_SELECT_MODE.CURSOR_STROKE_WEIGHT);
-      drawingContext.setLineDash(CONST.MULTI_SELECT_MODE.CURSOR_DASH_PATTERN);
-      noFill();
-      rect(0, 0, CONST.MULTI_SELECT_MODE.CURSOR_WIDTH, CONST.MULTI_SELECT_MODE.CURSOR_HEIGHT, 
-           CONST.MULTI_SELECT_MODE.CURSOR_CORNER_RADIUS);
-      drawingContext.setLineDash([]);
-      
-      pop();
+      // デフォルトのカーソルサイズ
+      this.msCursor.w.setTarget(CONST.MULTI_SELECT_MODE.CURSOR_WIDTH);
+      this.msCursor.h.setTarget(CONST.MULTI_SELECT_MODE.CURSOR_HEIGHT);
+      this.msCursor.r.setTarget(CONST.MULTI_SELECT_MODE.CURSOR_CORNER_RADIUS);
     }
+
+    // --- アニメーション更新 ---
+    this.msCursor.x.update();
+    this.msCursor.y.update();
+    this.msCursor.rot.update();
+    this.msCursor.w.update();
+    this.msCursor.h.update();
+    this.msCursor.r.update();
+
+    // --- 描画 ---
+    // アニメーション中の値を反映して描画
+    push();
+    translate(this.msCursor.x.value, this.msCursor.y.value);
+    rotate(this.msCursor.rot.value);
+    
+    // 回転中心補正（パーツに吸着時はpivot考慮）
+    if (targetPart) {
+      const pivot = targetPart.getPivotOffset();
+      translate(-pivot.x, -pivot.y);
+    }
+
+    noStroke();
+    fill(...CONST.MULTI_SELECT_MODE.COLOR_BG);
+    rectMode(CENTER);
+    rect(0, 0, this.msCursor.w.value, this.msCursor.h.value, this.msCursor.r.value);
+
+    stroke(...CONST.MULTI_SELECT_MODE.COLOR_STROKE);
+    strokeWeight(CONST.MULTI_SELECT_MODE.CURSOR_STROKE_WEIGHT);
+    
+    // 常に点線で表示（スナップ中も「未確定」であることを示すため点線で統一）
+    drawingContext.setLineDash(CONST.MULTI_SELECT_MODE.CURSOR_DASH_PATTERN);
+    noFill();
+    rect(0, 0, this.msCursor.w.value, this.msCursor.h.value, this.msCursor.r.value);
+    drawingContext.setLineDash([]);
+    
+    pop();
     
     pop(); // applyTransformの解除
   }
