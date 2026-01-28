@@ -65,59 +65,62 @@ export class WireJoint extends CircuitPart {
   /**
    * 本体の描画
    * 通常は描画しませんが、マウスホバー時に「移動ハンドル」を表示します
-   * ★変更: worldMouse引数を受け取る
+   * @param {Array} color - 枠線の色（未使用）
+   * @param {{x: number, y: number}} worldMouse - ワールド座標のマウス位置
+   * @param {Object} visibilityRules - 可視性ルール
    */
-  drawShape(color, worldMouse) {
-    // マウスが左上の「隠し判定」に乗っているか、またはドラッグ中か
-    // ★変更: ワールド座標を使って判定
+  drawShape(color, worldMouse, visibilityRules = {}) {
     const mx = worldMouse ? worldMouse.x : undefined;
     const my = worldMouse ? worldMouse.y : undefined;
-    
     const isHovered = this.isMouseOver(mx, my);
 
-    if (isHovered || this.isDragging) {
-      // 親のdraw()ですでに中心へtranslateされているので、
-      // 左上の座標は (-幅/2, -高さ/2) になります
-      const handleX = -CONST.PARTS.WIDTH / 2;
-      const handleY = -CONST.PARTS.HEIGHT / 2;
-      const handleSize = CONST.PARTS.JOINT_HANDLE_RADIUS * 2; // 少し大きくして見やすく
-
-      push();
-      // 1. ハンドルの背景（半透明の青）
-      noStroke();
-      fill(60, 110, 255, 230); // 濃いめにしてアイコンを目立たせる
-      circle(handleX, handleY, handleSize);
-
-      // 2. 移動アイコン（上下左右の矢印）
-      stroke(255);
-      strokeWeight(1.5);
-      noFill();
-      strokeCap(ROUND);
-      strokeJoin(ROUND);
-
-      const d = 9;  // 中心からの軸の長さ
-      const s = 3;  // 矢印の羽のサイズ
-
-      // 軸を描画（十字）
-      line(handleX - d, handleY, handleX + d, handleY); // 横軸
-      line(handleX, handleY - d, handleX, handleY + d); // 縦軸
-
-      // 4方向の矢印の先端を描画
-      // 左
-      line(handleX - d, handleY, handleX - d + s, handleY - s);
-      line(handleX - d, handleY, handleX - d + s, handleY + s);
-      // 右
-      line(handleX + d, handleY, handleX + d - s, handleY - s);
-      line(handleX + d, handleY, handleX + d - s, handleY + s);
-      // 上
-      line(handleX, handleY - d, handleX - s, handleY - d + s);
-      line(handleX, handleY - d, handleX + s, handleY - d + s);
-      // 下
-      line(handleX, handleY + d, handleX - s, handleY + d - s);
-      line(handleX, handleY + d, handleX + s, handleY + d - s);
-      
-      pop();
+    // 自分がドラッグ中なら強制表示
+    if (this.isDragging) {
+      this.drawMoveHandle();
+      return;
     }
+
+    // それ以外は、ホバー中 AND ルールで許可されている場合のみ表示
+    if (isHovered && visibilityRules.showJointHandles) {
+      this.drawMoveHandle();
+    }
+  }
+
+  /**
+   * 移動ハンドルの描画（共通化）
+   */
+  drawMoveHandle() {
+    const handleX = -CONST.PARTS.WIDTH / 2;
+    const handleY = -CONST.PARTS.HEIGHT / 2;
+    const handleSize = CONST.PARTS.JOINT_HANDLE_RADIUS * 2;
+
+    push();
+    noStroke();
+    fill(60, 110, 255, 230);
+    circle(handleX, handleY, handleSize);
+
+    stroke(255);
+    strokeWeight(1.5);
+    noFill();
+    strokeCap(ROUND);
+    strokeJoin(ROUND);
+
+    const d = 9;
+    const s = 3;
+
+    line(handleX - d, handleY, handleX + d, handleY);
+    line(handleX, handleY - d, handleX, handleY + d);
+
+    line(handleX - d, handleY, handleX - d + s, handleY - s);
+    line(handleX - d, handleY, handleX - d + s, handleY + s);
+    line(handleX + d, handleY, handleX + d - s, handleY - s);
+    line(handleX + d, handleY, handleX + d - s, handleY + s);
+    line(handleX, handleY - d, handleX - s, handleY - d + s);
+    line(handleX, handleY - d, handleX + s, handleY - d + s);
+    line(handleX, handleY + d, handleX - s, handleY + d - s);
+    line(handleX, handleY + d, handleX + s, handleY + d - s);
+    
+    pop();
   }
 
   /**

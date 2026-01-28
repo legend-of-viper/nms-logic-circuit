@@ -498,10 +498,10 @@ export class CircuitPart {
   
   /**
    * 描画処理
-   * ★変更: worldMouse引数を追加
    * @param {{x: number, y: number}} worldMouse - ワールド座標のマウス位置
+   * @param {Object} visibilityRules - 可視性ルール
    */
-  draw(worldMouse) {
+  draw(worldMouse, visibilityRules = {}) {
     // 部品の状態と通電状態で色を判定
     let isPoweredAtLeftOrRight = false;
     const leftSocket = this.getSocket('left');
@@ -527,12 +527,12 @@ export class CircuitPart {
     translate(-pivot.x, -pivot.y);
     
     // 部品本体を描画（原点中心）
-    // worldMouseを渡す
-    this.drawShape(color, worldMouse);
+    // visibilityRulesも渡す（WireJointで使用）
+    this.drawShape(color, worldMouse, visibilityRules);
     
-    // ソケットを描画
+    // ソケットを描画（visibilityRulesを渡す）
     for (let socket of this.sockets) {
-      socket.draw(worldMouse);
+      socket.draw(worldMouse, visibilityRules);
     }
 
     // ハイライト時は、その上から「半透明の赤」を重ねる
@@ -548,22 +548,25 @@ export class CircuitPart {
     pop();
     
     // 回転ハンドルを描画（回転の外で）
-    // ★変更: ワールド座標を使って判定
     const mx = worldMouse ? worldMouse.x : undefined;
     const my = worldMouse ? worldMouse.y : undefined;
-
-    if (this.isMouseOverRotationHandle(mx, my) || this.isRotating) {
+    const isHovered = this.isMouseOverRotationHandle(mx, my);
+    
+    // 回転中 OR (ホバー中 AND ルールで許可されている) なら表示
+    const shouldShow = this.isRotating || (isHovered && visibilityRules.showRotationHandles);
+    
+    if (shouldShow) {
       this.drawRotationHandle(worldMouse);
     }
   }
 
   /**
    * 部品の形を描画（子クラスでオーバーライド可能）
-   * ★変更: worldMouse引数を追加（WireJointで使用）
    * @param {Array} color - 枠線の色
    * @param {{x: number, y: number}} worldMouse - ワールド座標のマウス位置
+   * @param {Object} visibilityRules - 可視性ルール
    */
-  drawShape(color, worldMouse) {
+  drawShape(color, worldMouse, visibilityRules) {
     stroke(...color);
     strokeWeight(CONST.PARTS.STROKE_WEIGHT);
     fill(CONST.COLORS.BACKGROUND);

@@ -129,10 +129,10 @@ export class Socket {
   
   /**
    * ソケットを描画（親の回転座標系の中で呼ばれる）
-   * ★修正: worldMouse を受け取るように変更
    * @param {{x: number, y: number}} worldMouse - ワールド座標のマウス位置
+   * @param {Object} visibilityRules - 可視性ルール
    */
-  draw(worldMouse) {
+  draw(worldMouse, visibilityRules = {}) {
     // ソケットの四角を描画
     let rectX, rectY, rectW, rectH, triangleBaseX, triangleBaseY;
     let connectorLocalX = this.localX;
@@ -190,13 +190,21 @@ export class Socket {
     }
     
     // 2. コネクタ（三角形・丸）の描画判定
-    // ★修正: worldMouse が渡されていれば座標を取り出し、isMouseOver に渡す
     const mx = worldMouse ? worldMouse.x : undefined;
     const my = worldMouse ? worldMouse.y : undefined;
     const isHovered = this.isMouseOver(mx, my);
     const hasWire = this.connectedWires.length > 0;
     const isWiringStart = this.parent.wiringStartSocket === this.name;
-    const showTempSocket = isHovered || isWiringStart || this.isTargeted;
+    
+    // Tempソケット（接続候補）の表示ロジック
+    let showTempSocket = false;
+    if (visibilityRules.isWiring) {
+      // 配線中: ホバー、ターゲット、または配線開始元なら表示
+      showTempSocket = isHovered || this.isTargeted || isWiringStart;
+    } else if (visibilityRules.showTempSockets) {
+      // 通常時（Jointドラッグ含む）: ホバー、配線起点、またはターゲットなら表示
+      showTempSocket = isHovered || isWiringStart || this.isTargeted;
+    }
     
     // centerの場合は常時表示、それ以外は従来通り
     if (showTempSocket || hasWire || this.direction === 'center') {
@@ -245,13 +253,15 @@ export class Socket {
       circle(connectorLocalX, connectorLocalY, radius);
     }
 
-    this.drawDetachHandle(worldMouse);
+    this.drawDetachHandle(worldMouse, visibilityRules);
   }
 
   /**
    * ★追加: 取り外しハンドルを描画
+   * @param {{x: number, y: number}} worldMouse - ワールド座標のマウス位置
+   * @param {Object} visibilityRules - 可視性ルール
    */
-  drawDetachHandle(worldMouse) {
+  drawDetachHandle(worldMouse, visibilityRules = {}) {
     // ワイヤーが繋がっていない、または親がJointの場合はハンドルを出さない
     if (this.connectedWires.length === 0) return;
     if (this.parent.type === CONST.PART_TYPE.JOINT) return;
@@ -260,7 +270,8 @@ export class Socket {
     const my = worldMouse ? worldMouse.y : undefined;
     const isHovered = this.isMouseOverDetachHandle(mx, my);
 
-    if (isHovered) {
+    // ルールで許可されていて、かつホバー時のみ表示
+    if (isHovered && visibilityRules.showDetachHandles) {
       let cx = this.localX;
       let cy = this.localY;
       

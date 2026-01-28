@@ -548,6 +548,47 @@ export class CircuitManager {
   }
 
   /**
+   * 現在の状態から「何を表示すべきか」を判定する可視性ルール
+   * @returns {Object} 可視性ルール
+   */
+  getVisibilityRules() {
+    return {
+      // 回転ハンドル: 特殊モードやドラッグ操作中以外で表示
+      showRotationHandles: !this.isDeleteMode && 
+                          !this.isMultiSelectMode && 
+                          !this.wiringStartNode &&
+                          !this.isGroupDragging &&
+                          !this.draggingPart,
+      
+      // ソケットのTempハンドル（接続候補）: 
+      // 特殊モード中は非表示。Jointドラッグ中は接続先を見たいので表示許可
+      showTempSockets: !this.isDeleteMode && 
+                       !this.isMultiSelectMode &&
+                       !this.isGroupDragging &&
+                       (!this.draggingPart || this.draggingPart.type === CONST.PART_TYPE.JOINT),
+      
+      // デタッチハンドル: 特殊モードや各種操作中以外で表示
+      showDetachHandles: !this.isDeleteMode && 
+                        !this.isMultiSelectMode &&
+                        !this.wiringStartNode &&
+                        !this.draggingPart &&
+                        !this.isGroupDragging,
+      
+      // Jointのムーブハンドル: 特殊モードや配線中・グループドラッグ中以外で表示
+      showJointHandles: !this.isDeleteMode && 
+                       !this.isMultiSelectMode &&
+                       !this.wiringStartNode &&
+                       !this.isGroupDragging,
+      
+      // 配線中かどうか（ソケットの表示ロジック用）
+      isWiring: !!this.wiringStartNode,
+      
+      // 現在操作中のパーツID（そのパーツ自身は特別扱い）
+      activePartId: this.draggingPart?.id || null
+    };
+  }
+
+  /**
    * キャンバスの更新と描画
    */
   update() {
@@ -566,8 +607,12 @@ export class CircuitManager {
     }
 
     const worldMouse = this.getWorldPosition(mouseX, mouseY);
+    
+    // 可視性ルールを生成
+    const visibilityRules = this.getVisibilityRules();
 
-    this.parts.forEach(part => part.draw(worldMouse));
+    // 各パーツに可視性ルールを渡して描画
+    this.parts.forEach(part => part.draw(worldMouse, visibilityRules));
     this.wires.forEach(wire => wire.draw());
 
     this.drawTempWire();
