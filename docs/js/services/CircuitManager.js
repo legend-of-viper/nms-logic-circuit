@@ -660,7 +660,8 @@ export class CircuitManager {
     
     // 3. 内部Jointもドラッグ開始状態にする
     this.implicitJoints.forEach(joint => {
-      joint.onMouseDown(worldMouse.x, worldMouse.y);
+      joint.dragStartX = joint.posX.target;
+      joint.dragStartY = joint.posY.target;
     });
     
     console.log(`グループ移動開始: パーツ${this.selectedParts.size}個 + Joint${this.implicitJoints.size}個`);
@@ -835,7 +836,6 @@ export class CircuitManager {
       this.draggingPart = null;
       
       this.selectedParts.forEach(part => part.onMouseUp());
-      this.implicitJoints.forEach(joint => joint.onMouseUp());
       this.implicitJoints.clear();
       return;
     }
