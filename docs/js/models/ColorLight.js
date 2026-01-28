@@ -85,11 +85,38 @@ export class ColorLight extends CircuitPart {
     const h = CONST.PARTS.HEIGHT * 1.5 * 1.5;
 
     noStroke();
-    // 半透明の赤
-    fill(...CONST.DELETE_MODE.HIGHLIGHT_COLOR, 100);
+    fill(...CONST.DELETE_MODE.HIGHLIGHT_COLOR, CONST.DELETE_MODE.HIGHLIGHT_ALPHA);
     
     rectMode(CENTER);
     // drawShapeと同じサイズ・形状で描画
     rect(0, 0, w, h, w * 0.5);
+  }
+  
+  /**
+   * 選択枠も自分の形（縦長カプセル）に合わせる
+   */
+  drawSelectionBorder(isDashed = false) {
+    const scale = CONST.MULTI_SELECT_MODE.SELECTION_BORDER_SCALE;
+    const w = CONST.PARTS.WIDTH * scale;
+    const h = CONST.PARTS.HEIGHT * 1.5 * scale; // 高さは1.5倍パーツのさらに1.5倍枠
+    const cornerRadius = w * 0.5;
+
+    // 1. 半透明の塗り
+    noStroke();
+    fill(...CONST.MULTI_SELECT_MODE.COLOR_BG);
+    rectMode(CENTER);
+    rect(0, 0, w, h, cornerRadius);
+
+    // 2. 枠線
+    noFill();
+    stroke(...CONST.MULTI_SELECT_MODE.COLOR_STROKE);
+    strokeWeight(CONST.MULTI_SELECT_MODE.SELECTION_STROKE_WEIGHT);
+    if (isDashed) {
+      drawingContext.setLineDash(CONST.MULTI_SELECT_MODE.CURSOR_DASH_PATTERN);
+    } else {
+      drawingContext.setLineDash([]);
+    }
+    rect(0, 0, w, h, cornerRadius);
+    drawingContext.setLineDash([]);
   }
 }

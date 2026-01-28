@@ -21,9 +21,7 @@ const COMMON_CONST = {
     WIRE_ON: [0, 128, 255],
     WIRE_TEMP: [255, 50, 50],
     ON_STATE: [0, 128, 255],
-    OFF_STATE: [255, 50, 50],
-    // ★追加: 選択時の色
-    PART_SELECTED: [0, 255, 255]            // パーツ選択時の枠色（シアン）
+    OFF_STATE: [255, 50, 50]
   },
   
   // 部品の設定
@@ -93,10 +91,37 @@ const COMMON_CONST = {
   // 削除モードの設定
   DELETE_MODE: {
     HIGHLIGHT_COLOR: [255, 0, 0],
-    HIGHLIGHT_STROKE_WEIGHT: 4,
+    HIGHLIGHT_ALPHA: 100,                   // ハイライトの透明度
+    HIGHLIGHT_SCALE: 1.5,                   // パーツサイズに対する倍率
+    HIGHLIGHT_CORNER_RADIUS: 12,            // ハイライト表示の角丸
+    HIGHLIGHT_STROKE_WEIGHT: 4,             // 現在は未使用だが将来用
     SNAP_DISTANCE_MULTIPLIER: 1.0,
     BUTTON_ACTIVE_COLOR: [255, 50, 50],
     BUTTON_INACTIVE_COLOR: [100, 100, 100]
+  },
+
+  // 複数選択モードの設定
+  MULTI_SELECT_MODE: {
+    // 色
+    COLOR_STROKE: [0, 255, 255],       // 選択枠・カーソルの枠線色（シアン）
+    COLOR_BG: [0, 255, 255, 30],       // 選択枠・カーソルの背景色（半透明シアン）
+    COLOR_TEXT: [0, 255, 255],         // テキスト表示の色（シアン）
+    
+    // テキスト表示
+    TEXT_SIZE: 18,
+    TEXT_STROKE_WEIGHT: 3,
+    
+    // 選択枠（パーツに表示される枠線）
+    SELECTION_BORDER_SCALE: 1.3,       // パーツサイズに対する倍率
+    SELECTION_BORDER_CORNER_RADIUS: 12,
+    SELECTION_STROKE_WEIGHT: 2,
+    
+    // カーソル（パーツが無い場所でのカーソル表示）
+    CURSOR_WIDTH: 40*1.3,                  // PARTS.WIDTHと同じ
+    CURSOR_HEIGHT: 40*1.3,                 // PARTS.HEIGHTと同じ
+    CURSOR_CORNER_RADIUS: 12,
+    CURSOR_STROKE_WEIGHT: 2,
+    CURSOR_DASH_PATTERN: [4, 4]        // 点線パターン
   },
 
   // アニメーション設定
@@ -165,6 +190,7 @@ const MESSAGES_DATA = {
   // 日本語
   ja: {
     TEXT_DELETE_MODE: '⚠️ DELETE MODE',
+    TEXT_MULTI_SELECT: 'MULTI SELECT MODE',
     PROMPT_SAVE_FILENAME: '保存するファイル名を入力してください（拡張子なし）:',
     PROMPT_SHARE_SUCCESS: 'URLをクリップボードにコピーしました！',
     PROMPT_COPY_URL: '以下のURLをコピーしてください:',
@@ -181,6 +207,7 @@ const MESSAGES_DATA = {
   // 英語（デフォルト）
   en: {
     TEXT_DELETE_MODE: '⚠️ DELETE MODE',
+    TEXT_MULTI_SELECT: 'MULTI SELECT MODE',
     PROMPT_SAVE_FILENAME: 'Enter file name to save (no extension):',
     PROMPT_SHARE_SUCCESS: 'URL copied to clipboard!',
     PROMPT_COPY_URL: 'Please copy the following URL:',

@@ -569,26 +569,40 @@ export class CircuitPart {
    * 形を変えたいパーツは、このメソッドをオーバーライドしてください
    */
   drawHighlight() {
-    // stroke(...CONST.DELETE_MODE.HIGHLIGHT_COLOR)
-    // strokeWeight(4);
+    const scale = CONST.DELETE_MODE.HIGHLIGHT_SCALE;
+    const alpha = CONST.DELETE_MODE.HIGHLIGHT_ALPHA;
+    const cornerRadius = CONST.DELETE_MODE.HIGHLIGHT_CORNER_RADIUS;
+    
     noStroke();
-    // 定数から赤色を取得し、透明度(100)を追加
-    fill(...CONST.DELETE_MODE.HIGHLIGHT_COLOR, 100);
+    fill(...CONST.DELETE_MODE.HIGHLIGHT_COLOR, alpha);
     rectMode(CENTER);
-    // デフォルト: パーツと同じサイズ・同じ角丸(8)で覆う
-    rect(0, 0, CONST.PARTS.WIDTH*1.5, CONST.PARTS.HEIGHT*1.5, 12);
+    rect(0, 0, CONST.PARTS.WIDTH * scale, CONST.PARTS.HEIGHT * scale, cornerRadius);
   }
 
   /**
    * ★追加: 選択時の枠線描画
    */
-  drawSelectionBorder() {
-    noFill();
-    stroke(...CONST.COLORS.PART_SELECTED);
-    strokeWeight(2); // 少し細めの明瞭な線
+  drawSelectionBorder(isDashed = false) {
+    const scale = CONST.MULTI_SELECT_MODE.SELECTION_BORDER_SCALE;
+    const cornerRadius = CONST.MULTI_SELECT_MODE.SELECTION_BORDER_CORNER_RADIUS;
+    const borderWeight = CONST.MULTI_SELECT_MODE.SELECTION_STROKE_WEIGHT;
+    
+    noStroke();
+    fill(...CONST.MULTI_SELECT_MODE.COLOR_BG);
     rectMode(CENTER);
+    rect(0, 0, CONST.PARTS.WIDTH * scale, CONST.PARTS.HEIGHT * scale, cornerRadius);
+
+    noFill();
+    stroke(...CONST.MULTI_SELECT_MODE.COLOR_STROKE);
+    strokeWeight(borderWeight);
+    if (isDashed) {
+      drawingContext.setLineDash(CONST.MULTI_SELECT_MODE.CURSOR_DASH_PATTERN);
+    } else {
+      drawingContext.setLineDash([]);
+    }
     // パーツより一回り大きく描画
-    rect(0, 0, CONST.PARTS.WIDTH * 1.2, CONST.PARTS.HEIGHT * 1.2, 4);
+    rect(0, 0, CONST.PARTS.WIDTH * scale, CONST.PARTS.HEIGHT * scale, cornerRadius);
+    drawingContext.setLineDash([]);
   }
 
   /**

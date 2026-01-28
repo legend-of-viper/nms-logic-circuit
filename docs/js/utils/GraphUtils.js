@@ -85,4 +85,78 @@ export class GraphUtils {
     
     return weights;
   }
+
+  /**
+   * 選択されたパーツ群に囲まれた（道連れにすべき）Jointを特定する
+   * @param {Array} allParts - 全パーツのリスト
+   * @param {Set} selectedParts - ユーザーが選択中のパーツセット
+   * @returns {Set} 自動的に追従すべきJointのセット
+   */
+  static findEnclosedJoints(allParts, selectedParts) {
+    const implicitJoints = new Set();
+    const visited = new Set(); // 探索済みのJointを記録
+
+    // 全パーツの中から「未選択のJoint」を探して探索開始
+    for (const part of allParts) {
+      if (part.type !== CONST.PART_TYPE.JOINT) continue;
+      if (selectedParts.has(part)) continue; // 既に明示的に選択されている
+      if (visited.has(part)) continue; // 既にチェック済みのクラスタに含まれる
+
+      // ---------------------------------------------------
+      // Jointのクラスタ（塊）を探索する (幅優先探索: BFS)
+      // ---------------------------------------------------
+      const cluster = [];   // この塊に含まれるJointリスト
+      const queue = [part]; // 探索キュー
+      visited.add(part);
+
+      let isEnclosed = true; // この塊は完全に選択パーツに囲まれているか？
+      let hasAnchor = false; // 少なくとも1つ、選択パーツ（動くもの）に繋がっているか？
+
+      while (queue.length > 0) {
+        const current = queue.shift();
+        cluster.push(current);
+
+        const socket = current.getSocket('center');
+        if (!socket) continue;
+
+        for (const wire of socket.connectedWires) {
+          const otherEnd = wire.getOtherEnd(socket);
+          if (!otherEnd) continue;
+          
+          const neighbor = otherEnd.parent;
+
+          if (neighbor.type === CONST.PART_TYPE.JOINT) {
+             // --- 隣がJointの場合 ---
+             if (selectedParts.has(neighbor)) {
+               // 万が一「選択済みのJoint」があれば、それは「動く壁」なのでアンカー扱い
+               hasAnchor = true;
+             } else if (!visited.has(neighbor)) {
+               // 「未選択のJoint」なら、クラスタの仲間なので探索を広げる
+               visited.add(neighbor);
+               queue.push(neighbor);
+             }
+          } else {
+             // --- 隣が普通のパーツの場合 ---
+             if (selectedParts.has(neighbor)) {
+               // 選択済みパーツに繋がっている -> 一緒に動く理由になる
+               hasAnchor = true;
+             } else {
+               // 未選択パーツに繋がっている -> 置いていくべき（囲まれていない）
+               isEnclosed = false;
+             }
+          }
+        }
+      }
+
+      // 条件判定:
+      // 1. 外部への接続がすべて選択済みパーツである (isEnclosed)
+      // 2. 孤立しておらず、ちゃんと何かに繋がっている (hasAnchor)
+      // これらを満たすなら、クラスタごと道連れリストに追加
+      if (isEnclosed && hasAnchor) {
+        cluster.forEach(j => implicitJoints.add(j));
+      }
+    }
+
+    return implicitJoints;
+  }
 }
