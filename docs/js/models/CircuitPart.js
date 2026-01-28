@@ -275,9 +275,10 @@ export class CircuitPart {
   // ==================== マウス・入力処理 ====================
   
   /**
-   * マウスがこの部品の上にあるか判定（簡易版・バウンディングボックス）
-   * @param {number} mx - マウスX座標（省略時はグローバルmouseX）
-   * @param {number} my - マウスY座標（省略時はグローバルmouseY）
+   * マウスがこの部品の上にあるか判定
+   * ★修正: 回転を考慮した矩形判定に変更
+   * @param {number} mx - マウスX座標
+   * @param {number} my - マウスY座標
    * @param {number} scale - 判定サイズの倍率（デフォルト1.0）
    */
   isMouseOver(mx, my, scale = 1.0) {
@@ -285,17 +286,27 @@ export class CircuitPart {
     const x = mx !== undefined ? mx : mouseX;
     const y = my !== undefined ? my : mouseY;
     
-    // 中心座標を計算
-    const cx = this.x + CONST.PARTS.WIDTH / 2;
-    const cy = this.y + CONST.PARTS.HEIGHT / 2;
+    // 1. パーツ中心からの相対ベクトルを計算
+    const center = this.getCenter();
+    const dx = x - center.x;
+    const dy = y - center.y;
+
+    // 2. パーツの回転角度分だけ「逆回転」させる
+    // これで、マウス座標を「パーツが回転していない状態のローカル座標系」に変換できる
+    const angle = -this.rotation;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
     
-    // 判定幅の半分を計算
+    const localX = dx * cos - dy * sin;
+    const localY = dx * sin + dy * cos;
+
+    // 3. 軸平行な矩形判定を行う
     const halfW = (CONST.PARTS.WIDTH * scale) / 2;
     const halfH = (CONST.PARTS.HEIGHT * scale) / 2;
-    
-    // 中心からの範囲で判定
-    return (x > cx - halfW && x < cx + halfW &&
-            y > cy - halfH && y < cy + halfH);
+
+    // 回転後の座標が、元の矩形範囲に入っているか
+    return (localX > -halfW && localX < halfW &&
+            localY > -halfH && localY < halfH);
   }
 
   /**

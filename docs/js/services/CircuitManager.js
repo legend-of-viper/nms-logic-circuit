@@ -647,28 +647,72 @@ export class CircuitManager {
       return;
     }
 
-    // 2. 通常のクリック判定
+    // 2. クリック判定
     let clickedPart = null;
-    for (let i = this.parts.length - 1; i >= 0; i--) {
-      const part = this.parts[i];
+
+    // ★修正: 判定ロジックをモードではっきりと分ける
+    if (this.isMultiSelectMode) {
+      // ===========================================
+      // ■ 複数選択モードの判定ロジック
+      //   (回転ハンドルなどの特殊判定は行わない)
+      // ===========================================
+      const snapScale = CONST.MULTI_SELECT_MODE.SNAP_DISTANCE_MULTIPLIER;
       
-      if (part.isMouseOverRotationHandle(worldMouse.x, worldMouse.y) || 
-          part.getHoveredSocket(worldMouse.x, worldMouse.y) ||
-          part.sockets.some(s => s.isMouseOverDetachHandle(worldMouse.x, worldMouse.y))) {
-        
-        if (this.isMultiSelectMode) {
-          return; 
+      // A. まず「未選択」のパーツを探す（新規選択を優先）
+      for (let i = this.parts.length - 1; i >= 0; i--) {
+        const part = this.parts[i];
+        if (part.type === CONST.PART_TYPE.JOINT) continue;
+        if (part.isSelected) continue;
+
+        if (part.isMouseOver(worldMouse.x, worldMouse.y, snapScale)) {
+          clickedPart = part;
+          break;
         }
-        break; 
       }
 
-      if (part.isMouseOver(worldMouse.x, worldMouse.y)) {
-        clickedPart = part;
-        break; 
+      // B. 未選択が見つからなければ、「選択済み」のパーツを探す（ドラッグ移動用）
+      if (!clickedPart) {
+        for (let i = this.parts.length - 1; i >= 0; i--) {
+          const part = this.parts[i];
+          if (part.type === CONST.PART_TYPE.JOINT) continue;
+          
+          if (part.isMouseOver(worldMouse.x, worldMouse.y, snapScale)) {
+            clickedPart = part;
+            break;
+          }
+        }
+      }
+
+    } else {
+      // ===========================================
+      // ■ 通常モードの判定ロジック
+      //   (回転ハンドルなどの特殊判定を含む)
+      // ===========================================
+      for (let i = this.parts.length - 1; i >= 0; i--) {
+        const part = this.parts[i];
+        
+        // A. 特殊操作（回転ハンドルやソケット）
+        // ※このブロックは通常モードでしか実行されないので安全
+        if (part.isMouseOverRotationHandle(worldMouse.x, worldMouse.y) || 
+            part.getHoveredSocket(worldMouse.x, worldMouse.y) ||
+            part.sockets.some(s => s.isMouseOverDetachHandle(worldMouse.x, worldMouse.y))) {
+          
+          // ここでループを抜ける（clickedPartはnullのまま）
+          // 後続の処理で特殊操作として扱われる
+          break; 
+        }
+
+        // B. パーツ本体のクリック判定
+        if (part.isMouseOver(worldMouse.x, worldMouse.y)) {
+          clickedPart = part;
+          break; 
+        }
       }
     }
 
-    // 複数選択モード
+    // --- 以降は共通処理 ---
+
+    // 複数選択モードの処理
     if (this.isMultiSelectMode) {
       if (clickedPart) {
         if (clickedPart.type === CONST.PART_TYPE.JOINT) {
@@ -691,7 +735,7 @@ export class CircuitManager {
       }
     }
 
-    // 通常モード
+    // 通常モードの処理
     if (clickedPart) {
       this.draggingPart = clickedPart;
       clickedPart.onMouseDown(worldMouse.x, worldMouse.y);
@@ -703,6 +747,8 @@ export class CircuitManager {
       return;
     }
 
+    // 通常モード：パーツ以外（回転ハンドルやソケット）の再判定
+    // ※elseブロックでbreakした場合はここに来る
     for (let i = this.parts.length - 1; i >= 0; i--) {
       const part = this.parts[i];
       
@@ -730,6 +776,7 @@ export class CircuitManager {
       }
     }
 
+    // 何もクリックしなかった場合
     if (!isMobile) {
       this.isPanning = true;
     }
