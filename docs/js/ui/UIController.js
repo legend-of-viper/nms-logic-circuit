@@ -147,6 +147,10 @@ setupLabels() {
        multiSelectBtn.title = CONST.UI_LABELS.MULTI_SELECT;
     }
 
+    // ★追加: 複製ボタンのツールチップ
+    const dupBtn = document.getElementById(CONST.DOM_IDS.PC.DUPLICATE);
+    if(dupBtn) dupBtn.title = CONST.UI_LABELS.DUPLICATE;
+
     document.getElementById('btn-reset').textContent = 'Reset';
     document.getElementById('btn-save').textContent = CONST.UI_LABELS.SAVE;
     document.getElementById('btn-load').textContent = CONST.UI_LABELS.LOAD;
@@ -423,6 +427,15 @@ setupLabels() {
       [CONST.DOM_IDS.PC.MULTI_SELECT],
       () => this.handleToggleMultiSelectMode()
     );
+
+    // ★追加: 複製ボタン
+    this.bindAction(
+      [CONST.DOM_IDS.PC.DUPLICATE, CONST.DOM_IDS.MOBILE.DUPLICATE],
+      () => {
+        this.simulator.duplicateSelectedParts();
+        this.closeMobileMenu(); // スマホならメニュー閉じる
+      }
+    );
     
     // ファイル操作ボタン（PC用とモバイル用）
     this.bindAction(
@@ -491,6 +504,18 @@ setupLabels() {
         if (pcMoveCheck) pcMoveCheck.checked = event.target.checked;
       });
     }
+
+    // ★追加: キーボードショートカット (Ctrl + D)
+    document.addEventListener('keydown', (e) => {
+      // 入力フォーム等での誤爆防止
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      // Ctrl + D (MacはCmd + Dも考慮するなら metaKey)
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault(); // ブラウザのブックマーク保存などを無効化
+        this.simulator.duplicateSelectedParts();
+      }
+    });
 
     // グリッド表示チェックボックス（PC用とモバイル用で同期）
     const pcGridCheck = document.getElementById(CONST.DOM_IDS.PC.GRID_VISIBLE);
@@ -683,6 +708,29 @@ setupLabels() {
   }
 
   /**
+   * ★追加: 複製ボタンの活性/非活性状態を更新
+   */
+  updateDuplicateButtonState() {
+    const pcBtn = document.getElementById(CONST.DOM_IDS.PC.DUPLICATE);
+    const mobileBtn = document.getElementById(CONST.DOM_IDS.MOBILE.DUPLICATE);
+    
+    // 選択されているパーツが1つ以上あるかチェック
+    // (複数選択モードOFF時は自動的にselectedPartsは空になる仕様なので、サイズチェックだけでOK)
+    const hasSelection = this.simulator.selectedParts.size > 0;
+    
+    // ボタンの状態を切り替え
+    [pcBtn, mobileBtn].forEach(btn => {
+      if (!btn) return;
+      
+      if (hasSelection) {
+        btn.classList.remove('disabled'); // 選択中なら押せる
+      } else {
+        btn.classList.add('disabled');    // 未選択なら押せない
+      }
+    });
+  }
+
+  /**
    * 保存処理
    */
   handleSave() {
@@ -793,6 +841,9 @@ setupLabels() {
     if (this.deleteCursorOverlay) {
       this.deleteCursorOverlay.update();
     }
+    
+    // 複製ボタンの状態を常時監視して更新
+    this.updateDuplicateButtonState();
   }
 
   /**

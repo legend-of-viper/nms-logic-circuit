@@ -123,6 +123,14 @@ button:active {
     0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
+/* 非活性状態のボタン（共通） */
+button.disabled {
+  opacity: 0.3;          /* 薄くする */
+  pointer-events: none;  /* クリックできなくする */
+  filter: grayscale(100%); /* 色味を抜く */
+  cursor: not-allowed;
+}
+
 /* 個別ボタンの設定（文字を透明にする処理は維持） */
 #btn-power, #btn-auto-switch, #btn-inverter, 
 #btn-button, #btn-wall-switch, #btn-color-light {
@@ -203,6 +211,51 @@ button:active {
   box-shadow: 
     inset 0 0 10px rgba(0, 0, 0, 0.5),
     0 0 15px rgba(0, 255, 255, 0.6);
+}
+
+/* ★追加: 複製ボタンのスタイル */
+#btn-duplicate {
+  background-color: #2a4a6a; /* 少し青みがかった色 */
+  border: 2px solid #4a8aca;
+  position: relative;
+}
+
+#btn-duplicate:hover {
+  background-color: #3a5a7a;
+}
+
+#btn-duplicate:active {
+  background-color: #1a3a5a;
+}
+
+/* アイコン（2枚の重なった四角） */
+#btn-duplicate::before,
+#btn-duplicate::after {
+  content: "";
+  position: absolute;
+  border: 2px solid #fff;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+/* 後ろの四角 */
+#btn-duplicate::before {
+  width: 16px;
+  height: 20px;
+  /* 修正前: top: 16px; left: 18px; */
+  top: 14px;
+  left: 16px;
+}
+
+/* 前の四角 */
+#btn-duplicate::after {
+  width: 16px;
+  height: 20px;
+  /* 修正前: top: 22px; left: 24px; */
+  top: 20px;
+  left: 22px;
+  background: #2a4a6a; 
+  z-index: 1;
 }
 
 /* 削除モードボタン（ベース） */

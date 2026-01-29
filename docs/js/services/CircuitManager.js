@@ -140,6 +140,80 @@ export class CircuitManager {
   }
 
   /**
+   * 選択中のパーツと、その内部で完結するワイヤーを複製する
+   * ★修正: 道連れJoint (implicitJoints) も含めて複製するように変更
+   */
+  duplicateSelectedParts() {
+    // 何も選択されていなければ終了
+    if (this.selectedParts.size === 0) return;
+
+    this.detectImplicitJoints();
+
+    // 1. まず「複製すべき全パーツ」のセットを作る
+    //    (明示的に選択したパーツ + 自動的に道連れになるJoint)
+    const partsToDuplicate = new Set([...this.selectedParts, ...this.implicitJoints]);
+
+    // 2. このセット内で完結しているワイヤーを抽出
+    const wiresToDuplicate = [];
+    for (const wire of this.wires) {
+      const startPart = wire.startSocket.parent;
+      const endPart = wire.endSocket.parent;
+      
+      // 始点と終点の両方が「複製対象グループ」に含まれている場合のみ、ワイヤーも複製する
+      if (partsToDuplicate.has(startPart) && partsToDuplicate.has(endPart)) {
+        wiresToDuplicate.push(wire);
+      }
+    }
+
+    // 3. シリアライザを使ってディープコピーを作成
+    //    パーツリストには partsToDuplicate を渡す
+    const serializedData = CircuitSerializer.serialize(
+      Array.from(partsToDuplicate), 
+      wiresToDuplicate, 
+      true // compact mode
+    );
+
+    // 4. 一時的な配列に復元（IDは新規発行される）
+    const newParts = [];
+    const newWires = [];
+    CircuitSerializer.deserialize(serializedData, newParts, newWires);
+
+    if (newParts.length === 0) return;
+
+    // 5. 配置を少しずらす（オフセット）
+    const OFFSET = CONST.GRID.SIZE; // グリッド1個分ずらす
+    newParts.forEach(part => {
+      // アニメーションターゲットと現在値の両方をずらす
+      part.setPositionImmediately(part.x + OFFSET, part.y + OFFSET);
+    });
+
+    // 6. メインの配列に追加
+    this.parts.push(...newParts);
+    this.wires.push(...newWires);
+
+    // 7. 選択状態を新しいパーツに切り替える
+    this.clearSelection(); // 元の選択を解除
+    
+    if (!this.isMultiSelectMode) {
+        this.setMultiSelectMode(true);
+    }
+
+    // 新しく生成されたパーツを全て選択状態にする
+    newParts.forEach(part => {
+      if (part.type !== CONST.PART_TYPE.JOINT) {
+        part.isSelected = true;
+        this.selectedParts.add(part);
+      }
+    });
+    
+    // ★重要: 複製後の新しい配置で、再度「内部Joint」を計算し直す
+    // これで複製されたJointも正しくグループとして扱われるようになります
+    this.detectImplicitJoints();
+
+    console.log(`${newParts.length}個のパーツ（Joint含む）を複製しました`);
+  }
+
+  /**
    * 内部Joint（挟まれたJoint）を特定する
    * GraphUtilsを使って、選択パーツに囲まれたJointを抽出
    */

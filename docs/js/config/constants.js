@@ -73,6 +73,7 @@ const COMMON_CONST = {
     SHARE: 'Share',
     DELETE_MODE: 'Delete Mode',
     MULTI_SELECT: 'Multi Select Mode', // ★追加
+    DUPLICATE: 'Duplicate Selection (Ctrl+D)', // ★追加
     ROTATION_SNAP: 'Rotation Snap',
     MOVE_SNAP: 'Grid Snap',
     GRID_VISIBLE: 'Show Grid'
@@ -147,6 +148,7 @@ const COMMON_CONST = {
       COLOR_LIGHT: 'btn-color-light',
       DELETE_MODE: 'btn-delete-mode',
       MULTI_SELECT: 'btn-multi-select', // ★追加
+      DUPLICATE: 'btn-duplicate', // ★追加
       SAVE: 'btn-save',
       LOAD: 'btn-load',
       SHARE: 'btn-share',
@@ -162,6 +164,7 @@ const COMMON_CONST = {
       MENU_CLOSE: 'btn-menu-close',
       MENU_OVERLAY: 'mobile-menu-overlay',
       BOTTOM_SHEET: 'mobile-bottom-sheet',
+      DUPLICATE: 'btn-mobile-duplicate', // ★追加
       POWER: 'btn-mobile-power',
       AUTO_SWITCH: 'btn-mobile-auto-switch',
       INVERTER: 'btn-mobile-inverter',
