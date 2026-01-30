@@ -563,8 +563,15 @@ export class CircuitPart {
     const my = worldMouse ? worldMouse.y : undefined;
     const isHovered = this.isMouseOverRotationHandle(mx, my);
     
+    // ★修正: 複数選択モードの場合、選択されていないパーツのハンドルは表示しない
+    // visibilityRules.showRotationHandles が true でも、ここでの条件で弾く
+    let allowHandle = visibilityRules.showRotationHandles;
+    if (visibilityRules.isMultiSelectMode && !this.isSelected) {
+      allowHandle = false;
+    }
+    
     // 回転中 OR (ホバー中 AND ルールで許可されている) なら表示
-    const shouldShow = this.isRotating || (isHovered && visibilityRules.showRotationHandles);
+    const shouldShow = this.isRotating || (isHovered && allowHandle);
     
     if (shouldShow) {
       this.drawRotationHandle(worldMouse);

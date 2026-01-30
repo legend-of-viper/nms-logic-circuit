@@ -47,6 +47,10 @@ export class CircuitManager {
     this.implicitJoints = new Set();     // 自動的に追従するJoint
     this.isGroupDragging = false;
     this.clickedPartWasSelected = false; // Press時点で既に選択済みだったか
+    
+    // ★追加: グループ回転用変数
+    this.isGroupRotating = false;
+    this.groupRotationData = new Map(); // 回転開始時の各パーツの状態を保存
 
     // ★追加: 複数選択カーソルのアニメーション用パラメータ
     // 位置(X,Y), 回転(Rot), サイズ(W,H), 角丸(R) をすべて滑らかに補間する
@@ -541,7 +545,8 @@ export class CircuitManager {
     let targetPart = null;
     
     // ドラッグ中や操作中は吸着させない（カーソルが暴れるのを防ぐ）
-    if (!this.isGroupDragging && !this.draggingPart) {
+    // ★追加: グループ回転中も吸着させない
+    if (!this.isGroupDragging && !this.draggingPart && !this.isGroupRotating) {
       for (let i = this.parts.length - 1; i >= 0; i--) {
         const part = this.parts[i];
         if (part.type === CONST.PART_TYPE.JOINT) continue;
@@ -628,10 +633,11 @@ export class CircuitManager {
   getVisibilityRules() {
     return {
       // 回転ハンドル: 特殊モードやドラッグ操作中以外で表示
+      // ★修正: 複数選択モード時も表示を許可（CircuitPart側で選択済みのみ表示）
       showRotationHandles: !this.isDeleteMode && 
-                          !this.isMultiSelectMode && 
                           !this.wiringStartNode &&
                           !this.isGroupDragging &&
+                          !this.isGroupRotating &&
                           !this.draggingPart,
       
       // ソケットのTempハンドル（接続候補）: 
@@ -658,7 +664,10 @@ export class CircuitManager {
       isWiring: !!this.wiringStartNode,
       
       // 現在操作中のパーツID（そのパーツ自身は特別扱い）
-      activePartId: this.draggingPart?.id || null
+      activePartId: this.draggingPart?.id || null,
+      
+      // ★追加: 複数選択モードかどうか（CircuitPart側でハンドルの出し分けに使う）
+      isMultiSelectMode: this.isMultiSelectMode
     };
   }
 
@@ -669,6 +678,11 @@ export class CircuitManager {
     this.powerSystem.update();
     
     this.parts.forEach(part => part.updateAnimation());
+
+    // ★追加: グループ回転中の追従処理（塊感を出すため、毎フレーム即時計算）
+    if (this.isGroupRotating && this.draggingPart) {
+      this.syncGroupRotation();
+    }
 
     background(CONST.COLORS.BACKGROUND);
 
@@ -701,6 +715,45 @@ export class CircuitManager {
   // ==================== マウス・入力処理 ====================
   
   /**
+   * ★追加: グループ回転中の各パーツ位置をPivotに合わせて同期する
+   */
+  syncGroupRotation() {
+    const pivot = this.draggingPart;
+    const pivotData = this.groupRotationData.get(pivot);
+    if (!pivotData) return;
+
+    // Pivotの「現在」の角度を使用（これで同期ズレを防ぐ＆円運動させる）
+    const currentPivotRot = pivot.rotation; 
+
+    // 初期角度からの差分（初期状態との比較）
+    const deltaAngle = currentPivotRot - pivotData.initialRotation;
+    const pivotCenter = pivot.getRotationCenter();
+
+    for (const [part, data] of this.groupRotationData) {
+      if (data.isPivot) continue;
+
+      // 角度と位置を計算して即時反映 (setImmediate)
+      // これにより SmoothValue の線形補間をバイパスし、円運動を直接反映する
+      
+      const targetRot = data.initialRotation + deltaAngle;
+      
+      const cos = Math.cos(deltaAngle);
+      const sin = Math.sin(deltaAngle);
+      const rotatedX = data.offsetFromPivot.x * cos - data.offsetFromPivot.y * sin;
+      const rotatedY = data.offsetFromPivot.x * sin + data.offsetFromPivot.y * cos;
+      
+      const newCenterX = pivotCenter.x + rotatedX;
+      const newCenterY = pivotCenter.y + rotatedY;
+      const pivotOffset = part.getPivotOffset();
+
+      part.setPositionImmediately(newCenterX - pivotOffset.x - CONST.PARTS.WIDTH / 2, newCenterY - pivotOffset.y - CONST.PARTS.HEIGHT / 2);
+      part.setRotationImmediately(targetRot);
+    }
+  }
+
+  // ==================== マウス・入力処理 ====================
+  
+  /**
    * マウスボタンを押した時の処理
    */
   handleMousePressed(isMobile = false) {
@@ -728,9 +781,10 @@ export class CircuitManager {
     if (this.isMultiSelectMode) {
       // ===========================================
       // ■ 複数選択モードの判定ロジック
-      //   (回転ハンドルなどの特殊判定は行わない)
       // ===========================================
       const snapScale = CONST.MULTI_SELECT_MODE.SNAP_DISTANCE_MULTIPLIER;
+      
+      // ★修正: 判定順序を変更！「未選択パーツ（新規選択）」を最優先にする
       
       // A. まず「未選択」のパーツを探す（新規選択を優先）
       for (let i = this.parts.length - 1; i >= 0; i--) {
@@ -744,8 +798,25 @@ export class CircuitManager {
         }
       }
 
-      // B. 未選択が見つからなければ、「選択済み」のパーツを探す（ドラッグ移動用）
+      // B. 未選択が見つからなければ、「選択済みパーツの回転ハンドル」を判定
       if (!clickedPart) {
+        for (const part of this.selectedParts) {
+          if (part.isMouseOverRotationHandle(worldMouse.x, worldMouse.y)) {
+            this.draggingPart = part; // Pivotとして使用
+            this.isGroupRotating = true;
+            
+            // Pivotパーツの回転開始処理
+            part.onRotationMouseDown(worldMouse.x, worldMouse.y);
+            
+            // グループ回転の初期化（他のパーツの相対位置を保存）
+            this.initializeGroupRotation(part);
+            return;
+          }
+        }
+      }
+
+      // C. それも見つからなければ、「選択済み」のパーツを探す（ドラッグ移動用）
+      if (!clickedPart && !this.isGroupRotating) {
         for (let i = this.parts.length - 1; i >= 0; i--) {
           const part = this.parts[i];
           if (part.type === CONST.PART_TYPE.JOINT) continue;
@@ -880,6 +951,49 @@ export class CircuitManager {
   }
 
   /**
+   * ★追加: グループ回転の初期化
+   * 軸となるパーツ（Pivot）以外の相対位置と角度を保存する
+   * @param {CircuitPart} pivotPart - 回転軸となるパーツ
+   */
+  initializeGroupRotation(pivotPart) {
+    this.groupRotationData.clear();
+    
+    // 道連れJointも検出
+    this.detectImplicitJoints();
+    
+    // 影響を受ける全パーツ（選択パーツ＋道連れJoint）
+    const allAffected = new Set([...this.selectedParts, ...this.implicitJoints]);
+    
+    // 回転中心（ピボット）のワールド座標を取得（ピボット自体は位置を変えない）
+    const pivotCenter = pivotPart.getRotationCenter();
+    const pivotStartRotation = pivotPart.rot.target;
+    
+    // 各パーツの初期状態を記録
+    for (const part of allAffected) {
+      if (part === pivotPart) continue;
+      
+      const partCenter = part.getRotationCenter();
+      
+      this.groupRotationData.set(part, {
+        initialRotation: part.rot.target,
+        // ピボット中心からの相対ベクトル
+        offsetFromPivot: {
+          x: partCenter.x - pivotCenter.x,
+          y: partCenter.y - pivotCenter.y
+        }
+      });
+    }
+    
+    // ピボット自体の初期角度も保存（念のため）
+    this.groupRotationData.set(pivotPart, {
+      initialRotation: pivotStartRotation,
+      isPivot: true
+    });
+    
+    console.log(`グループ回転開始: Pivot ID=${pivotPart.id}, 対象=${allAffected.size}個`);
+  }
+
+  /**
    * マウスを動かしている時の処理
    */
   handleMouseDragged(movementX = 0, movementY = 0) {
@@ -926,6 +1040,16 @@ export class CircuitManager {
     }
 
     const worldMouse = this.getWorldPosition(mouseX, mouseY);
+
+    // ★追加: グループ回転処理
+    if (this.isGroupRotating && this.draggingPart) {
+      const pivot = this.draggingPart;
+      
+      // Pivot自身の回転ターゲットを更新（スナップはここで処理される）
+      // 追従パーツの同期は update() 内の syncGroupRotation で行われるので、ここではPivotを動かすだけでOK
+      pivot.onRotationMouseDragged(this.rotationSnapEnabled, worldMouse.x, worldMouse.y);
+      return;
+    }
 
     // ★修正: グループドラッグ中（リーダー追従方式に変更）
     if (this.isGroupDragging) {
@@ -1023,6 +1147,18 @@ export class CircuitManager {
   handleMouseReleased() {
     this.inputManager.resetTwoFingerGesture();
     this.isPanning = false;
+
+    // ★追加: グループ回転終了
+    if (this.isGroupRotating) {
+      if (this.draggingPart) {
+        this.draggingPart.onRotationMouseUp();
+      }
+      this.isGroupRotating = false;
+      this.draggingPart = null;
+      this.groupRotationData.clear();
+      this.implicitJoints.clear(); // 回転用に計算したJointをクリア
+      return;
+    }
 
     // グループドラッグ終了
     if (this.isGroupDragging) {
