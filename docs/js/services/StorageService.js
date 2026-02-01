@@ -112,12 +112,20 @@ export class StorageService {
    */
   shareToUrl() {
     try {
-      // 軽量版データを取得
+      // 軽量版データを取得 (v5 Safe Binary 文字列)
       const saveData = this.circuitManager.serializeCircuitData(true);
-      const jsonString = JSON.stringify(saveData);
+      
+      let dataString;
+      
+      // 文字列(v5)ならそのまま、オブジェクト/配列(v3以前)ならJSON化
+      if (typeof saveData === 'string') {
+        dataString = saveData;
+      } else {
+        dataString = JSON.stringify(saveData);
+      }
       
       // lz-stringで圧縮
-      const compressed = LZString.compressToEncodedURIComponent(jsonString);
+      const compressed = LZString.compressToEncodedURIComponent(dataString);
       
       // ハッシュを使用したURL生成
       const baseUrl = window.location.origin + window.location.pathname;
@@ -209,10 +217,19 @@ export class StorageService {
         return false;
       }
       
-      // JSONをパース
-      const saveData = JSON.parse(decompressed);
+      let saveData;
       
-      // マネージャーに渡して復元してもらう
+      // ★ v5対応: JSONかバイナリ文字列かの判別
+      try {
+        // v5バイナリは制御文字(コード5)で始まるため、JSON.parseでエラーになる
+        // v3配列やv1.1オブジェクトはJSONパース成功
+        saveData = JSON.parse(decompressed);
+      } catch (e) {
+        // JSONパースエラー = v5 Safe Binary 文字列とみなす
+        saveData = decompressed;
+      }
+      
+      // マネージャーに渡して復元してもらう（文字列ならv5, 配列/オブジェクトならv3/v1.1として処理）
       this.circuitManager.restoreFromData(saveData);
       
       console.log(`URLから回路を復元しました: パーツ${this.circuitManager.parts.length}個, ワイヤー${this.circuitManager.wires.length}本`);
