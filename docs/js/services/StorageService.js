@@ -112,20 +112,8 @@ export class StorageService {
    */
   shareToUrl() {
     try {
-      // 軽量版データを取得 (v5 Safe Binary 文字列)
-      const saveData = this.circuitManager.serializeCircuitData(true);
-      
-      let dataString;
-      
-      // 文字列(v5)ならそのまま、オブジェクト/配列(v3以前)ならJSON化
-      if (typeof saveData === 'string') {
-        dataString = saveData;
-      } else {
-        dataString = JSON.stringify(saveData);
-      }
-      
-      // lz-stringで圧縮
-      const compressed = LZString.compressToEncodedURIComponent(dataString);
+      // ★ v6: Base64URL文字列を直接取得（LZStringなし）
+      const compressed = this.circuitManager.serializeCircuitData(true);
       
       // ハッシュを使用したURL生成
       const baseUrl = window.location.origin + window.location.pathname;
@@ -206,30 +194,28 @@ export class StorageService {
       const hash = window.location.hash.substring(1);
       
       if (!hash) {
-        return false; // ハッシュがない場合は何もしない
-      }
-      
-      // lz-stringで解凍
-      const decompressed = LZString.decompressFromEncodedURIComponent(hash);
-      
-      if (!decompressed) {
-        console.warn('データの解凍に失敗、もしくは無効なデータです');
         return false;
       }
       
       let saveData;
       
-      // ★ v5対応: JSONかバイナリ文字列かの判別
-      try {
-        // v5バイナリは制御文字(コード5)で始まるため、JSON.parseでエラーになる
-        // v3配列やv1.1オブジェクトはJSONパース成功
-        saveData = JSON.parse(decompressed);
-      } catch (e) {
-        // JSONパースエラー = v5 Safe Binary 文字列とみなす
-        saveData = decompressed;
+      // ★ v6対応: まずLZString解凍を試みる（v3後方互換性）
+      const decompressed = LZString.decompressFromEncodedURIComponent(hash);
+      
+      if (decompressed) {
+        // LZString解凍成功 = v3形式
+        try {
+          saveData = JSON.parse(decompressed);
+        } catch (e) {
+          console.warn('JSON解析失敗:', e);
+          return false;
+        }
+      } else {
+        // LZString解凍失敗 = v6 Base64URL文字列として扱う
+        saveData = hash;
       }
       
-      // マネージャーに渡して復元してもらう（文字列ならv5, 配列/オブジェクトならv3/v1.1として処理）
+      // マネージャーに渡して復元
       this.circuitManager.restoreFromData(saveData);
       
       console.log(`URLから回路を復元しました: パーツ${this.circuitManager.parts.length}個, ワイヤー${this.circuitManager.wires.length}本`);

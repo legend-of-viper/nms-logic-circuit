@@ -32,8 +32,83 @@ const SOCKET_MAP = { 'left': 0, 'right': 1, 'bottom': 2, 'control': 3, 'center':
 // 数値からソケット名に戻す配列
 const SOCKET_LIST = ['left', 'right', 'bottom', 'control', 'center'];
 
-// 15bitマスク (0～32767: サロゲートペア領域 0xD800～ を回避)
-const MASK_15BIT = 0x7FFF;
+/**
+ * ★ v6用: ビット単位の書き込み/読み込みを行うヘルパークラス
+ */
+class BitStream {
+  constructor(base64String = '') {
+    this.bits = [];
+    this.readIndex = 0;
+    
+    if (base64String) {
+      this.fromBase64(base64String);
+    }
+  }
+
+  write(value, numBits) {
+    for (let i = 0; i < numBits; i++) {
+      this.bits.push((value >> i) & 1);
+    }
+  }
+
+  read(numBits) {
+    let value = 0;
+    for (let i = 0; i < numBits; i++) {
+      if (this.readIndex >= this.bits.length) return 0;
+      const bit = this.bits[this.readIndex++];
+      value |= (bit << i);
+    }
+    return value;
+  }
+  
+  write30Signed(val) {
+    const v = Math.round(val);
+    const clamped = Math.max(-0x20000000, Math.min(0x1FFFFFFF, v));
+    const unsigned = (clamped < 0) ? (clamped + 0x40000000) : clamped;
+    this.write(unsigned, 30);
+  }
+
+  read30Signed() {
+    let val = this.read(30);
+    if (val & 0x20000000) {
+      val |= ~0x3FFFFFFF;
+    }
+    return val;
+  }
+
+  toBase64() {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let output = "";
+    for (let i = 0; i < this.bits.length; i += 6) {
+      let val = 0;
+      for (let j = 0; j < 6; j++) {
+        if (i + j < this.bits.length) {
+          val |= (this.bits[i + j] << j);
+        }
+      }
+      output += chars[val];
+    }
+    return output;
+  }
+
+  fromBase64(str) {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    const map = {};
+    for (let i = 0; i < chars.length; i++) {
+      map[chars[i]] = i;
+    }
+    
+    this.bits = [];
+    for (let i = 0; i < str.length; i++) {
+      const val = map[str[i]];
+      if (val === undefined) continue;
+      for (let j = 0; j < 6; j++) {
+        this.bits.push((val >> j) & 1);
+      }
+    }
+    this.readIndex = 0;
+  }
+}
 
 /**
  * 回路データのシリアライズ・デシリアライズを担当するクラス
@@ -50,8 +125,8 @@ export class CircuitSerializer {
    */
   static serialize(parts, wires, compact = false, viewState = {x:0, y:0, scale:1}) {
     if (compact) {
-      // ★ v5 Safe Binary形式 (URL共有・複製用)
-      return this.serializeToSafeBinary(parts, wires, viewState);
+      // ★ v6 Adaptive Bit Packing (URL共有・複製用)
+      return this.serializeToBitStream(parts, wires, viewState);
     } else {
       // v1.1 JSONオブジェクト形式 (ファイル保存用)
       const partsData = parts.map(part => {
@@ -91,38 +166,50 @@ export class CircuitSerializer {
   }
 
   /**
-   * ★ v5: サロゲートペアフリー・30bit座標対応のバイナリシリアライズ
-   * 数値を15bitごとに区切って文字化することで、安全性と圧縮率を両立
+   * ★ v6: 適応型ビットパッキング・シリアライザ (LZStringなし)
    */
-  static serializeToSafeBinary(parts, wires, viewState) {
-    const buffer = [];
+  static serializeToBitStream(parts, wires, viewState) {
+    const stream = new BitStream();
+    
+    // ヘッダー: バージョン6 (4bit)
+    stream.write(6, 4);
 
-    // ヘルパー: 値を15bit文字に変換して追加
-    const push15 = (val) => {
-      buffer.push(String.fromCharCode(val & MASK_15BIT));
-    };
+    // バウンディングボックス計算
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    const points = parts.map(p => ({x: p.x, y: p.y}));
+    points.push({x: viewState.x, y: viewState.y});
+    
+    points.forEach(p => {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    });
 
-    // ヘルパー: 30bit符号付き整数を2文字で追加
-    // 範囲: -536,870,912 ～ +536,870,911
-    const push32 = (val) => {
-      const v = Math.round(val);
-      // 30bit範囲にクランプ
-      const clamped = Math.max(-0x20000000, Math.min(0x1FFFFFFF, v));
-      
-      // 負の数を正の整数空間にマッピング (2の補数表現)
-      const unsigned = (clamped < 0) ? (clamped + 0x40000000) : clamped;
-      
-      push15(unsigned);          // 下位15bit
-      push15(unsigned >>> 15);   // 上位15bit
-    };
+    if (minX === Infinity) {
+      minX = 0; maxX = 0; minY = 0; maxY = 0;
+    }
 
-    // ヘッダー: バージョン5 (文字コード5)
-    push15(5);
+    // 必要なビット数を計算
+    const width = Math.ceil(maxX - minX) + 100;
+    const height = Math.ceil(maxY - minY) + 100;
+    
+    const bitsX = Math.max(1, Math.ceil(Math.log2(width + 1)));
+    const bitsY = Math.max(1, Math.ceil(Math.log2(height + 1)));
 
-    // 視点情報 (座標は30bit)
-    push32(viewState.x);
-    push32(viewState.y);
-    push15(Math.round(viewState.scale * 100));
+    // 基準座標（30bit）
+    stream.write30Signed(minX);
+    stream.write30Signed(minY);
+    
+    // 相対座標用ビット数（5bit）
+    stream.write(bitsX, 5);
+    stream.write(bitsY, 5);
+
+    // 視点情報
+    stream.write(Math.round(viewState.x - minX), bitsX);
+    stream.write(Math.round(viewState.y - minY), bitsY);
+    stream.write(Math.round(viewState.scale * 100), 9);
 
     // IDマッピング
     const idToIndexMap = new Map();
@@ -130,48 +217,42 @@ export class CircuitSerializer {
       idToIndexMap.set(part.id, index);
     });
 
-    // パーツ数
-    push15(parts.length);
+    // パーツ数（15bit）
+    stream.write(parts.length, 15);
 
     // パーツデータ
     parts.forEach(part => {
-      // Type(4bit) + State(1bit) をパック
-      const typeNum = TYPE_MAP[part.type];
-      const stateBit = (part.hasOwnProperty('isOn') && part.isOn) ? 1 : 0;
-      const typeAndState = typeNum | (stateBit << 4);
-      push15(typeAndState);
-
-      // 座標 (30bit)
-      push32(part.x);
-      push32(part.y);
+      stream.write(TYPE_MAP[part.type], 4);
       
-      // 回転 (0~2PI -> 0~32767)
+      const stateBit = (part.hasOwnProperty('isOn') && part.isOn) ? 1 : 0;
+      stream.write(stateBit, 1);
+
+      stream.write(Math.round(part.x - minX), bitsX);
+      stream.write(Math.round(part.y - minY), bitsY);
+      
       let normRot = part.rotation % (Math.PI * 2);
       if (normRot < 0) normRot += Math.PI * 2;
-      const rotInt = Math.floor((normRot / (Math.PI * 2)) * MASK_15BIT);
-      push15(rotInt);
+      const rotInt = Math.floor((normRot / (Math.PI * 2)) * 1023);
+      stream.write(rotInt, 10);
     });
 
-    // ワイヤー数
-    push15(wires.length);
+    // ワイヤー数（15bit）
+    stream.write(wires.length, 15);
 
-    // ワイヤーデータ
+    const indexBits = parts.length > 0 ? Math.max(1, Math.ceil(Math.log2(parts.length + 1))) : 1;
+
     wires.forEach(wire => {
       const startIdx = idToIndexMap.get(wire.startSocket.parent.id);
       const endIdx = idToIndexMap.get(wire.endSocket.parent.id);
       
-      // インデックス(15bit: 最大32767パーツまで対応)
-      push15(startIdx);
-      push15(endIdx);
+      stream.write(startIdx, indexBits);
+      stream.write(endIdx, indexBits);
 
-      // ソケット番号 (Start 4bit + End 4bit)
-      const startSockNum = SOCKET_MAP[wire.startSocket.name];
-      const endSockNum = SOCKET_MAP[wire.endSocket.name];
-      const socketsPacked = startSockNum | (endSockNum << 4);
-      push15(socketsPacked);
+      stream.write(SOCKET_MAP[wire.startSocket.name], 3);
+      stream.write(SOCKET_MAP[wire.endSocket.name], 3);
     });
 
-    return buffer.join('');
+    return stream.toBase64();
   }
 
   /**
@@ -182,9 +263,9 @@ export class CircuitSerializer {
    * @returns {Object|null} 復元した視点情報 {x, y, scale} または null
    */
   static deserialize(saveData, partsArray, wiresArray) {
-    // 文字列型なら v5 (Safe Binary) として処理
+    // 文字列型ならv6 (Bit Packing) として処理
     if (typeof saveData === 'string') {
-      return this.deserializeFromSafeBinary(saveData, partsArray, wiresArray);
+      return this.deserializeFromBitStream(saveData, partsArray, wiresArray);
     }
 
     // 配列をクリア（参照は維持）
@@ -292,68 +373,51 @@ export class CircuitSerializer {
   }
 
   /**
-   * ★ v5: バイナリ文字列からの復元
+   * ★ v6: ビットストリームからの復元
    */
-  static deserializeFromSafeBinary(packedStr, partsArray, wiresArray) {
+  static deserializeFromBitStream(base64Str, partsArray, wiresArray) {
     partsArray.length = 0;
     wiresArray.length = 0;
     
-    let cursor = 0;
+    const stream = new BitStream(base64Str);
     
-    // ヘルパー: 15bit読み出し
-    const read15 = () => {
-      return packedStr.charCodeAt(cursor++);
-    };
-    
-    // ヘルパー: 30bit符号付き整数読み出し
-    const read32 = () => {
-      const low = read15();
-      const high = read15();
-      
-      // ビット結合 (High << 15 | Low)
-      let val = low | (high << 15);
-      
-      // 符号復元: 29bit目(0x20000000)が立っていたら負の数
-      if (val & 0x20000000) {
-        // 上位ビットを全て1で埋めて 32bit符号付き整数にする
-        val |= ~0x3FFFFFFF;
-      }
-      return val;
-    };
-
     try {
-      const version = read15();
-      if (version !== 5) {
-        console.warn("Unsupported packed version:", version);
+      const version = stream.read(4);
+      if (version !== 6) {
+        console.warn("Unsupported version:", version);
         return null;
       }
 
-      // 視点情報
-      const vx = read32();
-      const vy = read32();
-      const vScale = read15() / 100;
+      const minX = stream.read30Signed();
+      const minY = stream.read30Signed();
+      const bitsX = stream.read(5);
+      const bitsY = stream.read(5);
+
+      const vx = minX + stream.read(bitsX);
+      const vy = minY + stream.read(bitsY);
+      const vScale = stream.read(9) / 100;
       const restoredView = { x: vx, y: vy, scale: vScale };
 
-      // パーツ
-      const partsCount = read15();
+      const partsCount = stream.read(15);
       const tempParts = [];
       const baseId = Date.now();
 
       for (let i = 0; i < partsCount; i++) {
-        const typeAndState = read15();
-        const x = read32();
-        const y = read32();
-        const rotInt = read15();
-
-        const typeNum = typeAndState & 0x0F;
-        const stateBit = (typeAndState >> 4) & 0x01;
+        const typeNum = stream.read(4);
+        const stateBit = stream.read(1);
         
+        const dx = stream.read(bitsX);
+        const dy = stream.read(bitsY);
+        const x = minX + dx;
+        const y = minY + dy;
+
+        const rotInt = stream.read(10);
+
         const typeStr = TYPE_LIST[typeNum];
         const newPart = PartFactory.create(typeStr, baseId + i, x, y);
 
         if (newPart) {
-          // 回転復元
-          const rotRad = (rotInt / MASK_15BIT) * Math.PI * 2;
+          const rotRad = (rotInt / 1023) * Math.PI * 2;
           newPart.setRotationImmediately(rotRad);
 
           if (newPart.hasOwnProperty('isOn')) {
@@ -367,49 +431,46 @@ export class CircuitSerializer {
         }
       }
 
-      // ワイヤー
-      const wiresCount = read15();
+      const wiresCount = stream.read(15);
+      const indexBits = partsCount > 0 ? Math.max(1, Math.ceil(Math.log2(partsCount + 1))) : 1;
+
       for (let i = 0; i < wiresCount; i++) {
-        const startIdx = read15();
-        const endIdx = read15();
-        const socketsPacked = read15();
+        const startIdx = stream.read(indexBits);
+        const endIdx = stream.read(indexBits);
+        const startSockNum = stream.read(3);
+        const endSockNum = stream.read(3);
 
         const startPart = tempParts[startIdx];
         const endPart = tempParts[endIdx];
 
         if (startPart && endPart) {
-          const startSockNum = socketsPacked & 0x0F;
-          const endSockNum = (socketsPacked >> 4) & 0x0F;
-
           const sSock = startPart.getSocket(SOCKET_LIST[startSockNum]);
           const eSock = endPart.getSocket(SOCKET_LIST[endSockNum]);
-
           if (sSock && eSock) {
             wiresArray.push(new Wire(sSock, eSock));
           }
         }
       }
 
-      console.log(`復元完了(v5 Safe): パーツ${partsArray.length}個, ワイヤー${wiresArray.length}本`);
+      console.log(`復元完了(v6 BitPacked): パーツ${partsCount}個, ワイヤー${wiresCount}本`);
       return restoredView;
 
     } catch (e) {
-      console.error("v5 デシリアライズエラー:", e);
+      console.error("v6 デシリアライズエラー:", e);
       alert("回路データの読み込みに失敗しました。URLが破損している可能性があります。");
       return null;
     }
   }
 
   /**
-   * ★追加: 圧縮率比較用デバッグメソッド
-   * ブラウザコンソールで CircuitSerializer.debugCompressionRate(parts, wires) を呼ぶと確認可能
+   * ★追加: 圧縮率比較用デバッグメソッド（v3 vs v6）
    */
   static debugCompressionRate(parts, wires, viewState = {x:0, y:0, scale:1}) {
-    console.log("=== 圧縮率比較テスト ===");
+    console.log("=== 圧縮率比較テスト (v3 vs v6) ===");
     console.log(`パーツ数: ${parts.length}, ワイヤー数: ${wires.length}`);
     
     try {
-      // v3形式（参考用：手動生成）
+      // v3形式
       const idMap = new Map();
       parts.forEach((p, i) => idMap.set(p.id, i));
       const v3Parts = parts.map(p => {
@@ -438,24 +499,22 @@ export class CircuitSerializer {
       const v3Raw = JSON.stringify([3, v3Parts, v3Wires, v3ViewData]);
       const v3Compressed = LZString.compressToEncodedURIComponent(v3Raw);
 
-      // v5形式
-      const v5Raw = this.serializeToSafeBinary(parts, wires, viewState);
-      const v5Compressed = LZString.compressToEncodedURIComponent(v5Raw);
+      // v6形式（LZStringなし）
+      const v6Raw = this.serializeToBitStream(parts, wires, viewState);
 
-      console.log(`v3 (JSON配列):`);
+      console.log(`v3 (JSON + LZString):`);
       console.log(`  生データ: ${v3Raw.length} chars`);
       console.log(`  圧縮後: ${v3Compressed.length} chars`);
-      console.log(`v5 (Safe Binary):`);
-      console.log(`  生データ: ${v5Raw.length} chars`);
-      console.log(`  圧縮後: ${v5Compressed.length} chars`);
+      console.log(`v6 (Bit Packing, LZStringなし):`);
+      console.log(`  Base64直接: ${v6Raw.length} chars`);
       
-      const reduction = ((1 - v5Compressed.length / v3Compressed.length) * 100).toFixed(2);
-      console.log(`削減率: ${reduction}%`);
-      console.log("========================");
+      const reduction = ((1 - v6Raw.length / v3Compressed.length) * 100).toFixed(2);
+      console.log(`\nv6削減率: ${reduction}% (vs v3)`);
+      console.log("=========================================");
       
       return {
         v3Size: v3Compressed.length,
-        v5Size: v5Compressed.length,
+        v6Size: v6Raw.length,
         reduction: parseFloat(reduction)
       };
     } catch (error) {
