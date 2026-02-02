@@ -747,7 +747,9 @@ export class CircuitManager {
       const pivotOffset = part.getPivotOffset();
 
       part.setPositionImmediately(newCenterX - pivotOffset.x - CONST.PARTS.WIDTH / 2, newCenterY - pivotOffset.y - CONST.PARTS.HEIGHT / 2);
-      part.setRotationImmediately(targetRot);
+      if (part.type !== CONST.PART_TYPE.JOINT) {
+        part.setRotationImmediately(targetRot);
+      }
     }
   }
 
