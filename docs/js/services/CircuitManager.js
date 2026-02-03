@@ -398,6 +398,41 @@ export class CircuitManager {
     }
   }
 
+  /**
+   * ワイヤーの整理（重複や長さ0のワイヤーを削除）
+   * 操作の最後に呼び出すことでゴミデータを掃除する
+   */
+  consolidateWires() {
+    // 配列を操作（削除）するため、後ろからループする
+    for (let i = this.wires.length - 1; i >= 0; i--) {
+      const wire = this.wires[i];
+      const startPos = wire.startSocket.getConnectorWorldPosition();
+      const endPos = wire.endSocket.getConnectorWorldPosition();
+
+      // 1. 長さがほぼ0（始点と終点が同じ位置）のワイヤーを削除
+      // わずかな誤差許容のため 1.0px 未満なら削除とみなす
+      if (dist(startPos.x, startPos.y, endPos.x, endPos.y) < 1.0) {
+        this.deleteWire(wire);
+        continue; // このワイヤーは消えたので次のチェックへ
+      }
+
+      // 2. 重複ワイヤー（始点・終点が同じペア）を削除
+      // 自分より前のワイヤー（j < i）と比較して、同じ接続なら自分（新しい方）を消す
+      for (let j = 0; j < i; j++) {
+        const other = this.wires[j];
+        
+        // A->B と A->B、または A->B と B->A を重複とみなす
+        const isSameDir = (wire.startSocket === other.startSocket && wire.endSocket === other.endSocket);
+        const isReverseDir = (wire.startSocket === other.endSocket && wire.endSocket === other.startSocket);
+
+        if (isSameDir || isReverseDir) {
+          this.deleteWire(wire);
+          break; // 削除したのでinner loopを抜ける
+        }
+      }
+    }
+  }
+
   // ==================== 描画 ====================
   
   /**
@@ -1263,35 +1298,25 @@ export class CircuitManager {
          const jointCenterX = this.draggingPart.targetX + CONST.PARTS.WIDTH / 2;
          const jointCenterY = this.draggingPart.targetY + CONST.PARTS.HEIGHT / 2;
          const targetSocket = this.findNearbySocket(jointCenterX, jointCenterY, this.draggingPart);
-         const jointSocket = this.draggingPart.getSocket('center');
-         const otherEndSockets = jointSocket.connectedWires.map(wire => wire.getOtherEnd(jointSocket));
-         const isConnectingToSelf = otherEndSockets.includes(targetSocket);
-
-         if (targetSocket && !isConnectingToSelf) {
+         
+         // 自己接続チェックを削除: Jointが接続している先に重ねた場合でもマージを許可
+         // 一時的に同じソケット間のワイヤーができても、後続の consolidateWires で削除される
+         if (targetSocket) {
             const joint = this.draggingPart;
             const jointSocket = joint.getSocket('center');
             const wiresToReattach = [...jointSocket.connectedWires];
+            
             wiresToReattach.forEach(wire => {
+              // ワイヤーの付け替え
               if (wire.startSocket === jointSocket) wire.startSocket = targetSocket;
               if (wire.endSocket === jointSocket) wire.endSocket = targetSocket;
               targetSocket.connectWire(wire);
             });
+            
+            // Jointを削除
             this.deletePart(joint);
          } else {
-            const min_dist = CONST.PARTS.SOCKET_HIT_RADIUS;
-            for (let otherSocket of otherEndSockets) {
-              if (!otherSocket) continue;
-              const otherPos = otherSocket.getConnectorWorldPosition();
-              const d = dist(jointCenterX, jointCenterY, otherPos.x, otherPos.y);
-              if (d < min_dist) {
-                let angle = Math.atan2(jointCenterY - otherPos.y, jointCenterX - otherPos.x);
-                if (d === 0) angle = 0;
-                const pushX = otherPos.x + Math.cos(angle) * min_dist;
-                const pushY = otherPos.y + Math.sin(angle) * min_dist;
-                this.draggingPart.posX.setTarget(pushX - CONST.PARTS.WIDTH / 2);
-                this.draggingPart.posY.setTarget(pushY - CONST.PARTS.HEIGHT / 2);
-              }
-            }
+            // ターゲットがない場合は通常終了
             this.draggingPart.onMouseUp();
          }
       } else {
@@ -1302,6 +1327,9 @@ export class CircuitManager {
       }
       this.draggingPart = null;
     }
+
+    // 操作終了時にワイヤーを整理（重複・0長ワイヤー削除）
+    this.consolidateWires();
   }
 
   // ==================== シリアライズ ====================
