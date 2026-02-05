@@ -199,19 +199,22 @@ export class StorageService {
       
       let saveData;
       
-      // ★ v6対応: まずLZString解凍を試みる（v3後方互換性）
-      const decompressed = LZString.decompressFromEncodedURIComponent(hash);
-      
-      if (decompressed) {
-        // LZString解凍成功 = v3形式
-        try {
+      // ★ v3/v6両形式対応: まずv3形式として処理を試み、失敗したらv6形式として扱う
+      try {
+        const decompressed = LZString.decompressFromEncodedURIComponent(hash);
+        
+        if (decompressed) {
+          // LZString解凍成功 = v3形式として処理
           saveData = JSON.parse(decompressed);
-        } catch (e) {
-          console.warn('JSON解析失敗:', e);
-          return false;
+          console.log('v3形式（LZString）として読み込みました');
+        } else {
+          // LZString解凍失敗 = v6形式として処理
+          saveData = hash;
+          console.log('v6形式（Base64URL）として読み込みました');
         }
-      } else {
-        // LZString解凍失敗 = v6 Base64URL文字列として扱う
+      } catch (e) {
+        // LZStringの解凍またはJSON.parseが失敗 = v6形式として処理
+        console.log('v3形式の処理に失敗、v6形式（Base64URL）として読み込みます');
         saveData = hash;
       }
       
