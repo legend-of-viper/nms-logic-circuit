@@ -409,34 +409,65 @@ export class CircuitManager {
       const startPos = wire.startSocket.getConnectorWorldPosition();
       const endPos = wire.endSocket.getConnectorWorldPosition();
 
-      // 1. 長さがほぼ0（始点と終点が同じ位置）のワイヤーの処理
-      // わずかな誤差許容のため 1.0px 未満なら重なっているとみなす
-      if (dist(startPos.x, startPos.y, endPos.x, endPos.y) < 1.0) {
+      // 1. 長さがほぼ0（重なっている）場合の処理
+      if (dist(startPos.x, startPos.y, endPos.x, endPos.y) < CONST.PARTS.SOCKET_HIT_RADIUS) {
         
         const startPart = wire.startSocket.parent;
         const endPart = wire.endSocket.parent;
-
-        // 削除するかどうかの判定を詳細化
         const isStartJoint = (startPart.type === CONST.PART_TYPE.JOINT);
         const isEndJoint = (endPart.type === CONST.PART_TYPE.JOINT);
-        const isSelfConnection = (startPart === endPart); // 自分自身への接続
-
-        // 「どちらかがJoint」または「自己接続（パーツAからパーツA）」の場合は削除対象
-        // 逆に言えば「別々の一般パーツ同士」なら長さ0でも残す
-        if (isStartJoint || isEndJoint || isSelfConnection) {
+        
+        // ★修正: 「同じパーツかどうか」ではなく「同じソケットかどうか」で判定する
+        // これにより、同じパーツの Left と Right を繋ぐような配線は
+        // たとえ距離が近くても削除されずに残ります。
+        if (wire.startSocket === wire.endSocket) {
           this.deleteWire(wire);
-          continue; // このワイヤーは消えたので次のチェックへ
+          continue;
+        }
+
+        // パターンB: Jointが含まれる接続
+        // Jointを削除して、もう片方のパーツに接続を集約する（マージ処理）
+        if (isStartJoint || isEndJoint) {
+           // 1. 消える側（Joint）と、残る側（Target）を決める
+           const joint = isStartJoint ? startPart : endPart;
+           const targetSocket = isStartJoint ? wire.endSocket : wire.startSocket;
+           const jointSocket = joint.getSocket('center');
+
+           // 2. Jointに繋がっているワイヤーをリストアップ
+           const wiresToTransfer = [...jointSocket.connectedWires];
+           
+           // 3. 全ワイヤーをターゲット（重ねた先のパーツ）に付け替える
+           wiresToTransfer.forEach(w => {
+             if (w === wire) {
+               // 重なりの原因になったワイヤー自体は消す
+               this.deleteWire(w);
+             } else {
+               // それ以外のワイヤー（他から来ていた線）は引き継ぐ
+               jointSocket.disconnectWire(w);
+               
+               // 端点の書き換え
+               if (w.startSocket === jointSocket) w.startSocket = targetSocket;
+               if (w.endSocket === jointSocket) w.endSocket = targetSocket;
+               
+               // 新しい接続先に登録
+               targetSocket.connectWire(w);
+             }
+           });
+           
+           // 4. 空っぽになったJointを削除
+           this.deletePart(joint);
+           
+           continue; 
         }
         
-        // ここに来る＝一般パーツ同士の接続なので、重なっていても残す
+        // パターンC: 一般パーツ同士の重なり（自己接続含む）
+        // 別ソケット同士であれば、意図的な接続の可能性が高いため削除せずに残す
       }
 
       // 2. 重複ワイヤー（始点・終点が同じペア）を削除
-      // 自分より前のワイヤー（j < i）と比較して、同じ接続なら自分（新しい方）を消す
       for (let j = 0; j < i; j++) {
         const other = this.wires[j];
         
-        // A->B と A->B、または A->B と B->A を重複とみなす
         const isSameDir = (wire.startSocket === other.startSocket && wire.endSocket === other.endSocket);
         const isReverseDir = (wire.startSocket === other.endSocket && wire.endSocket === other.startSocket);
 
