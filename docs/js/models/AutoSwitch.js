@@ -21,10 +21,11 @@ export class AutoSwitch extends CircuitPart {
     this.type = CONST.PART_TYPE.AUTO_SWITCH;
     
     // ソケットを作成
+    // ★リファクタリング: this.width / this.height を使用
     this.sockets = [
-      new Socket(this, 'left', -CONST.PARTS.WIDTH / 2, 0, 'left'),
-      new Socket(this, 'right', CONST.PARTS.WIDTH / 2, 0, 'right'),
-      new Socket(this, 'control', 0, CONST.PARTS.HEIGHT / 2, 'bottom')
+      new Socket(this, 'left', -this.width / 2, 0, 'left'),
+      new Socket(this, 'right', this.width / 2, 0, 'right'),
+      new Socket(this, 'control', 0, this.height / 2, 'bottom')
     ];
     
     // オートスイッチは制御入力で動作
@@ -48,12 +49,13 @@ export class AutoSwitch extends CircuitPart {
     super.drawShape(color);
     
     // T字型の内部図形
+    // ★リファクタリング: this.width / this.height を使用
     noStroke();
     fill(LOCAL_CONST.GREEN);
     rectMode(CENTER);
     // 横棒
-    rect(0, -CONST.PARTS.HEIGHT * 0.1, CONST.PARTS.WIDTH * 0.5, CONST.PARTS.HEIGHT * 0.25);
+    rect(0, -this.height * 0.1, this.width * 0.5, this.height * 0.25);
     // 縦棒
-    rect(0, 0, CONST.PARTS.WIDTH * 0.25, CONST.PARTS.HEIGHT * 0.4);
+    rect(0, 0, this.width * 0.25, this.height * 0.4);
   }
 }

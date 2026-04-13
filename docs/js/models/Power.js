@@ -25,8 +25,9 @@ export class Power extends CircuitPart {
     this.isOn = true; // 電源は常にON
     
     // ソケットを作成（出力のみ・右側）
+    // ★リファクタリング: this.width を使用
     this.sockets = [
-      new Socket(this, 'right', CONST.PARTS.WIDTH / 2, 0, 'right')
+      new Socket(this, 'right', this.width / 2, 0, 'right')
     ];
   }
 
@@ -63,8 +64,9 @@ export class Power extends CircuitPart {
     stroke(...LOCAL_CONST.ORANGE);
     strokeWeight(LOCAL_CONST.OUTLINE_WEIGHT);
     
-    const w = CONST.PARTS.WIDTH;
-    const h = CONST.PARTS.HEIGHT;
+    // ★リファクタリング: this.width / this.height を使用
+    const w = this.width;
+    const h = this.height;
     
     beginShape();
       // 稲妻マーク（頂点から時計回り）

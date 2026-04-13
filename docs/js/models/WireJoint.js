@@ -90,8 +90,9 @@ export class WireJoint extends CircuitPart {
    * 移動ハンドルの描画（共通化）
    */
   drawMoveHandle() {
-    const handleX = -CONST.PARTS.WIDTH / 2;
-    const handleY = -CONST.PARTS.HEIGHT / 2;
+    // ★リファクタリング: this.width / this.height を使用
+    const handleX = -this.width / 2;
+    const handleY = -this.height / 2;
     const handleSize = CONST.PARTS.JOINT_HANDLE_RADIUS * 2;
 
     push();

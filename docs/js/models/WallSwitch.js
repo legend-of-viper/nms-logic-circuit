@@ -23,9 +23,10 @@ export class WallSwitch extends CircuitPart {
     this.isOn = false;
     
     // ソケットを作成（Socket配列）
+    // ★リファクタリング: this.width を使用
     this.sockets = [
-      new Socket(this, 'left', -CONST.PARTS.WIDTH / 2, 0, 'left'),
-      new Socket(this, 'right', CONST.PARTS.WIDTH / 2, 0, 'right')
+      new Socket(this, 'left', -this.width / 2, 0, 'left'),
+      new Socket(this, 'right', this.width / 2, 0, 'right')
     ];
   }
   
@@ -57,19 +58,20 @@ export class WallSwitch extends CircuitPart {
     super.drawShape(color);
 
     // スイッチ固有の内部描画（レバー）
+    // ★リファクタリング: this.width / this.height を使用
     rectMode(CORNER);
     noStroke();
     fill(...LOCAL_CONST.RED);
-    rect(-CONST.PARTS.WIDTH * 0.15, -CONST.PARTS.HEIGHT * 0.1, 
-         CONST.PARTS.WIDTH * 0.3, CONST.PARTS.HEIGHT * 0.2);
+    rect(-this.width * 0.15, -this.height * 0.1, 
+         this.width * 0.3, this.height * 0.2);
 
     noFill();
     stroke(...LOCAL_CONST.RED);
     strokeWeight(LOCAL_CONST.LEVER_THICKNESS);
     
-    rect(-CONST.PARTS.WIDTH * 0.3, 
-         -(this.isOn ? 0 : CONST.PARTS.HEIGHT * 0.3), 
-         CONST.PARTS.WIDTH * 0.6, 
-         CONST.PARTS.HEIGHT * 0.3);
+    rect(-this.width * 0.3, 
+         -(this.isOn ? 0 : this.height * 0.3), 
+         this.width * 0.6, 
+         this.height * 0.3);
   }
 }

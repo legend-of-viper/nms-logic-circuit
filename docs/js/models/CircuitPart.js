@@ -9,8 +9,21 @@ import { MathUtils } from '../utils/MathUtils.js';
  * すべての回路部品はこのクラスを継承する
  */
 export class CircuitPart {
-  constructor(id, x, y) {
+  constructor(id, x, y, width = CONST.PARTS.WIDTH, height = CONST.PARTS.HEIGHT) {
     this.id = id;
+    
+    // ★リファクタリング: サイズをインスタンスプロパティ化
+    this.width = width;
+    this.height = height;
+    
+    // ★追加: スナップ時のオフセット（デフォルトはずらさない）
+    // 子クラスのコンストラクタで上書き可能
+    this.snapOffset = { x: 0, y: 0 };
+    
+    // ★追加: 回転中心のオフセット
+    // nullの場合は「snapOffsetの逆」というルールを維持する（後方互換性）
+    // 明示的に設定したい場合は子クラスで上書き可能
+    this._pivotOffset = null;
     
     // ★リファクタリング: アニメーション対応の座標管理
     this.posX = new SmoothValue(x, CONST.ANIMATION.MOVE_SPEED, CONST.ANIMATION.MOVE_SNAP_THRESHOLD);
@@ -149,8 +162,8 @@ export class CircuitPart {
    */
   getCenter() {
     return {
-      x: this.x + CONST.PARTS.WIDTH / 2,
-      y: this.y + CONST.PARTS.HEIGHT / 2
+      x: this.x + this.width / 2,
+      y: this.y + this.height / 2
     };
   }
 
@@ -301,8 +314,8 @@ export class CircuitPart {
     const localY = dx * sin + dy * cos;
 
     // 3. 軸平行な矩形判定を行う
-    const halfW = (CONST.PARTS.WIDTH * scale) / 2;
-    const halfH = (CONST.PARTS.HEIGHT * scale) / 2;
+    const halfW = (this.width * scale) / 2;
+    const halfH = (this.height * scale) / 2;
 
     // 回転後の座標が、元の矩形範囲に入っているか
     return (localX > -halfW && localX < halfW &&
@@ -327,22 +340,26 @@ export class CircuitPart {
 
   /**
    * スナップ時のオフセット（補正値）を取得
-   * 通常は {x:0, y:0} だが、サイズが特殊なパーツ等はこれをオーバーライドする
+   * ★リファクタリング: インスタンス変数を返すだけのシンプルなメソッドに変更
+   * 子クラスはコンストラクタで this.snapOffset を設定するだけでOK
    */
   getSnapOffset() {
-    return { x: 0, y: 0 };
+    return this.snapOffset;
   }
 
   /**
    * 回転中心のオフセット（補正値）を取得
-   * スナップオフセットの「逆」を返すことで、
-   * 位置をずらしても回転中心はグリッド上に維持されるようにする
+   * ★リファクタリング: 明示的に指定されていればそれを使い、なければsnapOffsetの逆にする
+   * これにより「スナップ位置」と「回転中心」を独立して設定可能
    */
   getPivotOffset() {
-    const snap = this.getSnapOffset();
+    if (this._pivotOffset !== null) {
+      return this._pivotOffset;
+    }
+    // デフォルトはsnapOffsetの逆（後方互換性維持）
     return {
-      x: -snap.x,
-      y: -snap.y
+      x: -this.snapOffset.x,
+      y: -this.snapOffset.y
     };
   }
 
@@ -589,7 +606,7 @@ export class CircuitPart {
     strokeWeight(CONST.PARTS.STROKE_WEIGHT);
     fill(CONST.COLORS.BACKGROUND);
     rectMode(CENTER);
-    rect(0, 0, CONST.PARTS.WIDTH, CONST.PARTS.HEIGHT, 8);
+    rect(0, 0, this.width, this.height, 8);
   }
 
   /**
@@ -604,7 +621,7 @@ export class CircuitPart {
     noStroke();
     fill(...CONST.DELETE_MODE.HIGHLIGHT_COLOR, alpha);
     rectMode(CENTER);
-    rect(0, 0, CONST.PARTS.WIDTH * scale, CONST.PARTS.HEIGHT * scale, cornerRadius);
+    rect(0, 0, this.width * scale, this.height * scale, cornerRadius);
   }
 
   /**
@@ -615,8 +632,8 @@ export class CircuitPart {
   getSelectionBox() {
     const scale = CONST.MULTI_SELECT_MODE.SELECTION_BORDER_SCALE;
     return {
-      w: CONST.PARTS.WIDTH * scale,
-      h: CONST.PARTS.HEIGHT * scale,
+      w: this.width * scale,
+      h: this.height * scale,
       r: CONST.MULTI_SELECT_MODE.SELECTION_BORDER_CORNER_RADIUS
     };
   }
@@ -632,7 +649,7 @@ export class CircuitPart {
     noStroke();
     fill(...CONST.MULTI_SELECT_MODE.COLOR_BG);
     rectMode(CENTER);
-    rect(0, 0, CONST.PARTS.WIDTH * scale, CONST.PARTS.HEIGHT * scale, cornerRadius);
+    rect(0, 0, this.width * scale, this.height * scale, cornerRadius);
 
     noFill();
     stroke(...CONST.MULTI_SELECT_MODE.COLOR_STROKE);
@@ -643,7 +660,7 @@ export class CircuitPart {
       drawingContext.setLineDash([]);
     }
     // パーツより一回り大きく描画
-    rect(0, 0, CONST.PARTS.WIDTH * scale, CONST.PARTS.HEIGHT * scale, cornerRadius);
+    rect(0, 0, this.width * scale, this.height * scale, cornerRadius);
     drawingContext.setLineDash([]);
   }
 

@@ -27,9 +27,10 @@ export class Button extends CircuitPart {
     this.offTime = 0;
     
     // ソケットを作成（Socket配列）
+    // ★リファクタリング: this.width を使用
     this.sockets = [
-      new Socket(this, 'left', -CONST.PARTS.WIDTH / 2, 0, 'left'),
-      new Socket(this, 'right', CONST.PARTS.WIDTH / 2, 0, 'right')
+      new Socket(this, 'left', -this.width / 2, 0, 'left'),
+      new Socket(this, 'right', this.width / 2, 0, 'right')
     ];
   }
 

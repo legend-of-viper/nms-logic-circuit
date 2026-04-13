@@ -26,10 +26,11 @@ export class Inverter extends CircuitPart {
     this.isOn = true; 
     
     // ソケットを作成
+    // ★リファクタリング: this.width / this.height を使用
     this.sockets = [
-      new Socket(this, 'left', -CONST.PARTS.WIDTH / 2, 0, 'left'),
-      new Socket(this, 'right', CONST.PARTS.WIDTH / 2, 0, 'right'),
-      new Socket(this, 'control', 0, CONST.PARTS.HEIGHT / 2, 'bottom')
+      new Socket(this, 'left', -this.width / 2, 0, 'left'),
+      new Socket(this, 'right', this.width / 2, 0, 'right'),
+      new Socket(this, 'control', 0, this.height / 2, 'bottom')
     ];
   }
   
@@ -66,9 +67,10 @@ export class Inverter extends CircuitPart {
     super.drawShape(color);
     
     // インバーターを表現する図形（縦に2本の線：左が赤、右が緑）
-    const height = CONST.PARTS.HEIGHT * 0.5;
-    const spacing = CONST.PARTS.WIDTH * 0.2;
-    const lineWeight = CONST.PARTS.WIDTH * 0.15;
+    // ★リファクタリング: this.width / this.height を使用
+    const height = this.height * 0.5;
+    const spacing = this.width * 0.2;
+    const lineWeight = this.width * 0.15;
 
     // 左側の線（赤）
     stroke(...LOCAL_CONST.RED);
