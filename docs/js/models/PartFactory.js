@@ -6,6 +6,7 @@ import { Button } from './Button.js';
 import { AutoSwitch } from './AutoSwitch.js';
 import { Inverter } from './Inverter.js';
 import { ColorLight } from './ColorLight.js';
+import { PowerDoor } from './PowerDoor.js';
 import { WireJoint } from './WireJoint.js';
 import { CONST } from '../config/constants.js';
 
@@ -17,6 +18,7 @@ const PART_REGISTRY = {
   [CONST.PART_TYPE.AUTO_SWITCH]: AutoSwitch,
   [CONST.PART_TYPE.INVERTER]: Inverter,
   [CONST.PART_TYPE.COLOR_LIGHT]: ColorLight,
+  [CONST.PART_TYPE.POWER_DOOR]: PowerDoor,
   [CONST.PART_TYPE.JOINT]: WireJoint
 };
 

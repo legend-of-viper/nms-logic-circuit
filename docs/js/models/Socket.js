@@ -12,7 +12,7 @@ export class Socket {
    * @param {string} name - ソケット名（'left', 'right', 'bottom'など）
    * @param {number} localX - 部品中心からの相対X座標
    * @param {number} localY - 部品中心からの相対Y座標
-   * @param {string} direction - ソケットの方向（'left', 'right', 'bottom'）
+   * @param {string} direction - ソケットの方向（'left', 'right', 'top', 'bottom'）
    */
   constructor(parent, name, localX, localY, direction) {
     this.parent = parent;
@@ -49,6 +49,9 @@ export class Socket {
         break;
       case 'right':
         offsetX = CONST.PARTS.CONNECTOR_HEIGHT;
+        break;
+      case 'top':
+        offsetY = -CONST.PARTS.CONNECTOR_HEIGHT;
         break;
       case 'bottom':
         offsetY = CONST.PARTS.CONNECTOR_HEIGHT;
@@ -133,7 +136,6 @@ export class Socket {
    * @param {Object} visibilityRules - 可視性ルール
    */
   draw(worldMouse, visibilityRules = {}) {
-    // ソケットの四角を描画
     let rectX, rectY, rectW, rectH, triangleBaseX, triangleBaseY;
     let connectorLocalX = this.localX;
     let connectorLocalY = this.localY;
@@ -142,6 +144,7 @@ export class Socket {
     let fillColor = this.isPowered ? CONST.COLORS.WIRE_ON : CONST.COLORS.OFF_STATE;
     fill(...fillColor);
     
+    // 1. 座標計算の switch (既存のまま)
     switch (this.direction) {
       case 'left':
         rectX = this.localX - CONST.PARTS.SOCKET_HEIGHT - CONST.PARTS.STROKE_WEIGHT / 2;
@@ -151,7 +154,6 @@ export class Socket {
         triangleBaseX = rectX;
         connectorLocalX = this.localX - CONST.PARTS.CONNECTOR_HEIGHT;
         break;
-        
       case 'right':
         rectX = this.localX + CONST.PARTS.STROKE_WEIGHT / 2;
         rectY = this.localY - CONST.PARTS.SOCKET_WIDTH / 2;
@@ -160,7 +162,14 @@ export class Socket {
         triangleBaseX = rectX + CONST.PARTS.SOCKET_HEIGHT;
         connectorLocalX = this.localX + CONST.PARTS.CONNECTOR_HEIGHT;
         break;
-        
+      case 'top':
+        rectX = this.localX - CONST.PARTS.SOCKET_WIDTH / 2;
+        rectY = this.localY - CONST.PARTS.SOCKET_HEIGHT - CONST.PARTS.STROKE_WEIGHT / 2;
+        rectW = CONST.PARTS.SOCKET_WIDTH;
+        rectH = CONST.PARTS.SOCKET_HEIGHT;
+        triangleBaseY = rectY;
+        connectorLocalY = this.localY - CONST.PARTS.CONNECTOR_HEIGHT;
+        break;
       case 'bottom':
         rectX = this.localX - CONST.PARTS.SOCKET_WIDTH / 2;
         rectY = this.localY + CONST.PARTS.STROKE_WEIGHT / 2;
@@ -169,47 +178,47 @@ export class Socket {
         triangleBaseY = rectY + CONST.PARTS.SOCKET_HEIGHT;
         connectorLocalY = this.localY + CONST.PARTS.CONNECTOR_HEIGHT;
         break;
-        
-      case 'center':
-        // ジョイント用: 基部の四角は描かず、丸だけ描画
-        rectX = this.localX - CONST.PARTS.JOINT_RADIUS;
-        rectY = this.localY - CONST.PARTS.JOINT_RADIUS;
-        rectW = CONST.PARTS.JOINT_RADIUS * 2;
-        rectH = CONST.PARTS.JOINT_RADIUS * 2;
+      case 'joint':
+        // WireJoint用：常に中心にドットのみ描画
+        connectorLocalX = this.localX;
+        connectorLocalY = this.localY;
+        break;
+      case 'surface':
+        // PowerDoor用：中空の円＋条件付きドット
         connectorLocalX = this.localX;
         connectorLocalY = this.localY;
         break;
     }
     
-    // 1. ソケット基部（四角形）を描画
-    // rectMode(CORNER)で描画（座標は左上隅）
-    // centerの場合は基部を描画しない
-    if (this.direction !== 'center') {
+    // 基部の描画
+    if (this.direction !== 'joint' && this.direction !== 'surface') {
       rectMode(CORNER);
-      rect(rectX, rectY, rectW, rectH);
+      rect(rectX, rectY, rectW, rectH); // 従来のソケット用
+    } else if (this.direction === 'surface') {
+      // surface用：中空の円を描画
+      push();
+      noFill();
+      stroke(...fillColor);
+      strokeWeight(CONST.PARTS.STROKE_WEIGHT);
+      circle(this.localX, this.localY, CONST.PARTS.SOCKET_WIDTH);
+      pop();
     }
     
-    // 2. コネクタ（三角形・丸）の描画判定
     const mx = worldMouse ? worldMouse.x : undefined;
     const my = worldMouse ? worldMouse.y : undefined;
     const isHovered = this.isMouseOver(mx, my);
     const hasWire = this.connectedWires.length > 0;
     const isWiringStart = this.parent.wiringStartSocket === this.name;
     
-    // Tempソケット（接続候補）の表示ロジック
     let showTempSocket = false;
     if (visibilityRules.isWiring) {
-      // 配線中: ホバー、ターゲット、または配線開始元なら表示
       showTempSocket = isHovered || this.isTargeted || isWiringStart;
     } else if (visibilityRules.showTempSockets) {
-      // 通常時（Jointドラッグ含む）: ホバー、配線起点、またはターゲットなら表示
       showTempSocket = isHovered || isWiringStart || this.isTargeted;
     }
     
-    // centerの場合は常時表示、それ以外は従来通り
-    if (showTempSocket || hasWire || this.direction === 'center') {
-      
-      // ホバー時かつ未接続の場合は、一時的な色（赤半透明）で描画
+    // 表示判定
+    if (showTempSocket || hasWire || this.direction === 'joint' || this.direction === 'surface') {
       if (showTempSocket && !hasWire) {
         fillColor = [...CONST.COLORS.WIRE_TEMP, CONST.WIRE.TEMP_ALPHA];
       }
@@ -217,40 +226,41 @@ export class Socket {
       noStroke();
       fill(...fillColor);
       
-      // 三角形を描画（centerの場合は三角形なし）
-      if (this.direction !== 'center') {
+      // 三角形描画：joint/surface以外の場合のみ実行
+      if (this.direction !== 'joint' && this.direction !== 'surface') {
         switch (this.direction) {
           case 'left':
-            triangle(
-              connectorLocalX - CONST.PARTS.CONNECTOR_RADIUS, connectorLocalY,
-              triangleBaseX, this.localY - CONST.PARTS.SOCKET_WIDTH / 2,
-              triangleBaseX, this.localY + CONST.PARTS.SOCKET_WIDTH / 2
-            );
+            triangle(connectorLocalX - CONST.PARTS.CONNECTOR_RADIUS, connectorLocalY,
+                     triangleBaseX, this.localY - CONST.PARTS.SOCKET_WIDTH / 2,
+                     triangleBaseX, this.localY + CONST.PARTS.SOCKET_WIDTH / 2);
             break;
-            
           case 'right':
-            triangle(
-              connectorLocalX + CONST.PARTS.CONNECTOR_RADIUS, connectorLocalY,
-              triangleBaseX, this.localY - CONST.PARTS.SOCKET_WIDTH / 2,
-              triangleBaseX, this.localY + CONST.PARTS.SOCKET_WIDTH / 2
-            );
+            triangle(connectorLocalX + CONST.PARTS.CONNECTOR_RADIUS, connectorLocalY,
+                     triangleBaseX, this.localY - CONST.PARTS.SOCKET_WIDTH / 2,
+                     triangleBaseX, this.localY + CONST.PARTS.SOCKET_WIDTH / 2);
             break;
-            
+          case 'top':
+            triangle(this.localX, connectorLocalY - CONST.PARTS.CONNECTOR_RADIUS,
+                     this.localX - CONST.PARTS.SOCKET_WIDTH / 2, triangleBaseY,
+                     this.localX + CONST.PARTS.SOCKET_WIDTH / 2, triangleBaseY);
+            break;
           case 'bottom':
-            triangle(
-              this.localX, connectorLocalY + CONST.PARTS.CONNECTOR_RADIUS,
-              this.localX - CONST.PARTS.SOCKET_WIDTH / 2, triangleBaseY,
-              this.localX + CONST.PARTS.SOCKET_WIDTH / 2, triangleBaseY
-            );
+            triangle(this.localX, connectorLocalY + CONST.PARTS.CONNECTOR_RADIUS,
+                     this.localX - CONST.PARTS.SOCKET_WIDTH / 2, triangleBaseY,
+                     this.localX + CONST.PARTS.SOCKET_WIDTH / 2, triangleBaseY);
             break;
         }
+        // 従来のドット描画
+        circle(connectorLocalX, connectorLocalY, CONST.PARTS.CONNECTOR_RADIUS * 2);
+      } else if (this.direction === 'joint') {
+        // joint用：常に中心にドットを描画
+        circle(connectorLocalX, connectorLocalY, CONST.PARTS.CONNECTOR_RADIUS * 2);
+      } else if (this.direction === 'surface') {
+        // surface用：接続済みまたはホバー時のみ中心にドットを描画
+        if (hasWire || showTempSocket) {
+          circle(connectorLocalX, connectorLocalY, CONST.PARTS.CONNECTOR_RADIUS * 2);
+        }
       }
-      
-      // 丸を描画（centerの場合はJOINT_RADIUSを使用）
-      const radius = (this.direction === 'center') 
-                     ? CONST.PARTS.JOINT_RADIUS 
-                     : CONST.PARTS.CONNECTOR_RADIUS * 2;
-      circle(connectorLocalX, connectorLocalY, radius);
     }
 
     this.drawDetachHandle(worldMouse, visibilityRules);
@@ -282,6 +292,9 @@ export class Socket {
           break;
         case 'right':
           cx += CONST.PARTS.CONNECTOR_HEIGHT;
+          break;
+        case 'top':
+          cy -= CONST.PARTS.CONNECTOR_HEIGHT;
           break;
         case 'bottom':
           cy += CONST.PARTS.CONNECTOR_HEIGHT;

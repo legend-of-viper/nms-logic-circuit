@@ -13,9 +13,9 @@ export class WireJoint extends CircuitPart {
     super(id, x, y);
     this.type = CONST.PART_TYPE.JOINT;
     
-    // ソケットを1つだけ作成（中心位置、方向は 'center'）
+    // ソケットを1つだけ作成（中心位置、名前と方向は 'joint'）
     this.sockets = [
-      new Socket(this, 'center', 0, 0, 'center')
+      new Socket(this, 'joint', 0, 0, 'joint')
     ];
   }
 

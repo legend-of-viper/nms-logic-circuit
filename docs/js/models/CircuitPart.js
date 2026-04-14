@@ -227,7 +227,7 @@ export class CircuitPart {
    * @returns {{x: number, y: number}} 回転ハンドルの座標
    */
   getRotationHandlePos() {
-    const distance = CONST.PARTS.ROTATION_HANDLE_DISTANCE;
+    const distance = (this.height / 2) + CONST.PARTS.ROTATION_HANDLE_DISTANCE;
     return this.localToWorld(0, -distance);
   }
 

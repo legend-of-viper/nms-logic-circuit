@@ -10,6 +10,7 @@ const COMMON_CONST = {
     BUTTON: 'BUTTON',
     WALL_SWITCH: 'WALL_SWITCH',
     COLOR_LIGHT: 'COLOR_LIGHT',
+    POWER_DOOR: 'POWER_DOOR',
     JOINT: 'JOINT'
   },
 
@@ -38,7 +39,7 @@ const COMMON_CONST = {
       DRAG_OFFSET: WIDTH * 0.25, 
       CONNECTOR_HEIGHT: WIDTH * 0.6,
       CONNECTOR_RADIUS: WIDTH * 0.1,
-      ROTATION_HANDLE_DISTANCE: WIDTH * 1.2,
+      ROTATION_HANDLE_DISTANCE: WIDTH * 0.6,
       ROTATION_HANDLE_RADIUS: 12,
       ROTATION_HANDLE_HIT_RADIUS: 15,
       JOINT_RADIUS: 8,
@@ -68,6 +69,7 @@ const COMMON_CONST = {
     BUTTON: 'Button',
     WALL_SWITCH: 'Wall Switch',
     COLOR_LIGHT: 'Color Light',
+    POWER_DOOR: 'Power Door',
     SAVE: 'Save',
     LOAD: 'Load',
     SHARE: 'Share',
@@ -146,6 +148,7 @@ const COMMON_CONST = {
       BUTTON: 'btn-button',
       WALL_SWITCH: 'btn-wall-switch',
       COLOR_LIGHT: 'btn-color-light',
+      POWER_DOOR: 'btn-power-door',
       DELETE_MODE: 'btn-delete-mode',
       MULTI_SELECT: 'btn-multi-select', // ★追加
       DUPLICATE: 'btn-duplicate', // ★追加
@@ -171,6 +174,7 @@ const COMMON_CONST = {
       BUTTON: 'btn-mobile-button',
       WALL_SWITCH: 'btn-mobile-wall-switch',
       COLOR_LIGHT: 'btn-mobile-color-light',
+      POWER_DOOR: 'btn-mobile-power-door',
       SAVE: 'btn-mobile-save',
       LOAD: 'btn-mobile-load',
       SHARE: 'btn-mobile-share',

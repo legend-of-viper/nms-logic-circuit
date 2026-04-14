@@ -12,7 +12,8 @@ const TYPE_MAP = {
   [CONST.PART_TYPE.AUTO_SWITCH]: 3,
   [CONST.PART_TYPE.INVERTER]: 4,
   [CONST.PART_TYPE.COLOR_LIGHT]: 5,
-  [CONST.PART_TYPE.JOINT]: 6
+  [CONST.PART_TYPE.JOINT]: 6,
+  [CONST.PART_TYPE.POWER_DOOR]: 7
 };
 
 // 数値から部品タイプに戻すための配列
@@ -23,14 +24,15 @@ const TYPE_LIST = [
   CONST.PART_TYPE.AUTO_SWITCH, // 3
   CONST.PART_TYPE.INVERTER,    // 4
   CONST.PART_TYPE.COLOR_LIGHT, // 5
-  CONST.PART_TYPE.JOINT        // 6
+  CONST.PART_TYPE.JOINT,       // 6
+  CONST.PART_TYPE.POWER_DOOR   // 7
 ];
 
 // ソケット名を数値に変換するマップ
-const SOCKET_MAP = { 'left': 0, 'right': 1, 'bottom': 2, 'control': 3, 'center': 4 };
+const SOCKET_MAP = { 'left': 0, 'right': 1, 'bottom': 2, 'control': 3, 'joint': 4, 'surface': 5 };
 
 // 数値からソケット名に戻す配列
-const SOCKET_LIST = ['left', 'right', 'bottom', 'control', 'center'];
+const SOCKET_LIST = ['left', 'right', 'bottom', 'control', 'joint', 'surface'];
 
 /**
  * ★ v6用: ビット単位の書き込み/読み込みを行うヘルパークラス

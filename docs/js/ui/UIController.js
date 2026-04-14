@@ -135,6 +135,7 @@ setupLabels() {
     document.getElementById('btn-button').title = CONST.UI_LABELS.BUTTON;
     document.getElementById('btn-wall-switch').title = CONST.UI_LABELS.WALL_SWITCH;
     document.getElementById('btn-color-light').title = CONST.UI_LABELS.COLOR_LIGHT;
+    document.getElementById('btn-power-door').title = CONST.UI_LABELS.POWER_DOOR;
     
     // ★修正: 削除ボタンもテキストを消し、ツールチップのみ設定する
     const deleteBtn = document.getElementById('btn-delete-mode');
@@ -177,7 +178,7 @@ setupLabels() {
     if (pcGridLabel) pcGridLabel.textContent = CONST.UI_LABELS.GRID_VISIBLE;
     
     // パーツボタンの文字はCSSで透明にしていますが、念のため空にしておくならここで行います
-    const partBtnIds = ['btn-power', 'btn-auto-switch', 'btn-inverter', 'btn-button', 'btn-wall-switch', 'btn-color-light'];
+    const partBtnIds = ['btn-power', 'btn-auto-switch', 'btn-inverter', 'btn-button', 'btn-wall-switch', 'btn-color-light', 'btn-power-door'];
     partBtnIds.forEach(id => {
       const btn = document.getElementById(id);
       if(btn) btn.textContent = '';
@@ -214,6 +215,10 @@ setupLabels() {
       { 
         type: CONST.PART_TYPE.COLOR_LIGHT, 
         ids: [CONST.DOM_IDS.PC.COLOR_LIGHT, CONST.DOM_IDS.MOBILE.COLOR_LIGHT]
+      },
+      { 
+        type: CONST.PART_TYPE.POWER_DOOR, 
+        ids: [CONST.DOM_IDS.PC.POWER_DOOR, CONST.DOM_IDS.MOBILE.POWER_DOOR]
       }
     ];
 
@@ -277,6 +282,9 @@ setupLabels() {
         switch (item.type) {
           case CONST.PART_TYPE.COLOR_LIGHT:
             scale = 1.8; // ライトは縦長なので広めに切り取る
+            break;
+          case CONST.PART_TYPE.POWER_DOOR:
+            scale = 4.8; // ドアは大きいので広めに切り取る
             break;
         }
         const size = CONST.PARTS.WIDTH * scale;

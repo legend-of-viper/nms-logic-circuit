@@ -193,15 +193,31 @@ export class DeleteCursorOverlay {
     const inputMgr = this.circuitManager.getInputManager();
     const screenPos = inputMgr.getScreenPosition(worldX, worldY);
     const currentScale = inputMgr.viewScale;
-    const size = (CONST.PARTS.WIDTH + 10) * currentScale;
 
-    const offset = this.getCanvasRect(); // ヘルパー再利用
+    // --- 修正箇所: ターゲットがいる場合は、そのターゲットのサイズを取得する ---
+    let targetW = CONST.PARTS.WIDTH;
+    let targetH = CONST.PARTS.HEIGHT;
 
-    element.style.left = `${offset.left + screenPos.x - size / 2}px`;
-    element.style.top = `${offset.top + screenPos.y - size / 2}px`;
+    // 現在マウスの下にあるターゲットを確認
+    const worldMouse = this.circuitManager.getWorldPosition(mouseX, mouseY);
+    const result = this.circuitManager.getDeletionTarget(worldMouse.x, worldMouse.y);
+
+    if (result && result.type === 'part') {
+      targetW = result.target.width;
+      targetH = result.target.height;
+    }
+
+    // ターゲットのサイズに合わせてオーバーレイのサイズを決定
+    const sizeW = (targetW + 10) * currentScale;
+    const sizeH = (targetH + 10) * currentScale;
+
+    const offset = this.getCanvasRect();
+
+    element.style.left = `${offset.left + screenPos.x - sizeW / 2}px`;
+    element.style.top = `${offset.top + screenPos.y - sizeH / 2}px`;
     
-    element.style.width = `${size}px`;
-    element.style.height = `${size}px`;
+    element.style.width = `${sizeW}px`;
+    element.style.height = `${sizeH}px`;
     element.style.fontSize = `${30 * currentScale}px`;
   }
 

@@ -431,7 +431,7 @@ export class CircuitManager {
            // 1. 消える側（Joint）と、残る側（Target）を決める
            const joint = isStartJoint ? startPart : endPart;
            const targetSocket = isStartJoint ? wire.endSocket : wire.startSocket;
-           const jointSocket = joint.getSocket('center');
+           const jointSocket = joint.getSocket('joint');
 
            // 2. Jointに繋がっているワイヤーをリストアップ
            const wiresToTransfer = [...jointSocket.connectedWires];
@@ -566,12 +566,10 @@ export class CircuitManager {
       const part = this.parts[i];
       if (part.type === CONST.PART_TYPE.JOINT) continue;
 
-      const center = part.getCenter();
-      const distVal = dist(worldX, worldY, center.x, center.y);
-      
-      if (distVal < closestDist) {
-        closestDist = distVal;
-        closestPart = part;
+      // isMouseOver(x, y, scale) を利用
+      // 削除モード時は少し判定を甘く（1.2倍など）すると操作しやすくなります
+      if (part.isMouseOver(worldX, worldY, 1.2)) {
+        return { type: 'part', target: part };
       }
     }
     
@@ -1102,7 +1100,7 @@ export class CircuitManager {
         
         this.createPart(CONST.PART_TYPE.JOINT, jointX, jointY);
         const newJoint = this.parts[this.parts.length - 1];
-        const jointSocket = newJoint.getSocket('center');
+        const jointSocket = newJoint.getSocket('joint');
 
         const wiresToDetach = [...socket.connectedWires];
         wiresToDetach.forEach(wire => {
@@ -1196,7 +1194,7 @@ export class CircuitManager {
           const jointCenterY = this.draggingPart.targetY + CONST.PARTS.HEIGHT / 2;
           const targetSocket = this.findNearbySocket(jointCenterX, jointCenterY, this.draggingPart);
 
-          const jointSocket = this.draggingPart.getSocket('center');
+          const jointSocket = this.draggingPart.getSocket('joint');
           const otherEndSockets = jointSocket.connectedWires.map(wire => wire.getOtherEnd(jointSocket));
           const isConnectingToSelf = otherEndSockets.includes(targetSocket);
 
@@ -1322,7 +1320,7 @@ export class CircuitManager {
 
           this.createPart(CONST.PART_TYPE.JOINT, jointX, jointY);
           const newJoint = this.parts[this.parts.length - 1];
-          targetSocket = newJoint.getSocket('center');
+          targetSocket = newJoint.getSocket('joint');
         }
       }
 
@@ -1352,7 +1350,7 @@ export class CircuitManager {
          // 一時的に同じソケット間のワイヤーができても、後続の consolidateWires で削除される
          if (targetSocket) {
             const joint = this.draggingPart;
-            const jointSocket = joint.getSocket('center');
+            const jointSocket = joint.getSocket('joint');
             const wiresToReattach = [...jointSocket.connectedWires];
             
             wiresToReattach.forEach(wire => {
