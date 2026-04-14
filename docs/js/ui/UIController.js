@@ -136,6 +136,7 @@ setupLabels() {
     document.getElementById('btn-wall-switch').title = CONST.UI_LABELS.WALL_SWITCH;
     document.getElementById('btn-color-light').title = CONST.UI_LABELS.COLOR_LIGHT;
     document.getElementById('btn-power-door').title = CONST.UI_LABELS.POWER_DOOR;
+    document.getElementById('btn-floor-switch').title = CONST.UI_LABELS.FLOOR_SWITCH;
     
     // ★修正: 削除ボタンもテキストを消し、ツールチップのみ設定する
     const deleteBtn = document.getElementById('btn-delete-mode');
@@ -178,7 +179,7 @@ setupLabels() {
     if (pcGridLabel) pcGridLabel.textContent = CONST.UI_LABELS.GRID_VISIBLE;
     
     // パーツボタンの文字はCSSで透明にしていますが、念のため空にしておくならここで行います
-    const partBtnIds = ['btn-power', 'btn-auto-switch', 'btn-inverter', 'btn-button', 'btn-wall-switch', 'btn-color-light', 'btn-power-door'];
+    const partBtnIds = ['btn-power', 'btn-auto-switch', 'btn-inverter', 'btn-button', 'btn-wall-switch', 'btn-color-light', 'btn-power-door', 'btn-floor-switch'];
     partBtnIds.forEach(id => {
       const btn = document.getElementById(id);
       if(btn) btn.textContent = '';
@@ -219,6 +220,10 @@ setupLabels() {
       { 
         type: CONST.PART_TYPE.POWER_DOOR, 
         ids: [CONST.DOM_IDS.PC.POWER_DOOR, CONST.DOM_IDS.MOBILE.POWER_DOOR]
+      },
+      { 
+        type: CONST.PART_TYPE.FLOOR_SWITCH, 
+        ids: [CONST.DOM_IDS.PC.FLOOR_SWITCH, CONST.DOM_IDS.MOBILE.FLOOR_SWITCH]
       }
     ];
 
@@ -293,6 +298,9 @@ setupLabels() {
             break;
           case CONST.PART_TYPE.POWER_DOOR:
             scale = 4.8; // ドアは大きいので広めに切り取る
+            break;
+          case CONST.PART_TYPE.FLOOR_SWITCH:
+            scale = 2.5;
             break;
         }
         const size = CONST.PARTS.WIDTH * scale;
