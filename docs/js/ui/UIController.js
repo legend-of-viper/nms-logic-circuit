@@ -241,10 +241,21 @@ setupLabels() {
         // 3. 画面中央に移動
         translate(width / 2, height / 2);
         
-        // ソケットの描画
+        // ソケットを通電状態にする（本体描画前に設定することで、本体が通電色で描画される）
         for (let socket of dummyPart.sockets) {
-            // ソケットも通電色（青）にして目立たせる
             socket.isPowered = true;
+        }
+
+        // ドアなどのアニメーションを持つパーツを通電状態に即時更新
+        if (dummyPart.type === CONST.PART_TYPE.POWER_DOOR) {
+          dummyPart.doorOpenRatio.setImmediate(1.0); // 1.0 = 閉
+        }
+
+        // 本体の描画、アイコン用に明るい色（ON_STATE）で描画
+        dummyPart.drawShape(CONST.COLORS.ON_STATE);
+
+        // ソケットの描画（本体の後に描画することで、ソケットが上書きされないようにする）
+        for (let socket of dummyPart.sockets) {
             
             // 通常の描画処理を呼び出す（これで基部の四角形が描かれます）
             socket.draw();
@@ -273,9 +284,6 @@ setupLabels() {
             circle(cx, cy, connectorSize * 2);
             pop();
         }
-
-        // 本体の描画、アイコン用に明るい色（ON_STATE）で描画
-        dummyPart.drawShape(CONST.COLORS.ON_STATE);
         
         // 4. 画像として切り出し
         let scale = 1.4; // デフォルトの倍率
