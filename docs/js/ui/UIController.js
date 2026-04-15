@@ -571,10 +571,82 @@ setupLabels() {
   }
 
   /**
+   * ★追加: パーツグリッドを複製して無限スクロール感を演出
+   * 元のパーツボタンを左右に10セットずつ複製し、初期位置を中央に設定
+   */
+  duplicatePartsGrid() {
+    const partsGrid = document.querySelector('.parts-grid');
+    if (!partsGrid) return;
+    
+    // オリジナルのパーツボタンを取得
+    const originalButtons = Array.from(partsGrid.querySelectorAll('.btn-add-part'));
+    if (originalButtons.length === 0) return;
+    
+    // 複製したボタンにイベントリスナーを登録するヘルパー関数
+    const attachClickHandler = (btn) => {
+      const partType = btn.dataset.partType;
+      if (partType) {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation(); // イベント伝播を止める
+          // スマホの場合は座標を渡さず、画面中央配置
+          this.handleAddPart(CONST.PART_TYPE[partType]);
+        });
+      }
+    };
+    
+    // 左側に10セット追加（順番を維持するため、逆順で挿入）
+    for (let i = 0; i < 10; i++) {
+      // 逆順でループして、最初のボタンを先頭に追加することで順序を維持
+      for (let j = originalButtons.length - 1; j >= 0; j--) {
+        const clone = originalButtons[j].cloneNode(true);
+        attachClickHandler(clone); // イベントリスナーを登録
+        partsGrid.insertBefore(clone, partsGrid.firstChild);
+      }
+    }
+    
+    // 右側に10セット追加
+    for (let i = 0; i < 10; i++) {
+      originalButtons.forEach(btn => {
+        const clone = btn.cloneNode(true);
+        attachClickHandler(clone); // イベントリスナーを登録
+        partsGrid.appendChild(clone);
+      });
+    }
+    
+    console.log(`パーツグリッドを複製しました: 合計 ${partsGrid.children.length} 個のボタン`);
+    
+    // スクロール位置を中央に設定（左右両方向にスクロール可能に）
+    // 少し遅延させてDOMが確実に更新された後に実行
+    setTimeout(() => {
+      const scrollWidth = partsGrid.scrollWidth;
+      const clientWidth = partsGrid.clientWidth;
+      const centerPosition = (scrollWidth - clientWidth) / 2;
+      partsGrid.scrollLeft = centerPosition;
+      console.log(`スクロール位置を中央に設定: ${centerPosition}px`);
+    }, 0);
+  }
+
+  /**
+   * ★追加: カルーセルのスクロール位置を中央にリセット
+   */
+  resetCarouselPosition() {
+    const partsGrid = document.querySelector('.parts-grid');
+    if (!partsGrid) return;
+    
+    const scrollWidth = partsGrid.scrollWidth;
+    const clientWidth = partsGrid.clientWidth;
+    const centerPosition = (scrollWidth - clientWidth) / 2;
+    partsGrid.scrollLeft = centerPosition;
+  }
+
+  /**
    * モバイル固有のUI操作
    * FABとメニューの開閉など
    */
   setupMobileInteractions() {
+    // ★追加: パーツグリッドを複製して無限スクロール感を演出
+    this.duplicatePartsGrid();
+    
     // 追加FAB -> 吹き出しメニュー
     const fabAdd = document.getElementById(CONST.DOM_IDS.MOBILE.FAB_ADD);
     const partsBalloon = document.getElementById('mobile-parts-balloon');
@@ -596,7 +668,14 @@ setupLabels() {
           fabAdd.textContent = '＋';
         } else {
           fabAdd.textContent = '×';
+          // ★追加: カルーセルを開いた時、スクロール位置を中央にリセット
+          this.resetCarouselPosition();
         }
+      });
+      
+      // ★追加: カルーセル内のクリックはイベント伝播を止める
+      partsBalloon.addEventListener('click', (e) => {
+        e.stopPropagation();
       });
       
       // キャンバスをタップしたら吹き出しを閉じる
@@ -610,7 +689,7 @@ setupLabels() {
         });
       }
       
-      // 吹き出し外をタップしても閉じる
+      // ★修正: 吹き出し外（画面全体）をタップしても閉じる
       document.addEventListener('click', (e) => {
         if (!partsBalloon.classList.contains('hidden') && 
             !partsBalloon.contains(e.target) && 
