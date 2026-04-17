@@ -137,6 +137,7 @@ setupLabels() {
     document.getElementById('btn-color-light').title = CONST.UI_LABELS.COLOR_LIGHT;
     document.getElementById('btn-power-door').title = CONST.UI_LABELS.POWER_DOOR;
     document.getElementById('btn-floor-switch').title = CONST.UI_LABELS.FLOOR_SWITCH;
+    document.getElementById('btn-proximity-switch').title = CONST.UI_LABELS.PROXIMITY_SWITCH;
     
     // ★修正: 削除ボタンもテキストを消し、ツールチップのみ設定する
     const deleteBtn = document.getElementById('btn-delete-mode');
@@ -224,6 +225,10 @@ setupLabels() {
       { 
         type: CONST.PART_TYPE.FLOOR_SWITCH, 
         ids: [CONST.DOM_IDS.PC.FLOOR_SWITCH, CONST.DOM_IDS.MOBILE.FLOOR_SWITCH]
+      },
+      { 
+        type: CONST.PART_TYPE.PROXIMITY_SWITCH, 
+        ids: [CONST.DOM_IDS.PC.PROXIMITY_SWITCH, CONST.DOM_IDS.MOBILE.PROXIMITY_SWITCH]
       }
     ];
 
@@ -254,6 +259,11 @@ setupLabels() {
         // ドアなどのアニメーションを持つパーツを通電状態に即時更新
         if (dummyPart.type === CONST.PART_TYPE.POWER_DOOR) {
           dummyPart.doorOpenRatio.setImmediate(1.0); // 1.0 = 閉
+        }
+
+        // 近接スイッチのビームを表示
+        if (dummyPart.type === CONST.PART_TYPE.PROXIMITY_SWITCH) {
+          dummyPart.isOn = true;
         }
 
         // 本体の描画、アイコン用に明るい色（ON_STATE）で描画

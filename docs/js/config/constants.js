@@ -12,6 +12,7 @@ const COMMON_CONST = {
     COLOR_LIGHT: 'COLOR_LIGHT',
     POWER_DOOR: 'POWER_DOOR',
     FLOOR_SWITCH: 'FLOOR_SWITCH',
+    PROXIMITY_SWITCH: 'PROXIMITY_SWITCH',
     JOINT: 'JOINT'
   },
 
@@ -72,6 +73,7 @@ const COMMON_CONST = {
     COLOR_LIGHT: 'Color Light',
     POWER_DOOR: 'Power Door',
     FLOOR_SWITCH: 'Floor Switch',
+    PROXIMITY_SWITCH: 'Proximity Switch',
     SAVE: 'Save',
     LOAD: 'Load',
     SHARE: 'Share',
@@ -152,6 +154,7 @@ const COMMON_CONST = {
       COLOR_LIGHT: 'btn-color-light',
       POWER_DOOR: 'btn-power-door',
       FLOOR_SWITCH: 'btn-floor-switch',
+      PROXIMITY_SWITCH: 'btn-proximity-switch',
       DELETE_MODE: 'btn-delete-mode',
       MULTI_SELECT: 'btn-multi-select', // ★追加
       DUPLICATE: 'btn-duplicate', // ★追加
@@ -179,6 +182,7 @@ const COMMON_CONST = {
       COLOR_LIGHT: 'btn-mobile-color-light',
       POWER_DOOR: 'btn-mobile-power-door',
       FLOOR_SWITCH: 'btn-mobile-floor-switch',
+      PROXIMITY_SWITCH: 'btn-mobile-proximity-switch',
       SAVE: 'btn-mobile-save',
       LOAD: 'btn-mobile-load',
       SHARE: 'btn-mobile-share',
