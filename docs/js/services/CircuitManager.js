@@ -2,6 +2,7 @@
 
 import { Wire } from '../models/Wire.js';
 import { PartFactory } from '../models/PartFactory.js';
+import { TextLabel } from '../models/TextLabel.js';
 import { PowerSystem } from './PowerSystem.js';
 import { InputManager } from './InputManager.js';
 import { CONST } from '../config/constants.js';
@@ -302,6 +303,21 @@ export class CircuitManager {
    * @param {number} x - ワールドX座標
    * @param {number} y - ワールドY座標
    */
+  /**
+   * TextLabelパーツを作成する（テキスト付き）
+   * @param {string} text - 表示するテキスト
+   * @param {number} x - X座標
+   * @param {number} y - Y座標
+   * @returns {TextLabel} 生成されたTextLabelパーツ
+   */
+  createTextLabel(text, x, y) {
+    const newId = Date.now();
+    const part = new TextLabel(newId, x, y, text);
+    part.setPositionImmediately(x, y);
+    this.parts.push(part);
+    return part;
+  }
+
   createPart(type, x, y) {
     const newId = Date.now();
     

@@ -229,6 +229,10 @@ setupLabels() {
       { 
         type: CONST.PART_TYPE.PROXIMITY_SWITCH, 
         ids: [CONST.DOM_IDS.PC.PROXIMITY_SWITCH, CONST.DOM_IDS.MOBILE.PROXIMITY_SWITCH]
+      },
+      { 
+        type: CONST.PART_TYPE.TEXT_LABEL, 
+        ids: [CONST.DOM_IDS.PC.TEXT_LABEL, CONST.DOM_IDS.MOBILE.TEXT_LABEL]
       }
     ];
 
@@ -736,6 +740,41 @@ setupLabels() {
     // もし削除モードがONなら、強制的にOFFにする
     if (this.simulator.getDeleteMode()) {
       this.handleToggleDeleteMode();
+    }
+    
+    // TextLabelの場合は、テキスト入力を求める
+    if (type === CONST.PART_TYPE.TEXT_LABEL) {
+      const lang = (navigator.language || navigator.userLanguage || 'en').startsWith('ja') ? 'ja' : 'en';
+      const messages = {
+        ja: 'テキストを入力してください（50文字まで）:',
+        en: 'Enter text (max 50 characters):'
+      };
+      
+      const text = prompt(messages[lang], 'Text');
+      if (text === null) return; // キャンセルされた場合は作成しない
+      
+      // 座標計算
+      let x, y;
+      if (screenX !== undefined && screenY !== undefined) {
+        const worldPos = this.simulator.getWorldPosition(screenX, screenY);
+        x = worldPos.x;
+        y = worldPos.y;
+        x += (Math.random() - 0.5) * 20;
+        y += (Math.random() - 0.5) * 20;
+      } else if (deviceDetector.isMobile()) {
+        const cx = width / 2;
+        const cy = height / 2;
+        const worldPos = this.simulator.getWorldPosition(cx, cy);
+        x = worldPos.x;
+        y = worldPos.y;
+      } else {
+        const worldPos = this.simulator.getWorldPosition(width / 2, height / 2);
+        x = worldPos.x + (Math.random() - 0.5) * 50;
+        y = worldPos.y + (Math.random() - 0.5) * 50;
+      }
+      
+      this.simulator.createTextLabel(text, x, y);
+      return;
     }
     
     let x, y;

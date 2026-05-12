@@ -10,6 +10,7 @@ import { PowerDoor } from './PowerDoor.js';
 import { FloorSwitch } from './FloorSwitch.js';
 import { ProximitySwitch } from './ProximitySwitch.js';
 import { WireJoint } from './WireJoint.js';
+import { TextLabel } from './TextLabel.js';
 import { CONST } from '../config/constants.js';
 
 // 部品タイプとクラスの対応表
@@ -23,7 +24,8 @@ const PART_REGISTRY = {
   [CONST.PART_TYPE.POWER_DOOR]: PowerDoor,
   [CONST.PART_TYPE.FLOOR_SWITCH]: FloorSwitch,
   [CONST.PART_TYPE.PROXIMITY_SWITCH]: ProximitySwitch,
-  [CONST.PART_TYPE.JOINT]: WireJoint
+  [CONST.PART_TYPE.JOINT]: WireJoint,
+  [CONST.PART_TYPE.TEXT_LABEL]: TextLabel
 };
 
 /**

@@ -13,7 +13,8 @@ const COMMON_CONST = {
     POWER_DOOR: 'POWER_DOOR',
     FLOOR_SWITCH: 'FLOOR_SWITCH',
     PROXIMITY_SWITCH: 'PROXIMITY_SWITCH',
-    JOINT: 'JOINT'
+    JOINT: 'JOINT',
+    TEXT_LABEL: 'TEXT_LABEL'
   },
 
   // 色の設定
@@ -74,6 +75,7 @@ const COMMON_CONST = {
     POWER_DOOR: 'Power Door',
     FLOOR_SWITCH: 'Floor Switch',
     PROXIMITY_SWITCH: 'Proximity Switch',
+    TEXT_LABEL: 'Text Label',
     SAVE: 'Save',
     LOAD: 'Load',
     SHARE: 'Share',
@@ -155,6 +157,7 @@ const COMMON_CONST = {
       POWER_DOOR: 'btn-power-door',
       FLOOR_SWITCH: 'btn-floor-switch',
       PROXIMITY_SWITCH: 'btn-proximity-switch',
+      TEXT_LABEL: 'btn-text-label',
       DELETE_MODE: 'btn-delete-mode',
       MULTI_SELECT: 'btn-multi-select', // ★追加
       DUPLICATE: 'btn-duplicate', // ★追加
@@ -183,6 +186,7 @@ const COMMON_CONST = {
       POWER_DOOR: 'btn-mobile-power-door',
       FLOOR_SWITCH: 'btn-mobile-floor-switch',
       PROXIMITY_SWITCH: 'btn-mobile-proximity-switch',
+      TEXT_LABEL: 'btn-mobile-text-label',
       SAVE: 'btn-mobile-save',
       LOAD: 'btn-mobile-load',
       SHARE: 'btn-mobile-share',

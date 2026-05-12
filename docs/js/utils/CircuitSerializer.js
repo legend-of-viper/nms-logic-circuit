@@ -15,7 +15,8 @@ const TYPE_MAP = {
   [CONST.PART_TYPE.JOINT]: 6,
   [CONST.PART_TYPE.POWER_DOOR]: 7,
   [CONST.PART_TYPE.FLOOR_SWITCH]: 8,
-  [CONST.PART_TYPE.PROXIMITY_SWITCH]: 9
+  [CONST.PART_TYPE.PROXIMITY_SWITCH]: 9,
+  [CONST.PART_TYPE.TEXT_LABEL]: 10
 };
 
 // 数値から部品タイプに戻すための配列
@@ -29,7 +30,8 @@ const TYPE_LIST = [
   CONST.PART_TYPE.JOINT,           // 6
   CONST.PART_TYPE.POWER_DOOR,      // 7
   CONST.PART_TYPE.FLOOR_SWITCH,    // 8
-  CONST.PART_TYPE.PROXIMITY_SWITCH // 9
+  CONST.PART_TYPE.PROXIMITY_SWITCH,// 9
+  CONST.PART_TYPE.TEXT_LABEL       // 10
 ];
 
 // ソケット名を数値に変換するマップ
@@ -148,6 +150,11 @@ export class CircuitSerializer {
           data.isOn = part.isOn;
         }
         
+        // TextLabelの場合、テキストも保存
+        if (part.type === CONST.PART_TYPE.TEXT_LABEL && part.text) {
+          data.text = part.text;
+        }
+        
         return data;
       });
       
@@ -240,6 +247,15 @@ export class CircuitSerializer {
       if (normRot < 0) normRot += Math.PI * 2;
       const rotInt = Math.floor((normRot / (Math.PI * 2)) * 1023);
       stream.write(rotInt, 10);
+      
+      // TextLabelの場合、テキスト情報を保存
+      if (part.type === CONST.PART_TYPE.TEXT_LABEL && part.text) {
+        const text = part.text.substring(0, 50); // 50文字制限
+        stream.write(text.length, 6); // 最大63文字（6bit）
+        for (let i = 0; i < text.length; i++) {
+          stream.write(text.charCodeAt(i), 16); // Unicode文字コード（16bit）
+        }
+      }
     });
 
     // ワイヤー数（15bit）
@@ -331,12 +347,24 @@ export class CircuitSerializer {
     // v1.1 (オブジェクト形式 - ファイル保存用)
     else if (saveData.version && saveData.parts && saveData.wires) {
       for (const partData of saveData.parts) {
-        const newPart = PartFactory.create(
-          partData.type,
-          partData.id,
-          partData.x,
-          partData.y
-        );
+        // TextLabelの場合、テキストを渡して生成
+        let newPart;
+        if (partData.type === CONST.PART_TYPE.TEXT_LABEL) {
+          const text = partData.text || 'Text';
+          newPart = new (PartFactory.create(CONST.PART_TYPE.TEXT_LABEL, 0, 0, 0).constructor)(
+            partData.id,
+            partData.x,
+            partData.y,
+            text
+          );
+        } else {
+          newPart = PartFactory.create(
+            partData.type,
+            partData.id,
+            partData.x,
+            partData.y
+          );
+        }
         
         if (newPart) {
           newPart.setRotationImmediately(partData.rotation || 0);
@@ -420,7 +448,21 @@ export class CircuitSerializer {
         const rotInt = stream.read(10);
 
         const typeStr = TYPE_LIST[typeNum];
-        const newPart = PartFactory.create(typeStr, baseId + i, x, y);
+        let newPart;
+        
+        // TextLabelの場合、テキスト情報を読み込んで復元
+        if (typeStr === CONST.PART_TYPE.TEXT_LABEL) {
+          const textLength = stream.read(6);
+          let text = '';
+          for (let j = 0; j < textLength; j++) {
+            text += String.fromCharCode(stream.read(16));
+          }
+          // TextLabelコンストラクタを直接呼び出してテキストを渡す
+          const TextLabelClass = PartFactory.create(CONST.PART_TYPE.TEXT_LABEL, 0, 0, 0).constructor;
+          newPart = new TextLabelClass(baseId + i, x, y, text || 'txt');
+        } else {
+          newPart = PartFactory.create(typeStr, baseId + i, x, y);
+        }
 
         if (newPart) {
           const rotRad = (rotInt / 1023) * Math.PI * 2;
