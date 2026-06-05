@@ -59,6 +59,12 @@
           <span class="slider"></span>
           <span class="label-text" id="label-move-snap">Grid Snap</span>
         </label>
+
+        <label class="toggle-switch">
+          <input type="checkbox" id="parts-count-toggle">
+          <span class="slider"></span>
+          <span class="label-text" id="label-parts-count">Parts Count</span>
+        </label>
       </div>
     </div>
     <button class="file-btn reset-btn" id="btn-reset"></button>
@@ -106,6 +112,13 @@
             <span class="label-text">Show Grid</span>
           </label>
         </div>
+
+        <div class="menu-item-group">
+          <div class="menu-label">Parts Count</div>
+          <div id="mobile-parts-count-display" class="mobile-parts-count">
+            <!-- JavaScriptで動的生成 -->
+          </div>
+        </div>
       </div>
     </div>
 
@@ -143,6 +156,10 @@
     </div>
   </div>
   
+  <div id="pc-parts-count-display" class="pc-ui parts-count-display hidden">
+    <!-- JavaScriptで動的生成 -->
+  </div>
+
   <div id="pc-zoom-controls" class="pc-ui zoom-controls">
     <span class="zoom-icon">-</span>
     <input type="range" id="zoom-slider" min="0.2" max="2.0" step="0.1" value="1.0">

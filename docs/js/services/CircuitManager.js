@@ -10,6 +10,7 @@ import { GraphUtils } from '../utils/GraphUtils.js'; // GraphUtilsを使用
 import { CircuitSerializer } from '../utils/CircuitSerializer.js';
 import { SmoothValue, SmoothRotation } from '../utils/Animator.js';
 import { MathUtils } from '../utils/MathUtils.js';
+import { PartsCounter } from '../utils/PartsCounter.js';
 
 /**
  * 回路マネージャー
@@ -63,6 +64,9 @@ export class CircuitManager {
       h: new SmoothValue(CONST.MULTI_SELECT_MODE.CURSOR_HEIGHT, 0.3, 1.0),
       r: new SmoothValue(CONST.MULTI_SELECT_MODE.CURSOR_CORNER_RADIUS, 0.3, 1.0)
     };
+
+    // ★追加: パーツカウント更新のコールバック
+    this.onPartsCountUpdate = null;
   }
 
   // ==================== 初期化・状態管理 ====================
@@ -804,6 +808,12 @@ export class CircuitManager {
 
     this.drawDeleteModeWarning();
     this.drawMultiSelectOverlay();
+
+    // ★追加: パーツ数カウントを通知（UIControllerがリスナー登録）
+    if (this.onPartsCountUpdate) {
+      const countData = PartsCounter.countParts(this.parts, this.wires);
+      this.onPartsCountUpdate(countData);
+    }
   }
 
 

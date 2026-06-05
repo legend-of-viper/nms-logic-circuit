@@ -4,6 +4,7 @@ import { CONST } from '../config/constants.js';
 import { PartFactory } from '../models/PartFactory.js';
 import { deviceDetector } from '../utils/DeviceDetector.js';
 import { DeleteCursorOverlay } from './DeleteCursorOverlay.js';
+import { PartsCounter } from '../utils/PartsCounter.js';
 
 /**
  * UIコントローラー
@@ -16,6 +17,9 @@ export class UIController {
     
     // スマホ専用削除カーソルのオーバーレイ
     this.deleteCursorOverlay = null;
+    
+    // ★追加: パーツカウント表示の状態
+    this.partsCountVisible = false;
   }
 
   /**
@@ -46,6 +50,11 @@ export class UIController {
     if (deviceDetector.isPC()) {
       this.setupPCViewControls();
     }
+
+    // ★追加: パーツカウント更新のコールバックを登録
+    this.simulator.onPartsCountUpdate = (countData) => {
+      this.updatePartsCountDisplay(countData);
+    };
   }
 
   /**
@@ -86,6 +95,27 @@ export class UIController {
       const mobileGridCheck = document.getElementById(CONST.DOM_IDS.MOBILE.GRID_VISIBLE);
       if (pcGridCheck) pcGridCheck.checked = isGridVisible;
       if (mobileGridCheck) mobileGridCheck.checked = isGridVisible;
+    }
+
+    // 4. パーツカウント表示設定の復元（PC版のみ）
+    if (deviceDetector.isPC()) {
+      const savedPartsCount = localStorage.getItem(CONST.STORAGE_KEYS.PARTS_COUNT_VISIBLE);
+      if (savedPartsCount !== null) {
+        this.partsCountVisible = (savedPartsCount === 'true');
+        
+        const pcPartsCountCheck = document.getElementById(CONST.DOM_IDS.PC.PARTS_COUNT_TOGGLE);
+        if (pcPartsCountCheck) pcPartsCountCheck.checked = this.partsCountVisible;
+        
+        // 表示状態を反映
+        const display = document.getElementById(CONST.DOM_IDS.PC.PARTS_COUNT_DISPLAY);
+        if (display) {
+          if (this.partsCountVisible) {
+            display.classList.remove('hidden');
+          } else {
+            display.classList.add('hidden');
+          }
+        }
+      }
     }
   }
 
@@ -178,6 +208,10 @@ setupLabels() {
 
     const pcGridLabel = document.getElementById('label-grid-visible');
     if (pcGridLabel) pcGridLabel.textContent = CONST.UI_LABELS.GRID_VISIBLE;
+
+    // ★追加: パーツカウントラベル
+    const pcPartsCountLabel = document.getElementById('label-parts-count');
+    if (pcPartsCountLabel) pcPartsCountLabel.textContent = CONST.UI_LABELS.PARTS_COUNT;
     
     // パーツボタンの文字はCSSで透明にしていますが、念のため空にしておくならここで行います
     const partBtnIds = ['btn-power', 'btn-auto-switch', 'btn-inverter', 'btn-button', 'btn-wall-switch', 'btn-color-light', 'btn-power-door', 'btn-floor-switch'];
@@ -578,6 +612,27 @@ setupLabels() {
         updateGridSetting(event.target.checked);
         if (pcGridCheck) pcGridCheck.checked = event.target.checked;
       });
+    }
+
+    // ★追加: パーツカウント表示トグル（PC版のみ）
+    if (deviceDetector.isPC()) {
+      const pcPartsCountCheck = document.getElementById(CONST.DOM_IDS.PC.PARTS_COUNT_TOGGLE);
+      
+      if (pcPartsCountCheck) {
+        pcPartsCountCheck.addEventListener('change', (event) => {
+          this.partsCountVisible = event.target.checked;
+          localStorage.setItem(CONST.STORAGE_KEYS.PARTS_COUNT_VISIBLE, this.partsCountVisible);
+          
+          const display = document.getElementById(CONST.DOM_IDS.PC.PARTS_COUNT_DISPLAY);
+          if (display) {
+            if (this.partsCountVisible) {
+              display.classList.remove('hidden');
+            } else {
+              display.classList.add('hidden');
+            }
+          }
+        });
+      }
     }
     
     // モバイル固有のUI操作
@@ -981,6 +1036,64 @@ setupLabels() {
         mobileBtn.classList.add('active');
       } else {
         mobileBtn.classList.remove('active');
+      }
+    }
+  }
+
+  /**
+   * ★追加: パーツ数表示を更新
+   * @param {Object} countData - { partCounts: Map, total: number }
+   */
+  updatePartsCountDisplay(countData) {
+    const { partCounts, total } = countData;
+    
+    // PC版の更新
+    if (deviceDetector.isPC()) {
+      const pcDisplay = document.getElementById(CONST.DOM_IDS.PC.PARTS_COUNT_DISPLAY);
+      if (pcDisplay) {
+        let html = '';
+        
+        // パーツごとにカウントを表示
+        for (const [partType, count] of partCounts) {
+          const displayName = PartsCounter.getDisplayName(partType);
+          html += `<div class="parts-count-line">`;
+          html += `<span class="parts-count-name">${displayName}</span>`;
+          html += `<span class="parts-count-value">${count}</span>`;
+          html += `</div>`;
+        }
+        
+        // 合計を表示
+        html += `<div class="parts-count-line total">`;
+        html += `<span class="parts-count-name">Total</span>`;
+        html += `<span class="parts-count-value">${total}</span>`;
+        html += `</div>`;
+        
+        pcDisplay.innerHTML = html;
+      }
+    }
+    
+    // モバイル版の更新
+    if (deviceDetector.isMobile()) {
+      const mobileDisplay = document.getElementById(CONST.DOM_IDS.MOBILE.PARTS_COUNT_DISPLAY);
+      if (mobileDisplay) {
+        let html = '';
+        
+        // パーツごとにカウントを表示
+        for (const [partType, count] of partCounts) {
+          const displayName = PartsCounter.getDisplayName(partType);
+          html += `<div class="parts-count-line">`;
+          html += `<span class="parts-count-name">${displayName}</span>`;
+          html += `<span class="parts-count-value">${count}</span>`;
+          html += `</div>`;
+        }
+        
+        // 合計を表示
+        html += `<div class="parts-count-line total">`;
+        html += `<span class="parts-count-name">Total</span>`;
+        html += `<span class="parts-count-value">${total}</span>`;
+        html += `</div>`;
+        
+        mobileDisplay.innerHTML = html;
       }
     }
   }

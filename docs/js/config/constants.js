@@ -76,6 +76,7 @@ const COMMON_CONST = {
     FLOOR_SWITCH: 'Floor Switch',
     PROXIMITY_SWITCH: 'Proximity Switch',
     TEXT_LABEL: 'Text Label',
+    WIRE: 'Wire',
     SAVE: 'Save',
     LOAD: 'Load',
     SHARE: 'Share',
@@ -84,7 +85,8 @@ const COMMON_CONST = {
     DUPLICATE: 'Duplicate Selection (Ctrl+D)', // ★追加
     ROTATION_SNAP: 'Rotation Snap',
     MOVE_SNAP: 'Grid Snap',
-    GRID_VISIBLE: 'Show Grid'
+    GRID_VISIBLE: 'Show Grid',
+    PARTS_COUNT: 'Parts Count'
   },
 
   // グリッドの設定
@@ -136,6 +138,25 @@ const COMMON_CONST = {
     SNAP_DISTANCE_MULTIPLIER: 1.0,
   },
 
+  // パーツカウントの設定
+  PART_COUNT: {
+    // カウント対象外のパーツタイプ
+    EXCLUDED_TYPES: ['POWER', 'JOINT', 'TEXT_LABEL'],
+    
+    // パーツの表示順序（index.htmlのボタン順）
+    DISPLAY_ORDER: [
+      'AUTO_SWITCH',
+      'INVERTER', 
+      'BUTTON',
+      'WALL_SWITCH',
+      'FLOOR_SWITCH',
+      'PROXIMITY_SWITCH',
+      'COLOR_LIGHT',
+      'POWER_DOOR',
+      'WIRE'
+    ]
+  },
+
   // アニメーション設定
   ANIMATION: {
     ROTATION_SPEED: 0.2,              // 1フレームで近づく割合 (0.0～1.0)
@@ -166,7 +187,9 @@ const COMMON_CONST = {
       SHARE: 'btn-share',
       ROTATION_SNAP: 'rotation-snap-checkbox',
       MOVE_SNAP: 'move-snap-checkbox',
-      GRID_VISIBLE: 'grid-visible-checkbox'
+      GRID_VISIBLE: 'grid-visible-checkbox',
+      PARTS_COUNT_TOGGLE: 'parts-count-toggle',
+      PARTS_COUNT_DISPLAY: 'pc-parts-count-display'
     },
     // モバイル用ボタン
     MOBILE: {
@@ -192,7 +215,8 @@ const COMMON_CONST = {
       SHARE: 'btn-mobile-share',
       ROTATION_SNAP: 'mobile-rotation-snap-checkbox',
       MOVE_SNAP: 'mobile-move-snap-checkbox',
-      GRID_VISIBLE: 'mobile-grid-visible-checkbox'
+      GRID_VISIBLE: 'mobile-grid-visible-checkbox',
+      PARTS_COUNT_DISPLAY: 'mobile-parts-count-display'
     },
     // 共通要素
     COMMON: {
@@ -203,7 +227,8 @@ const COMMON_CONST = {
   STORAGE_KEYS: {
     ROTATION_SNAP: 'nms_circuit_rotation_snap', // 回転スナップ設定
     MOVE_SNAP: 'nms_circuit_move_snap',         // 移動スナップ設定
-    GRID_VISIBLE: 'nms_circuit_grid_visible'    // グリッド表示設定
+    GRID_VISIBLE: 'nms_circuit_grid_visible',   // グリッド表示設定
+    PARTS_COUNT_VISIBLE: 'nms_circuit_parts_count_visible' // パーツ数表示設定
   }
 };
 
